@@ -3,7 +3,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline { --background: #1a1a1a;  /* Charcoal Dark Black */
+@theme inline {
+  --background: #1a1a1a;  /* Charcoal Dark Black */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -41,75 +42,106 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Adventure Theme Colors */
+  --color-golden: #d97706;
+  --color-saffron: #f59e0b;
+  --color-amber-light: #fbbf24;
+  --color-earth-dark: #1c1917;
+  --color-earth-medium: #292524;
+  --color-earth-light: #44403c;
+  --color-parchment: #fef3c7;
+  --color-ruby-red: #dc2626;
+  --color-sapphire-blue: #2563eb;
+  --color-emerald-green: #059669;
+
+  /* Animations */
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-gold: pulse-gold 2s ease-in-out infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-grain: grain 8s steps(10) infinite;
+  --animate-dust: dust 20s linear infinite;
+  --animate-spin-slow: spin 20s linear infinite;
+  --animate-bounce-gentle: bounce-gentle 2s ease-in-out infinite;
 }
 
+/* DARK MODE DEFAULT - Always use dark theme */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  
+  /* Charcoal Dark Black Theme */
+  --background: #1a1a1a;           /* Main background ◼️ */
+  --foreground: #f5f5f4;           /* Text color */
+  --card: #262626;                 /* Card background */
+  --card-foreground: #f5f5f4;      /* Card text */
+  --popover: #262626;              /* Popover/dropdown bg */
+  --popover-foreground: #f5f5f4;   /* Popover text */
+  --primary: #d97706;              /* Primary action (golden) */
+  --primary-foreground: #1a1a1a;   /* Primary text */
+  --secondary: #333333;            /* Secondary bg */
+  --secondary-foreground: #f5f5f4; /* Secondary text */
+  --muted: #404040;                /* Muted bg */
+  --muted-foreground: #a8a29e;     /* Muted text */
+  --accent: #b45309;               /* Accent color */
+  --accent-foreground: #f5f5f4;    /* Accent text */
+  --destructive: #dc2626;          /* Error/destructive */
+  --destructive-foreground: #f5f5f4;
+  --border: #404040;               /* Border color */
+  --input: #404040;                /* Input border */
+  --ring: #d97706;                 /* Focus ring */
+  
+  /* Chart colors */
+  --chart-1: #d97706;
+  --chart-2: #f59e0b;
+  --chart-3: #059669;
+  --chart-4: #2563eb;
+  --chart-5: #dc2626;
+
+  /* Sidebar */
+  --sidebar: #262626;
+  --sidebar-foreground: #f5f5f4;
+  --sidebar-primary: #d97706;
+  --sidebar-primary-foreground: #1a1a1a;
+  --sidebar-accent: #333333;
+  --sidebar-accent-foreground: #f5f5f4;
+  --sidebar-border: #404040;
+  --sidebar-ring: #d97706;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Same as root since we're always dark */
+  --background: #1a1a1a;
+  --foreground: #f5f5f4;
+  --card: #262626;
+  --card-foreground: #f5f5f4;
+  --popover: #262626;
+  --popover-foreground: #f5f5f4;
+  --primary: #d97706;
+  --primary-foreground: #1a1a1a;
+  --secondary: #333333;
+  --secondary-foreground: #f5f5f4;
+  --muted: #404040;
+  --muted-foreground: #a8a29e;
+  --accent: #b45309;
+  --accent-foreground: #f5f5f4;
+  --destructive: #dc2626;
+  --destructive-foreground: #f5f5f4;
+  --border: #404040;
+  --input: #404040;
+  --ring: #d97706;
+  --chart-1: #d97706;
+  --chart-2: #f59e0b;
+  --chart-3: #059669;
+  --chart-4: #2563eb;
+  --chart-5: #dc2626;
+  --sidebar: #262626;
+  --sidebar-foreground: #f5f5f4;
+  --sidebar-primary: #d97706;
+  --sidebar-primary-foreground: #1a1a1a;
+  --sidebar-accent: #333333;
+  --sidebar-accent-foreground: #f5f5f4;
+  --sidebar-border: #404040;
+  --sidebar-ring: #d97706;
 }
 
 @layer base {
@@ -119,4 +151,223 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ============================================
+   CUSTOM ANIMATIONS
+   ============================================ */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
+  50% { box-shadow: 0 0 0 15px rgba(217, 119, 6, 0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  30% { transform: translate(3%, -15%); }
+  50% { transform: translate(12%, 9%); }
+  70% { transform: translate(9%, 4%); }
+  90% { transform: translate(-1%, 7%); }
+}
+
+@keyframes dust {
+  0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Golden Gradient Text */
+.text-gradient-golden {
+  background: linear-gradient(135deg, #d97706, #f59e0b, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Parchment Gradient Text */
+.text-gradient-parchment {
+  background: linear-gradient(135deg, #fef3c7, #fde68a, #fef3c7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Film Grain Overlay */
+.grain-overlay {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  animation: grain 8s steps(10) infinite;
+}
+
+/* Readability Veils for Scrollytelling */
+.veil-left {
+  background: linear-gradient(90deg, 
+    rgba(26, 26, 26, 0.92) 0%, 
+    rgba(26, 26, 26, 0.7) 50%, 
+    transparent 100%
+  );
+}
+
+.veil-center {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(26, 26, 26, 0.88) 0%,
+    rgba(26, 26, 26, 0.6) 50%,
+    transparent 80%
+  );
+}
+
+.veil-right {
+  background: linear-gradient(270deg,
+    rgba(26, 26, 26, 0.92) 0%,
+    rgba(26, 26, 26, 0.7) 50%,
+    transparent 100%
+  );
+}
+
+/* Floating Particles */
+.particles-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #d97706;
+  border-radius: 50%;
+  animation: dust 20s linear infinite;
+  box-shadow: 0 0 6px #d97706, 0 0 12px rgba(217, 119, 6, 0.3);
+}
+
+/* Adventure Card Hover Effect */
+.card-adventure {
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-adventure::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, #d97706, transparent, #f59e0b);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.card-adventure:hover::before {
+  opacity: 1;
+}
+
+.card-adventure:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(217, 119, 6, 0.3), 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+/* Adventure Form Inputs */
+.input-adventure {
+  background: rgba(38, 38, 38, 0.8);
+  border: 1px solid #404040;
+  transition: all 0.3s ease;
+}
+
+.input-adventure:focus {
+  border-color: #d97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2), 0 4px 20px rgba(217, 119, 6, 0.3);
+  outline: none;
+}
+
+/* Adventure Button */
+.btn-adventure {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-adventure::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.btn-adventure:hover::before {
+  left: 100%;
+}
+
+.btn-adventure:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(217, 119, 6, 0.3);
+}
+
+/* Gemstone Rating Tiers */
+.gem-rough { background: linear-gradient(135deg, #78716c, #57534e); }
+.gem-emerald { background: linear-gradient(135deg, #059669, #047857); }
+.gem-ruby { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+.gem-sapphire { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+.gem-diamond { background: linear-gradient(135deg, #e5e7eb, #d1d5db); }
+
+/* Loading Screen */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a1a;
+  z-index: 99999;
+}
+
+/* Compass Spin Animation */
+.compass-spin {
+  animation: spin 60s linear infinite;
 }
