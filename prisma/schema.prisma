@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// Uncharted Expedition Feedback Portal — backend-ready schema.
+// The skeleton runtime uses an in-memory mock store (see src/lib/services.ts),
+// but this schema is the contract for seniors wiring up a real DB.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// An expedition participant. name + email + department are captured on the
+// landing page; the rest is mutated as the user progresses through labs.
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String
+  department      String
+
+  // Array of product IDs the user has submitted feedback for. Stored as a
+  // JSON-encoded string because SQLite does not have a native array type.
+  completedProducts String // JSON: string[]
+
+  // Unlocked lab IDs in linear progression order: ["a"] -> ["a","b"] -> ["a","b","c"]
+  unlockedLabs      String // JSON: string[]
+
+  // Lab IDs the user has fully cleared (all products submitted -> shard earned).
+  completedLabs     String // JSON: string[]
+
+  // Collected certificate shard IDs (one per completed lab).
+  shards            String // JSON: string[]
+
+  // Optional clue IDs the user has uncovered (never blocks progression).
+  discoveredClues   String // JSON: string[]
+
+  // Optional treasure IDs the user has found (never blocks progression).
+  discoveredTreasures String // JSON: string[]
+
+  completionDate    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  feedback FeedbackEntry[]
+}
+
+// A single feedback entry submitted for a product (a "discovery" in Uncharted terms).
+// `tableId` is preserved from the original Minecraft schema so the existing
+// admin/leaderboard CSV pipeline keeps working.
+model FeedbackEntry {
+  id               String   @id @default(cuid())
+  studentName      String
+  studentEmail     String
+  studentDepartment String
+  // 1..5 — Rough Stone=1, Emerald=2, Ruby=3, Sapphire=4, Diamond=5
+  rating           Int
+  comment          String
+  tableId          String
+  timestamp       String
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [studentEmail], references: [email], onDelete: Cascade)
+
+  @@index([studentEmail])
+  @@index([tableId])
+}
+
+// Static lab/checkpoint definitions. Seeded on first boot.
+model Lab {
+  id      String @id
+  labId   String @unique // "a" | "b" | "c"
+  labName String
+  // JSON-encoded Product[]
+  products String
+}
+
+// Admin user for /admin/* routes.
+model Admin {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  password    String
+  permissions String   // JSON: string[]
+  lastLogin   DateTime?
+  createdAt   DateTime @default(now())
+}
