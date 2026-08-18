@@ -9,13 +9,15 @@ import { DEPARTMENT_OPTIONS } from '@/lib/mock-data';
 import { isExpeditionComplete } from '@/lib/expedition-storage';
 
 const TOTAL_FRAMES = 120;
-const FRAME_PREFIX = '/frames/frame_';
-const FRAME_SUFFIX = '_delay-0.033s.jpg';
+const FRAME_PREFIX = '/frames/ezgif-frame-';
+const FRAME_SUFFIX = '.jpg';
 // Scroll distance the frame sequence plays out over, in viewport heights.
 const SCROLL_HEIGHT_VH = 400;
 
 function frameSrc(i: number) {
-  return `${FRAME_PREFIX}${String(i).padStart(3, '0')}${FRAME_SUFFIX}`;
+  // Internal frame index is 0-based (0..TOTAL_FRAMES-1); filenames on disk
+  // are 1-based (ezgif-frame-001.jpg .. ezgif-frame-120.jpg).
+  return `${FRAME_PREFIX}${String(i + 1).padStart(3, '0')}${FRAME_SUFFIX}`;
 }
 
 export default function LandingReveal() {
@@ -62,11 +64,23 @@ export default function LandingReveal() {
   // frame sequence gets going.
   const logoOpacity = useTransform(maxProgress, [0, 0.08, 0.18], [1, 1, 0]);
   const logoScale = useTransform(maxProgress, [0, 0.18], [1, 0.85]);
-  // Mid-scroll branding, filling the long stretch after the logo is gone
-  // and before the signup card appears, so the frame background never
-  // sits alone for hundreds of vh of scroll.
-  const midOpacity = useTransform(scrollYProgress, [0.35, 0.45, 0.6, 0.7], [0, 1, 1, 0]);
-  const midY = useTransform(scrollYProgress, [0.35, 0.45], [24, 0]);
+
+  // Short info blurbs + the Product Showcase logo, spread across the long
+  // middle stretch of the scroll so the frame background is never on its
+  // own for hundreds of vh. Each one fades in, holds, then fades out
+  // before the next takes over.
+  const blurb1Opacity = useTransform(scrollYProgress, [0.2, 0.28, 0.34, 0.38], [0, 1, 1, 0]);
+  const blurb1Y = useTransform(scrollYProgress, [0.2, 0.28], [24, 0]);
+
+  const midOpacity = useTransform(scrollYProgress, [0.4, 0.48, 0.54, 0.58], [0, 1, 1, 0]);
+  const midY = useTransform(scrollYProgress, [0.4, 0.48], [24, 0]);
+
+  const blurb2Opacity = useTransform(scrollYProgress, [0.6, 0.68, 0.74, 0.78], [0, 1, 1, 0]);
+  const blurb2Y = useTransform(scrollYProgress, [0.6, 0.68], [24, 0]);
+
+  const blurb3Opacity = useTransform(scrollYProgress, [0.8, 0.86, 0.9], [0, 1, 1]);
+  const blurb3Y = useTransform(scrollYProgress, [0.8, 0.86], [24, 0]);
+
   const cardOpacity = useTransform(scrollYProgress, [0.92, 1], [0, 1]);
   const cardY = useTransform(scrollYProgress, [0.92, 1], [40, 0]);
   const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
@@ -220,9 +234,24 @@ export default function LandingReveal() {
           <p className="text-xs uppercase tracking-[0.3em]">Scroll to begin</p>
         </motion.div>
 
-        {/* Mid-scroll filler — keeps the background from looking empty
-            during the long stretch after the logo is gone and before the
-            signup card appears. */}
+        {/* Info blurb 1 — introduces TechX */}
+        <motion.div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center"
+          style={{ opacity: blurb1Opacity, y: blurb1Y }}
+        >
+          <div className="max-w-md">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-white/50">Welcome to</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">TechX</h2>
+            <p className="mt-3 text-sm leading-relaxed text-white/70">
+              A hands-on showcase of student-built products, spread across three checkpoints. Explore, give
+              feedback, and collect a certificate along the way.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Mid-scroll filler — Product Showcase logo, keeps the background
+            from looking empty during the long stretch after the logo is
+            gone and before the signup card appears. */}
         <motion.div
           className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center"
           style={{ opacity: midOpacity, y: midY }}
@@ -234,6 +263,33 @@ export default function LandingReveal() {
             height={130}
             className="w-[69vw] max-w-2xl drop-shadow-2xl"
           />
+        </motion.div>
+
+        {/* Info blurb 2 — what to expect at the checkpoints */}
+        <motion.div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center"
+          style={{ opacity: blurb2Opacity, y: blurb2Y }}
+        >
+          <div className="max-w-md">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-white/50">Three checkpoints</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Discover, rate, collect</h2>
+            <p className="mt-3 text-sm leading-relaxed text-white/70">
+              Visit each product, share quick feedback, and earn a certificate shard per checkpoint. Clues and
+              a treasure hunt are optional extras along the way.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Info blurb 3 — call to action into the signup card */}
+        <motion.div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center"
+          style={{ opacity: blurb3Opacity, y: blurb3Y }}
+        >
+          <div className="max-w-md">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-white/50">Ready?</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Your expedition starts now</h2>
+            <p className="mt-3 text-sm leading-relaxed text-white/70">Keep scrolling to sign in and begin.</p>
+          </div>
         </motion.div>
 
         {/* Signup card, revealed at the end of the scroll sequence */}
