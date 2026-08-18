@@ -433,297 +433,179 @@ const RegistrationForm = ({ onStartExpedition }: RegistrationFormProps) => {
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="w-full max-w-lg relative"
+        className="w-full max-w-md"
       >
-        {/* 📜 SCROLL/PARCHMENT CONTAINER */}
-        <div 
-          className="relative rounded-lg overflow-hidden shadow-2xl"
-          style={{
-            background: `
-              linear-gradient(135deg, 
-                #e8dcc8 0%, 
-                #f5edd8 20%, 
-                #faf6ed 40%,
-                #f5edd8 60%,
-                #e8dcc8 80%,
-                #ddd0b8 100%
-              )
-            `,
-            boxShadow: `
-              0 25px 50px -12px rgba(0, 0, 0, 0.5),
-              inset 0 0 80px rgba(139, 90, 43, 0.08),
-              0 0 0 1px rgba(139, 90, 43, 0.2)
-            `,
-          }}
-        >
-          {/* Parchment texture overlay */}
-          <div 
-            className="absolute inset-0 opacity-[0.12] pointer-events-none"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' result='noise'/%3E%3CfeDiffuseLighting in='noise' lighting-color='%23f5e6c8' surfaceScale='2'%3E%3CfeDistantLight azimuth='45' elevation='60'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E")`,
+        <div className="text-center mb-8">
+          <span 
+            className="text-sm tracking-widest uppercase font-semibold"
+            style={{ fontFamily: 'Cinzel, serif', color: '#8b4513' }}
+          >
+            Begin Your Journey
+          </span>
+          <h2 
+            className="text-3xl md:text-4xl font-bold mt-4 mb-3"
+            style={{ 
+              fontFamily: 'Cinzel, serif',
+              color: '#3d2914',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.05)'
             }}
-          />
-
-          {/* Aged spots/stains */}
-          <div 
-            className="absolute top-[8%] left-[10%] w-24 h-24 rounded-full pointer-events-none opacity-[0.06]"
-            style={{ 
-              background: 'radial-gradient(circle, #8b7355 0%, transparent 70%)',
-              filter: 'blur(15px)'
-            }} 
-          />
-          <div 
-            className="absolute bottom-[15%] right-[12%] w-28 h-28 rounded-full pointer-events-none opacity-[0.05]"
-            style={{ 
-              background: 'radial-gradient(circle, #a08060 0%, transparent 70%)',
-              filter: 'blur(18px)'
-            }} 
-          />
-          
-          {/* Decorative border - scroll-like frame */}
-          <div 
-            className="absolute inset-4 rounded pointer-events-none border-2 opacity-30"
-            style={{ 
-              borderColor: '#8b7355',
-              boxShadow: 'inset 0 0 20px rgba(139, 90, 43, 0.1)',
-            }}
-          />
-          
-          {/* Corner ornaments */}
-          <div 
-            className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 rounded-tl-sm pointer-events-none opacity-50"
-            style={{ borderColor: '#8b4513' }}
-          />
-          <div 
-            className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 rounded-tr-sm pointer-events-none opacity-50"
-            style={{ borderColor: '#8b4513' }}
-          />
-          <div 
-            className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 rounded-bl-sm pointer-events-none opacity-50"
-            style={{ borderColor: '#8b4513' }}
-          />
-          <div 
-            className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 rounded-br-sm pointer-events-none opacity-50"
-            style={{ borderColor: '#8b4513' }}
-          />
-
-          {/* Torn edge effect (top) */}
-          <svg className="absolute top-0 left-0 right-0 h-3 w-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 400 10">
-            <path 
-              d="M0,5 Q10,0 20,5 T40,5 T60,5 T80,5 T100,5 T120,5 T140,5 T160,5 T180,5 T200,5 T220,5 T240,5 T260,5 T280,5 T300,5 T320,5 T340,5 T360,5 T380,5 T400,5 L400,10 L0,10 Z" 
-              fill="#d4c4a8" 
-              opacity="0.5"
-            />
-          </svg>
-
-          {/* Torn edge effect (bottom) */}
-          <svg className="absolute bottom-0 left-0 right-0 h-3 w-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 400 10">
-            <path 
-              d="M0,5 Q10,10 20,5 T40,5 T60,5 T80,5 T100,5 T120,5 T140,5 T160,5 T180,5 T200,5 T220,5 T240,5 T260,5 T280,5 T300,5 T320,5 T340,5 T360,5 T380,5 T400,5 L400,0 L0,0 Z" 
-              fill="#d4c4a8" 
-              opacity="0.5"
-            />
-          </svg>
-
-          {/* Content */}
-          <div className="relative z-10 p-8 md:p-10">
-            {/* Header with wax seal decoration */}
-            <div className="text-center mb-8 relative">
-              {/* Compass/Wax seal icon */}
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
-                className="text-4xl mb-4 mx-auto inline-block drop-shadow-md"
-                style={{ filter: 'drop-shadow(0 2px 4px rgba(139, 69, 19, 0.3))' }}
-              >
-                🧭
-              </motion.div>
-              
-              <span 
-                className="text-xs tracking-[0.3em] uppercase font-semibold block mb-3"
-                style={{ fontFamily: 'Cinzel, serif', color: '#8b4513', letterSpacing: '0.3em' }}
-              >
-                Begin Your Journey
-              </span>
-              <h2 
-                className="text-2xl md:text-3xl font-bold mb-3"
-                style={{ 
-                  fontFamily: 'Cinzel, serif',
-                  color: '#3d2914',
-                  textShadow: '1px 1px 3px rgba(0,0,0,0.08)'
-                }}
-              >
-                Register as{' '}
-                <span style={{ color: '#8b4513' }}>Explorer</span>
-              </h2>
-              <div 
-                className="w-16 h-px mx-auto mb-3 opacity-40"
-                style={{ background: 'linear-gradient(90deg, transparent, #8b7355, transparent)' }}
-              />
-              <p 
-                className="text-sm italic"
-                style={{ fontFamily: 'Crimson Pro, serif', color: '#5c4033' }}
-              >
-                Enter your details to receive your expedition pass
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label 
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: '#5c4033', fontFamily: 'Cinzel, serif' }}
-                >
-                  ✦ Explorer Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter your name"
-                  className="w-full px-4 py-3 rounded border-2 focus:outline-none transition-all"
-                  style={{
-                    background: 'rgba(250, 246, 237, 0.9)',
-                    borderColor: '#c4a57b',
-                    color: '#3d2914',
-                    fontFamily: 'Crimson Pro, serif',
-                    boxShadow: 'inset 0 2px 4px rgba(139, 90, 43, 0.08)',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#8b4513';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(139, 69, 19, 0.15), inset 0 2px 4px rgba(139, 90, 43, 0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#c4a57b';
-                    e.target.style.boxShadow = 'inset 0 2px 4px rgba(139, 90, 43, 0.08)';
-                  }}
-                />
-              </div>
-
-              <div>
-                <label 
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: '#5c4033', fontFamily: 'Cinzel, serif' }}
-                >
-                  ✦ Expedition Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="your@email.com"
-                  className="w-full px-4 py-3 rounded border-2 focus:outline-none transition-all"
-                  style={{
-                    background: 'rgba(250, 246, 237, 0.9)',
-                    borderColor: '#c4a57b',
-                    color: '#3d2914',
-                    fontFamily: 'Crimson Pro, serif',
-                    boxShadow: 'inset 0 2px 4px rgba(139, 90, 43, 0.08)',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#8b4513';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(139, 69, 19, 0.15), inset 0 2px 4px rgba(139, 90, 43, 0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#c4a57b';
-                    e.target.style.boxShadow = 'inset 0 2px 4px rgba(139, 90, 43, 0.08)';
-                  }}
-                />
-              </div>
-
-              <div>
-                <label 
-                  className="block text-xs font-semibold mb-2 uppercase tracking-wider"
-                  style={{ color: '#5c4033', fontFamily: 'Cinzel, serif' }}
-                >
-                  ✦ Department
-                </label>
-                <select
-                  required
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full px-4 py-3 rounded border-2 focus:outline-none transition-all appearance-none cursor-pointer"
-                  style={{
-                    background: 'rgba(250, 246, 237, 0.95)',
-                    borderColor: '#c4a57b',
-                    color: '#3d2914',
-                    fontFamily: 'Crimson Pro, serif',
-                    boxShadow: 'inset 0 2px 4px rgba(139, 90, 43, 0.08)',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#8b4513';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(139, 69, 19, 0.15), inset 0 2px 4px rgba(139, 90, 43, 0.08)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#c4a57b';
-                    e.target.style.boxShadow = 'inset 0 2px 4px rgba(139, 90, 43, 0.08)';
-                  }}
-                >
-                  <option value="">Select department...</option>
-                  <option value="engineering">Engineering</option>
-                  <option value="design">Design</option>
-                  <option value="product">Product</option>
-                  <option value="marketing">Marketing</option>
-                  <option value="operations">Operations</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              <motion.button
-                type="submit"
-                disabled={isSubmitting}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-4 px-6 rounded font-semibold text-lg shadow-xl disabled:opacity-70 transition-all relative overflow-hidden mt-6"
-                style={{
-                  background: 'linear-gradient(135deg, #8b4513 0%, #a0522d 50%, #8b4513 100%)',
-                  color: '#f5e6d3',
-                  fontFamily: 'Cinzel, serif',
-                  boxShadow: '0 6px 20px rgba(139, 69, 19, 0.4), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -2px 4px rgba(0,0,0,0.2)',
-                  border: '1px solid rgba(139, 69, 19, 0.3)',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="inline-block w-5 h-5 border-2 border-[#f5e6d3] border-t-transparent rounded-full"
-                    />
-                    Preparing Expedition...
-                  </span>
-                ) : (
-                  <>
-                    🗺️ Begin Expedition
-                    <div 
-                      className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/25 to-transparent"
-                      style={{ transition: 'left 0.6s ease' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.left = '100%'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.left = '-100%'; }}
-                    />
-                  </>
-                )}
-              </motion.button>
-            </form>
-
-            {/* Footer note */}
-            <p 
-              className="text-center text-xs mt-6 italic opacity-70"
-              style={{ color: '#8b7355', fontFamily: 'Crimson Pro, serif' }}
-            >
-              ✦ By registering, you join the league of elite explorers ✦
-            </p>
-          </div>
+          >
+            Register as{' '}
+            <span style={{ color: '#8b4513' }}>Explorer</span>
+          </h2>
+          <p 
+            className="text-base"
+            style={{ fontFamily: 'Crimson Pro, serif', color: '#5c4033' }}
+          >
+            Enter your details to receive your expedition pass
+          </p>
         </div>
 
-        {/* Shadow beneath scroll */}
-        <div 
-          className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[90%] h-8 rounded-full blur-xl opacity-40"
-          style={{ background: 'rgba(0, 0, 0, 0.5)' }}
-        />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label 
+              className="block text-sm font-medium mb-2"
+              style={{ color: '#3d2914', fontFamily: 'Cinzel, serif' }}
+            >
+              Explorer Name
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Enter your name"
+              className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all"
+              style={{
+                background: 'rgba(245, 230, 211, 0.8)',
+                borderColor: '#c4a57b',
+                color: '#3d2914',
+                fontFamily: 'Crimson Pro, serif',
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#8b4513';
+                e.target.style.boxShadow = '0 0 0 3px rgba(139, 69, 19, 0.2)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#c4a57b';
+                e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.05)';
+              }}
+            />
+          </div>
+
+          <div>
+            <label 
+              className="block text-sm font-medium mb-2"
+              style={{ color: '#3d2914', fontFamily: 'Cinzel, serif' }}
+            >
+              Expedition Email
+            </label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="your@email.com"
+              className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all"
+              style={{
+                background: 'rgba(245, 230, 211, 0.8)',
+                borderColor: '#c4a57b',
+                color: '#3d2914',
+                fontFamily: 'Crimson Pro, serif',
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#8b4513';
+                e.target.style.boxShadow = '0 0 0 3px rgba(139, 69, 19, 0.2)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#c4a57b';
+                e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.05)';
+              }}
+            />
+          </div>
+
+          <div>
+            <label 
+              className="block text-sm font-medium mb-2"
+              style={{ color: '#3d2914', fontFamily: 'Cinzel, serif' }}
+            >
+              Department
+            </label>
+            <select
+              required
+              value={formData.department}
+              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-all appearance-none cursor-pointer"
+              style={{
+                background: 'rgba(245, 230, 211, 0.95)',
+                borderColor: '#c4a57b',
+                color: '#3d2914',
+                fontFamily: 'Crimson Pro, serif',
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#8b4513';
+                e.target.style.boxShadow = '0 0 0 3px rgba(139, 69, 19, 0.2)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#c4a57b';
+                e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.05)';
+              }}
+            >
+              <option value="">Select department</option>
+              <option value="engineering">Engineering</option>
+              <option value="design">Design</option>
+              <option value="product">Product</option>
+              <option value="marketing">Marketing</option>
+              <option value="operations">Operations</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <motion.button
+            type="submit"
+            disabled={isSubmitting}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-4 px-6 rounded-lg font-semibold text-lg shadow-lg disabled:opacity-70 transition-all relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, #8b4513, #a0522d, #8b4513)',
+              color: '#f5e6d3',
+              fontFamily: 'Cinzel, serif',
+              boxShadow: '0 4px 16px rgba(139, 69, 19, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)'
+            }}
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="inline-block w-5 h-5 border-2 border-[#f5e6d3] border-t-transparent rounded-full"
+                />
+                Preparing Expedition...
+              </span>
+            ) : (
+              <>
+                Start Expedition 🗺️
+                <div 
+                  className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  style={{ transition: 'left 0.5s ease' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.left = '100%'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.left = '-100%'; }}
+                />
+              </>
+            )}
+          </motion.button>
+        </form>
+
+        <p 
+          className="text-center text-xs mt-6"
+          style={{ color: '#8b7355', fontFamily: 'Crimson Pro, serif' }}
+        >
+          By registering, you join the league of elite explorers
+        </p>
       </motion.div>
     </div>
   );
