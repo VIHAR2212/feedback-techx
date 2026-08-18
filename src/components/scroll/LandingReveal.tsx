@@ -49,6 +49,7 @@ export default function LandingReveal() {
   const logoScale = useTransform(scrollYProgress, [0, 0.18], [1, 0.85]);
   const cardOpacity = useTransform(scrollYProgress, [0.92, 1], [0, 1]);
   const cardY = useTransform(scrollYProgress, [0.92, 1], [40, 0]);
+  const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
 
   // Redirect signed-in users straight past the reveal.
   useEffect(() => {
@@ -192,7 +193,7 @@ export default function LandingReveal() {
         {/* Scroll hint */}
         <motion.div
           className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-center text-white/70"
-          style={{ opacity: useTransform(scrollYProgress, [0, 0.05], [1, 0]) }}
+          style={{ opacity: scrollHintOpacity }}
         >
           <p className="text-xs uppercase tracking-[0.3em]">Scroll to begin</p>
         </motion.div>
