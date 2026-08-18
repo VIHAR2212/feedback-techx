@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, useMotionValue, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { DEPARTMENT_OPTIONS } from '@/lib/mock-data';
@@ -42,11 +42,27 @@ export default function LandingReveal() {
     offset: ['start start', 'end end'],
   });
 
-  // Logo: fully visible at the top, fades out as the frame sequence gets
-  // going so it doesn't fight with the animation, and the signup card
-  // shows only once scroll has effectively finished.
-  const logoOpacity = useTransform(scrollYProgress, [0, 0.08, 0.18], [1, 1, 0]);
-  const logoScale = useTransform(scrollYProgress, [0, 0.18], [1, 0.85]);
+  // Ratchet: only ever moves forward, even if the user scrolls back up.
+  // The logo's disappearance is driven off this instead of raw
+  // scrollYProgress, so once it's gone it never reappears on scroll-up
+  // followed by scroll-down again.
+  const maxProgress = useMotionValue(0);
+  useEffect(() => {
+    const unsub = scrollYProgress.on('change', (v) => {
+      if (v > maxProgress.get()) maxProgress.set(v);
+    });
+    return () => unsub();
+  }, [scrollYProgress, maxProgress]);
+
+  // Logo: fully visible at the top, fades out once and for all as the
+  // frame sequence gets going.
+  const logoOpacity = useTransform(maxProgress, [0, 0.08, 0.18], [1, 1, 0]);
+  const logoScale = useTransform(maxProgress, [0, 0.18], [1, 0.85]);
+  // Mid-scroll branding, filling the long stretch after the logo is gone
+  // and before the signup card appears, so the frame background never
+  // sits alone for hundreds of vh of scroll.
+  const midOpacity = useTransform(scrollYProgress, [0.35, 0.45, 0.6, 0.7], [0, 1, 1, 0]);
+  const midY = useTransform(scrollYProgress, [0.35, 0.45], [24, 0]);
   const cardOpacity = useTransform(scrollYProgress, [0.92, 1], [0, 1]);
   const cardY = useTransform(scrollYProgress, [0.92, 1], [40, 0]);
   const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
@@ -163,8 +179,8 @@ export default function LandingReveal() {
           <Image
             src="/branding/techx-logo.png"
             alt="TechX"
-            width={260}
-            height={150}
+            width={180}
+            height={180}
             priority
             className="opacity-90"
           />
@@ -185,10 +201,10 @@ export default function LandingReveal() {
           <Image
             src="/branding/techx-logo.png"
             alt="TechX"
-            width={520}
-            height={300}
+            width={500}
+            height={500}
             priority
-            className="w-[60vw] max-w-xl drop-shadow-2xl"
+            className="w-[40vw] max-w-sm drop-shadow-2xl"
           />
         </motion.div>
 
@@ -198,6 +214,22 @@ export default function LandingReveal() {
           style={{ opacity: scrollHintOpacity }}
         >
           <p className="text-xs uppercase tracking-[0.3em]">Scroll to begin</p>
+        </motion.div>
+
+        {/* Mid-scroll filler — keeps the background from looking empty
+            during the long stretch after the logo is gone and before the
+            signup card appears. */}
+        <motion.div
+          className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center"
+          style={{ opacity: midOpacity, y: midY }}
+        >
+          <Image
+            src="/branding/product-showcase-logo.png"
+            alt="Product Showcase"
+            width={505}
+            height={130}
+            className="w-[46vw] max-w-md drop-shadow-2xl"
+          />
         </motion.div>
 
         {/* Signup card, revealed at the end of the scroll sequence */}
