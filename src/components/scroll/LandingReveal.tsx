@@ -42,14 +42,18 @@ export default function LandingReveal() {
     offset: ['start start', 'end end'],
   });
 
-  // Ratchet: only ever moves forward, even if the user scrolls back up.
-  // The logo's disappearance is driven off this instead of raw
-  // scrollYProgress, so once it's gone it never reappears on scroll-up
-  // followed by scroll-down again.
+  // Ratchet that resets when the user is back at the very top of the
+  // page. Within a single scroll-down pass it only moves forward (so the
+  // logo doesn't flicker back in if you nudge up slightly mid-scroll),
+  // but scrolling all the way back up to the start brings it back.
   const maxProgress = useMotionValue(0);
   useEffect(() => {
     const unsub = scrollYProgress.on('change', (v) => {
-      if (v > maxProgress.get()) maxProgress.set(v);
+      if (v <= 0.01) {
+        maxProgress.set(v);
+      } else if (v > maxProgress.get()) {
+        maxProgress.set(v);
+      }
     });
     return () => unsub();
   }, [scrollYProgress, maxProgress]);
@@ -179,8 +183,8 @@ export default function LandingReveal() {
           <Image
             src="/branding/techx-logo.png"
             alt="TechX"
-            width={180}
-            height={180}
+            width={270}
+            height={270}
             priority
             className="opacity-90"
           />
@@ -204,7 +208,7 @@ export default function LandingReveal() {
             width={500}
             height={500}
             priority
-            className="w-[40vw] max-w-sm drop-shadow-2xl"
+            className="w-[60vw] max-w-lg drop-shadow-2xl"
           />
         </motion.div>
 
@@ -228,7 +232,7 @@ export default function LandingReveal() {
             alt="Product Showcase"
             width={505}
             height={130}
-            className="w-[46vw] max-w-md drop-shadow-2xl"
+            className="w-[69vw] max-w-2xl drop-shadow-2xl"
           />
         </motion.div>
 
