@@ -147,33 +147,35 @@ export default function LandingReveal() {
     }, 250);
   };
 
-  if (!loaded) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-black text-white">
-        <Image
-          src="/branding/techx-logo.png"
-          alt="TechX"
-          width={260}
-          height={150}
-          priority
-          className="opacity-90"
-        />
-        <div className="h-1 w-56 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full bg-white/70 transition-[width] duration-150"
-            style={{ width: `${loadProgress}%` }}
-          />
-        </div>
-        <p className="text-xs uppercase tracking-[0.3em] text-white/50">Loading {loadProgress}%</p>
-      </main>
-    );
-  }
-
   return (
     <section ref={containerRef} className="relative bg-black" style={{ height: `${SCROLL_HEIGHT_VH}vh` }}>
       <div className="sticky top-0 h-screen w-full overflow-hidden">
         {/* Frame sequence, scrubbed by scroll */}
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+
+        {/* Loading overlay — sits inside the same scroll container so the
+            ref useScroll binds to is stable from the very first render. */}
+        <div
+          className={`absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black text-white transition-opacity duration-500 ${
+            loaded ? 'pointer-events-none opacity-0' : 'opacity-100'
+          }`}
+        >
+          <Image
+            src="/branding/techx-logo.png"
+            alt="TechX"
+            width={260}
+            height={150}
+            priority
+            className="opacity-90"
+          />
+          <div className="h-1 w-56 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full bg-white/70 transition-[width] duration-150"
+              style={{ width: `${loadProgress}%` }}
+            />
+          </div>
+          <p className="text-xs uppercase tracking-[0.3em] text-white/50">Loading {loadProgress}%</p>
+        </div>
 
         {/* Centered logo, visible at the very top of the page */}
         <motion.div
