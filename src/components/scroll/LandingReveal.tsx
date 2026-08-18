@@ -9,8 +9,8 @@ import { DEPARTMENT_OPTIONS } from '@/lib/mock-data';
 import { isExpeditionComplete } from '@/lib/expedition-storage';
 
 const TOTAL_FRAMES = 120;
-const FRAME_PREFIX = '/frames/ezgif-frame-';
-const FRAME_SUFFIX = '.jpg';
+const FRAME_PREFIX = '/frames/frame_';
+const FRAME_SUFFIX = '_delay-0.016s.jpg';
 // Scroll distance the frame sequence plays out over, in viewport heights.
 const SCROLL_HEIGHT_VH = 400;
 
