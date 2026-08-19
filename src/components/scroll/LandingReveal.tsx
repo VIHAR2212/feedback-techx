@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { motion, useScroll, useTransform, useMotionValue, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
@@ -38,6 +39,9 @@ export default function LandingReveal() {
   const [department, setDepartment] = useState(user?.department || '');
   const [email, setEmail] = useState(user?.email || '');
   const [submitting, setSubmitting] = useState(false);
+  const [nameError, setNameError] = useState(false);
+  const [departmentError, setDepartmentError] = useState(false);
+  const [emailError, setEmailError] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -170,10 +174,17 @@ export default function LandingReveal() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !department) {
-      alert('Please fill in all details, including department.');
-      return;
-    }
+
+    const emailValid = email.includes('@') && email.includes('.');
+    const hasName = name.trim().length > 0;
+    const hasDepartment = department.trim().length > 0;
+
+    if (!hasName) setNameError(true);
+    if (!hasDepartment) setDepartmentError(true);
+    if (!email || !emailValid) setEmailError(true);
+
+    if (!hasName || !hasDepartment || !email || !emailValid) return;
+
     setSubmitting(true);
     login({ name, department, email });
     const complete = isExpeditionComplete(email);
@@ -297,7 +308,8 @@ export default function LandingReveal() {
           </div>
         </motion.div>
 
-        {/* Signup card, revealed at the end of the scroll sequence */}
+        {/* Signup card, revealed at the end of the scroll sequence — stone
+            tablet design, ported from the static prototype. */}
         <motion.div
           className="absolute inset-0 z-20 flex items-center justify-center bg-black/75 p-4 sm:p-6"
           style={{
@@ -312,109 +324,116 @@ export default function LandingReveal() {
                 initial={{ opacity: 0, scale: 0.92, y: 30 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="relative w-full max-w-[520px] select-none"
-                style={{
-                  filter: 'drop-shadow(0 20px 35px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 40px rgba(217, 119, 6, 0.2))',
-                }}
+                className="relative w-full max-w-3xl select-none"
               >
-                {/* Parchment background scroll container — natural transparent ragged edges */}
+                {/* Map + compass, pinned to the top-left corner of the tablet */}
+                <div className="pointer-events-none absolute -left-8 top-12 z-20 hidden -rotate-6 flex-col items-start sm:-left-20 sm:top-24 sm:flex">
+                  <Image src="/tablet/map.png" alt="" width={192} height={192} className="w-24 drop-shadow-[0_5px_10px_rgba(0,0,0,0.6)] sm:w-48" />
+                  <Image
+                    src="/tablet/compass.png"
+                    alt=""
+                    width={112}
+                    height={112}
+                    className="z-30 ml-4 mt-[-2rem] w-16 drop-shadow-xl sm:ml-8 sm:mt-[-4rem] sm:w-28"
+                  />
+                </div>
+
+                {/* Photo + coins, pinned to the bottom-right corner */}
+                <Image
+                  src="/tablet/photo.png"
+                  alt=""
+                  width={160}
+                  height={160}
+                  className="pointer-events-none absolute -right-6 bottom-10 z-20 hidden w-24 rotate-[15deg] drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] sm:-right-4 sm:bottom-24 sm:block sm:w-40"
+                />
+                <Image
+                  src="/tablet/coins.png"
+                  alt=""
+                  width={128}
+                  height={128}
+                  className="pointer-events-none absolute bottom-4 right-2 z-30 hidden w-20 drop-shadow-md sm:bottom-10 sm:right-0 sm:block sm:w-32"
+                />
+
+                {/* Stone tablet card */}
                 <div
-                  className="relative w-full bg-cover bg-center px-10 py-12 sm:px-14 sm:py-16"
-                  style={{
-                    backgroundImage: "url('/textures/parchment-scroll.png')",
-                    backgroundSize: '100% 100%',
-                    backgroundRepeat: 'no-repeat',
-                  }}
+                  className="relative z-10 flex w-full flex-col items-center justify-start bg-cover bg-center bg-no-repeat px-6 pb-12 pt-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] sm:px-16 sm:pb-16 sm:pt-16"
+                  style={{ backgroundImage: "url('/tablet/stone-tablet.png')" }}
                 >
-                  {/* Scroll Top Seal / Badge */}
-                  <div className="flex flex-col items-center text-center">
-                    <p className="text-[10px] sm:text-xs font-cinzel font-bold uppercase tracking-[0.35em] text-[#78350f]">
-                      ✦ Expedition Entry Scroll ✦
-                    </p>
-                    <h1 className="mt-2 font-uncharted text-2xl sm:text-3xl font-extrabold tracking-wide text-[#261608] drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
-                      Begin Your Expedition
+                  <div className="relative z-10 mx-auto flex w-full max-w-md flex-col items-center">
+                    <h1 className="tablet-title text-center text-2xl font-bold tracking-wide sm:text-4xl">
+                      Welcome to <span className="tablet-title-highlight">TechX</span> Feedback
                     </h1>
-                    <p className="mt-1.5 font-marcellus text-xs sm:text-sm italic text-[#573c21]">
-                      Inscribe your explorer credentials to enter the uncharted grounds.
+                    <p className="tablet-subtitle mt-1 text-center text-base sm:text-xl">
+                      Please enter your details to continue
                     </p>
 
-                    {/* Decorative ink line */}
-                    <div className="mt-3 flex items-center justify-center gap-2 w-full">
-                      <span className="h-px w-12 sm:w-20 bg-gradient-to-r from-transparent to-[#8c6239]/60" />
-                      <span className="text-[#8c6239] text-xs">❖</span>
-                      <span className="h-px w-12 sm:w-20 bg-gradient-to-l from-transparent to-[#8c6239]/60" />
-                    </div>
-                  </div>
-
-                  {/* Form */}
-                  <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3.5 sm:gap-4">
-                    <label className="flex flex-col gap-1.5 text-xs font-cinzel font-bold text-[#451a03]">
-                      <span className="tracking-wider flex items-center gap-1.5">
-                        <span>Explorer Name</span>
-                      </span>
+                    <form onSubmit={handleSubmit} noValidate className="mt-5 flex w-full flex-col gap-3.5 sm:mt-8 sm:gap-6">
                       <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        placeholder="Name..."
                         required
-                        className="w-full rounded-md border-2 border-[#8c6239]/60 bg-[#fbf5e6]/85 px-3.5 py-2 sm:py-2.5 text-sm font-medium text-[#291508] shadow-[inset_0_2px_4px_rgba(69,26,3,0.15)] placeholder:text-[#9c7d5c] focus:border-[#5c3710] focus:bg-[#fffdf7] focus:outline-none focus:ring-2 focus:ring-[#d97706]/40 transition-all font-sans"
-                        placeholder="e.g. Nathan Drake"
+                        className={`tablet-input h-12 w-full px-5 text-base font-bold sm:h-16 sm:px-7 sm:text-2xl ${
+                          nameError ? 'error-shake' : ''
+                        }`}
+                        onAnimationEnd={() => setNameError(false)}
                       />
-                    </label>
 
-                    <label className="flex flex-col gap-1.5 text-xs font-cinzel font-bold text-[#451a03]">
-                      <span className="tracking-wider flex items-center gap-1.5">
-                        <span>Department Guild</span>
-                      </span>
                       <div className="relative">
                         <select
                           value={department}
                           onChange={(e) => setDepartment(e.target.value)}
                           required
-                          className="w-full appearance-none rounded-md border-2 border-[#8c6239]/60 bg-[#fbf5e6]/85 px-3.5 py-2 sm:py-2.5 text-sm font-medium text-[#291508] shadow-[inset_0_2px_4px_rgba(69,26,3,0.15)] focus:border-[#5c3710] focus:bg-[#fffdf7] focus:outline-none focus:ring-2 focus:ring-[#d97706]/40 transition-all font-sans cursor-pointer"
+                          className={`tablet-input h-12 w-full appearance-none px-5 text-base font-bold sm:h-16 sm:px-7 sm:text-xl ${
+                            departmentError ? 'error-shake' : ''
+                          }`}
+                          onAnimationEnd={() => setDepartmentError(false)}
                         >
-                          <option value="" disabled className="text-black bg-[#fbf5e6]">
-                            Select department guild…
+                          <option value="" disabled hidden>
+                            Select Department...
                           </option>
                           {DEPARTMENT_OPTIONS.map((d) => (
-                            <option key={d} value={d} className="text-black bg-[#fbf5e6]">
+                            <option key={d} value={d}>
                               {d}
                             </option>
                           ))}
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#78350f]">
-                          <span className="text-xs">▼</span>
-                        </div>
                       </div>
-                    </label>
 
-                    <label className="flex flex-col gap-1.5 text-xs font-cinzel font-bold text-[#451a03]">
-                      <span className="tracking-wider flex items-center gap-1.5">
-                        <span>Expedition Email</span>
-                      </span>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="w-full rounded-md border-2 border-[#8c6239]/60 bg-[#fbf5e6]/85 px-3.5 py-2 sm:py-2.5 text-sm font-medium text-[#291508] shadow-[inset_0_2px_4px_rgba(69,26,3,0.15)] placeholder:text-[#9c7d5c] focus:border-[#5c3710] focus:bg-[#fffdf7] focus:outline-none focus:ring-2 focus:ring-[#d97706]/40 transition-all font-sans"
-                        placeholder="explorer@expedition.org"
-                      />
-                    </label>
+                      <div className="flex flex-col">
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Email..."
+                          required
+                          className={`tablet-input h-12 w-full px-5 text-base font-bold sm:h-16 sm:px-7 sm:text-2xl ${
+                            emailError ? 'error-shake' : ''
+                          }`}
+                          onAnimationEnd={() => setEmailError(false)}
+                        />
+                        {emailError && (
+                          <p className="tablet-subtitle mt-2 ml-2 text-sm sm:text-lg">
+                            Please include &apos;@&apos; and &apos;.&apos; in your email address.
+                          </p>
+                        )}
+                      </div>
 
-                    {/* Old Style Embossed Gilded Button */}
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="group relative mt-3 flex items-center justify-center overflow-hidden rounded-lg border-2 border-[#fbbf24]/90 bg-gradient-to-b from-[#b45309] via-[#92400e] to-[#692906] px-6 py-3 sm:py-3.5 text-sm font-bold uppercase tracking-[0.25em] text-[#fffbeb] shadow-[0_6px_20px_rgba(120,53,15,0.5),inset_0_1px_1px_rgba(255,255,255,0.5),0_2px_0_#451a03] transition-all duration-300 hover:scale-[1.02] hover:border-amber-300 hover:shadow-[0_8px_25px_rgba(217,119,6,0.6)] active:scale-[0.99] disabled:opacity-60 font-uncharted cursor-pointer"
-                    >
-                      <span className="relative z-10 flex items-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                        {submitting ? 'Inscribing Ledger…' : '❖ Begin Expedition ❖'}
-                      </span>
-                      {/* Animated metallic sheen shine */}
-                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                    </button>
-                  </form>
+                      <div className="mt-2 flex w-full justify-center">
+                        <button
+                          type="submit"
+                          disabled={submitting}
+                          className="relative h-14 w-48 bg-contain bg-center bg-no-repeat transition-transform duration-300 hover:scale-105 active:scale-95 disabled:opacity-60 sm:h-20 sm:w-64"
+                          style={{ backgroundImage: "url('/tablet/portal-button.png')" }}
+                        >
+                          <span className="sr-only">
+                            {submitting ? 'Entering…' : 'Enter Portal'}
+                          </span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               </motion.div>
             )}
