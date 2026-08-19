@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Cinzel, Cinzel_Decorative, Marcellus } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { UserProvider } from "@/context/UserContext";
@@ -20,6 +21,30 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const cinzel = Cinzel({
+  variable: "--font-cinzel",
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800", "900"],
+});
+
+const cinzelDecorative = Cinzel_Decorative({
+  variable: "--font-cinzel-decorative",
+  subsets: ["latin"],
+  weight: ["700", "900"],
+});
+
+const marcellus = Marcellus({
+  variable: "--font-marcellus",
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
+const base02 = localFont({
+  src: "./fonts/Base02.ttf",
+  variable: "--font-base02",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Uncharted Expedition — Feedback Portal",
   description:
@@ -35,7 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} ${base02.variable} ${cinzel.variable} ${cinzelDecorative.variable} ${marcellus.variable} antialiased bg-background text-foreground`}
       >
         <AdminProvider>
           <ExpeditionProvider>

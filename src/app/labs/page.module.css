@@ -1,0 +1,29 @@
+.labListContainer {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.labLink {
+  display: block;
+  width: 100%; /* Ensure button takes full width */
+  padding: 1.5rem 2rem;
+  margin-bottom: 1.5rem;
+  background-color: #7d7d7d;
+  border: 4px solid;
+  border-color: #c6c6c6 #585858 #585858 #c6c6c6;
+  color: white;
+  text-decoration: none;
+  font-family: var(--font-minecraft), monospace; /* Use the Minecraft font */
+  font-size: 1.5rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+
+.labLink:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
