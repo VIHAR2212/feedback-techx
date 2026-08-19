@@ -25,22 +25,8 @@ export default function CheckpointCard({
   shardEarned,
   shardNumber,
 }: CheckpointCardProps) {
-  const Wrapper = unlocked ? Link : 'div';
-  const href = unlocked ? `/expedition/${labId}` : undefined;
-  // @ts-expect-error — Link and div both accept className + children; href is only set when unlocked
-  return (
-    <Wrapper
-      href={href}
-      className={cn(
-        'flex min-h-40 flex-col justify-between gap-3 rounded-md border-2 p-5 transition-colors',
-        !unlocked
-          ? 'border-muted bg-muted/20 text-muted-foreground'
-          : shardEarned
-            ? 'border-foreground bg-foreground/5'
-            : 'border-foreground/30 bg-background hover:border-foreground hover:bg-accent'
-      )}
-      aria-label={`${labName}${!unlocked ? ' (locked)' : ''}`}
-    >
+  const cardContent = (
+    <>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -74,6 +60,36 @@ export default function CheckpointCard({
           <span>{shardEarned ? 'Certificate shard earned' : unlocked ? 'Tap to enter' : 'Locked — clear previous checkpoint'}</span>
         </div>
       </div>
-    </Wrapper>
+    </>
+  );
+
+  const cardClassName = cn(
+    'flex min-h-40 flex-col justify-between gap-3 rounded-md border-2 p-5 transition-colors',
+    !unlocked
+      ? 'border-muted bg-muted/20 text-muted-foreground'
+      : shardEarned
+        ? 'border-foreground bg-foreground/5'
+        : 'border-foreground/30 bg-background hover:border-foreground hover:bg-accent'
+  );
+
+  if (unlocked) {
+    return (
+      <Link
+        href={`/expedition/${labId}`}
+        className={cardClassName}
+        aria-label={labName}
+      >
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return (
+    <div
+      className={cardClassName}
+      aria-label={`${labName} (locked)`}
+    >
+      {cardContent}
+    </div>
   );
 }

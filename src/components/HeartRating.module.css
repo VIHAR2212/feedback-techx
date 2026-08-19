@@ -1,0 +1,48 @@
+.ratingContainer {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.heartButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+  transition: transform 0.2s ease;
+
+  /* We now give the button a fixed size */
+  width: 40px; 
+  height: 40px;
+}
+
+.heartButton:hover {
+  transform: scale(1.2);
+}
+.ratingContainer {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.heartButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+  transition: transform 0.2s ease;
+  width: 40px; 
+  height: 40px;
+}
+
+.heartButton:hover {
+  transform: scale(1.2);
+}
+
+/* ADD THIS NEW CLASS */
+.goldenHeartImage {
+  /* This scales the image up by 25% to make it look bigger */
+  transform: scale(1.25);
+}
