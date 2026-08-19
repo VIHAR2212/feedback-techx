@@ -43,8 +43,8 @@ export function TechXLogoText({
     hero: {
       tech: 'text-6xl sm:text-8xl md:text-9xl lg:text-[10.5rem] leading-none',
       x: 'text-7xl sm:text-9xl md:text-[10.5rem] lg:text-[12rem] leading-none -ml-3 sm:-ml-5',
-      badge: 'text-xs sm:text-sm tracking-[0.4em]',
-      sub: 'text-xs sm:text-sm tracking-[0.45em]',
+      badge: 'text-[9px] tracking-[0.25em] sm:text-sm sm:tracking-[0.4em]',
+      sub: 'text-[9px] tracking-[0.25em] sm:text-sm sm:tracking-[0.45em]',
       gap: 'gap-3 sm:gap-4',
     },
   }[size];
@@ -63,7 +63,7 @@ export function TechXLogoText({
           className="relative z-10 mb-2 flex items-center gap-3 text-amber-400/70 font-cinzel uppercase"
         >
           <span className="h-[1px] w-6 sm:w-12 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-          <span className={`${sizeStyles.badge} font-semibold drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]`}>
+          <span className={`${sizeStyles.badge} font-bold whitespace-nowrap drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]`}>
             ✦ UNCHARTED EXPEDITION ✦
           </span>
           <span className="h-[1px] w-6 sm:w-12 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
@@ -92,10 +92,10 @@ export function TechXLogoText({
           initial={animated ? { opacity: 0, y: 10 } : false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className={`relative z-10 mt-3 sm:mt-4 flex items-center justify-center gap-2 sm:gap-4 text-[#dfcfb3]/70 font-cinzel ${sizeStyles.sub} uppercase`}
+          className={`relative z-10 mt-3 sm:mt-4 flex items-center justify-center gap-2 sm:gap-4 text-[#dfcfb3]/70 font-cinzel font-bold ${sizeStyles.sub} uppercase`}
         >
           <span className="h-px w-8 sm:w-16 bg-gradient-to-l from-amber-600/40 to-transparent" />
-          <span className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
+          <span className="whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
             Explore • Discover • Conquer
           </span>
           <span className="h-px w-8 sm:w-16 bg-gradient-to-r from-amber-600/40 to-transparent" />

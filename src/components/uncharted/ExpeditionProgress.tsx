@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useCompletion } from '@/context/CompletionContext';
 import { LAB_ORDER, totalProductCount } from '@/lib/mock-data';
@@ -10,9 +9,15 @@ import Link from 'next/link';
 export default function ExpeditionProgress() {
   const { user } = useUser();
   const { isCompleted, shards } = useCompletion();
-  const router = useRouter();
+  const pathname = usePathname();
 
-  if (!user) return null;
+  // Only shown once the user is actually inside the expedition, not on the
+  // landing/sign-in page — a returning user can have a saved session (and
+  // therefore a truthy `user`) while still sitting on "/" with the sign-in
+  // form pre-filled, and the tracker showing there is misleading.
+  const isLandingPage = pathname === '/';
+
+  if (!user || isLandingPage) return null;
 
   const pct = Math.min(100, Math.round((shards.length / LAB_ORDER.length) * 100));
 
