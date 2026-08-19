@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 
 interface LeaderboardEntry {
@@ -33,6 +33,8 @@ export default function PublicLeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState<'users' | 'products'>('users');
+  const [videoError, setVideoError] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -43,6 +45,17 @@ export default function PublicLeaderboardPage() {
     }, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Ensure autoplay works across all browsers by explicitly enforcing DOM properties
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.defaultMuted = true;
+      videoRef.current.muted = true;
+      videoRef.current.play().catch((err) => {
+        console.warn('Leaderboard background video autoplay prevented:', err);
+      });
+    }
+  }, [videoError]);
 
   const fetchLeaderboard = async () => {
     try {
@@ -99,8 +112,40 @@ export default function PublicLeaderboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground">
-      <div className="mx-auto max-w-5xl rounded-md border-2 border-foreground p-5">
+    <main className="relative min-h-screen w-full overflow-x-hidden px-4 py-8 text-foreground">
+      {/* Fallback solid background in case video fails or loads slowly */}
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-black" />
+
+      {/* Looping muted background video */}
+      {!videoError && (
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          onError={() => {
+            console.error('Failed to load /videos/leaderboard-bg.mp4');
+            setVideoError(true);
+          }}
+          className="pointer-events-none fixed inset-0 h-full w-full object-cover"
+          style={{ zIndex: 0 }}
+        >
+          <source src="/videos/leaderboard-bg.mp4" type="video/mp4" />
+        </video>
+      )}
+
+      {/* Subtle overlay (light tint so video details remain vibrant) */}
+      <div
+        className="pointer-events-none fixed inset-0 bg-black/25"
+        style={{ zIndex: 1 }}
+      />
+
+      <div
+        className="relative mx-auto max-w-5xl rounded-xl border border-white/20 bg-black/70 p-6 shadow-2xl backdrop-blur-md"
+        style={{ zIndex: 10 }}
+      >
         <header className="mb-5 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
             Uncharted Expedition
