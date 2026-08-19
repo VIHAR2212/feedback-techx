@@ -354,11 +354,23 @@ export default function LandingReveal() {
                   className="pointer-events-none absolute bottom-4 right-2 z-30 hidden w-20 drop-shadow-md sm:bottom-10 sm:right-0 sm:block sm:w-32"
                 />
 
-                {/* Stone tablet card */}
-                <div
-                  className="relative z-10 flex w-full flex-col items-center justify-start bg-cover bg-center bg-no-repeat px-6 pb-12 pt-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] sm:px-16 sm:pb-16 sm:pt-16"
-                  style={{ backgroundImage: "url('/tablet/stone-tablet.png')" }}
-                >
+                {/* Stone tablet card — the rock texture is a real <Image>
+                    stretched to fill the card via object-fit: fill, not a
+                    CSS background-image. A background-image with
+                    bg-cover crops top/bottom whenever the card's height
+                    (driven by its form content) doesn't match the PNG's
+                    own aspect ratio; object-fit: fill always covers the
+                    full box with zero cropping, and a stone texture has
+                    no straight lines so the slight stretch is invisible. */}
+                <div className="relative z-10 flex w-full flex-col items-center justify-start px-6 pb-12 pt-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] sm:px-16 sm:pb-16 sm:pt-16">
+                  <Image
+                    src="/tablet/stone-tablet.png"
+                    alt=""
+                    fill
+                    sizes="(max-width: 768px) 90vw, 700px"
+                    className="-z-10 object-fill"
+                    priority
+                  />
                   <div className="relative z-10 mx-auto flex w-full max-w-md flex-col items-center">
                     <Image
                       src="/tablet/techx-feedback-header.png"
