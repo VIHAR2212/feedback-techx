@@ -360,14 +360,23 @@ export default function LandingReveal() {
                   style={{ backgroundImage: "url('/tablet/stone-tablet.png')" }}
                 >
                   <div className="relative z-10 mx-auto flex w-full max-w-md flex-col items-center">
-                    <h1 className="tablet-title text-center text-2xl font-bold tracking-wide sm:text-4xl">
-                      Welcome to <span className="tablet-title-highlight">TechX</span> Feedback
-                    </h1>
-                    <p className="tablet-subtitle mt-1 text-center text-base sm:text-xl">
+                    <Image
+                      src="/tablet/techx-feedback-header.png"
+                      alt="Welcome to TechX Feedback"
+                      width={1400}
+                      height={751}
+                      priority
+                      className="w-full max-w-[85%] drop-shadow-md sm:max-w-[90%] md:max-w-[95%] lg:max-w-full"
+                    />
+                    <p className="tablet-subtitle -mt-2 text-center text-base sm:mt-0 sm:text-xl">
                       Please enter your details to continue
                     </p>
 
-                    <form onSubmit={handleSubmit} noValidate className="mt-5 flex w-full flex-col gap-3.5 sm:mt-8 sm:gap-6">
+                    <form
+                      onSubmit={handleSubmit}
+                      noValidate
+                      className="-ml-2 mt-2 flex w-[85%] flex-col gap-3.5 sm:ml-0 sm:mt-8 sm:w-full sm:gap-6"
+                    >
                       <input
                         type="text"
                         value={name}
