@@ -130,10 +130,10 @@ export default function RouteSelection() {
 
                   {/* Title & Lore Description */}
                   <div className="my-auto py-1">
-                    <h2 className="text-lg sm:text-xl font-bold font-[family-name:var(--font-uncharted)] text-[#1c0f05] tracking-wide leading-snug group-hover:text-[#522b10] transition-colors drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+                    <h2 className="text-xl sm:text-2xl font-bold font-['EB_Garamond',_serif] text-[#1c0f05] tracking-tight leading-snug group-hover:text-[#522b10] transition-colors drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
                       {lab.name}: {lab.title}
                     </h2>
-                    <p className="text-xs sm:text-[13px] text-[#4a2810] font-[family-name:var(--font-handwriting)] font-semibold italic leading-relaxed mt-0.5 line-clamp-2">
+                    <p className="text-sm sm:text-base text-[#3d200e] font-[family-name:var(--font-handwriting)] font-bold italic leading-snug mt-1 line-clamp-2">
                       &quot;{lab.subtitle}&quot;
                     </p>
                   </div>
@@ -165,7 +165,7 @@ export default function RouteSelection() {
                           clipPath:
                             'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
                         }}
-                        className="w-full py-2.5 px-4 bg-gradient-to-r from-[#2b100b] via-[#4a1c15] to-[#2b100b] text-[#f2dfbe] font-bold text-[11px] sm:text-xs uppercase tracking-widest shadow-md transition hover:brightness-125 active:scale-[0.99] flex items-center justify-between border-t border-[#8b261d]/50 font-[family-name:var(--font-uncharted)] cursor-pointer"
+                        className="w-full py-2.5 px-4 bg-gradient-to-r from-[#2b100b] via-[#4a1c15] to-[#2b100b] text-[#f2dfbe] font-bold text-[11px] sm:text-xs uppercase tracking-widest shadow-md transition hover:brightness-125 active:scale-[0.99] flex items-center justify-between border-t border-[#8b261d]/50 font-['Cinzel',_serif] cursor-pointer"
                       >
                         <span>Review {lab.title}</span>
                         <span className="px-2 py-0.5 text-[8.5px] bg-[#8b261d] text-[#fff0d6] rounded-full border border-[#d6655a]/40 font-mono font-bold uppercase tracking-widest">
@@ -183,7 +183,7 @@ export default function RouteSelection() {
                           clipPath:
                             'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
                         }}
-                        className="w-full py-2.5 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[11px] sm:text-xs uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.99] flex items-center justify-between border-t border-[#fff3cc]/60 font-[family-name:var(--font-uncharted)] cursor-pointer"
+                        className="w-full py-2.5 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[11px] sm:text-xs uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.99] flex items-center justify-between border-t border-[#fff3cc]/60 font-['Cinzel',_serif] cursor-pointer"
                       >
                         <span>Enter {lab.title}</span>
                         <span className="text-xs">➔</span>
