@@ -23,7 +23,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
   const { user } = useUser();
   const userEmail = user?.email || 'explorer@field.recon';
 
-  const labConfig = expeditionLabs[labId] || expeditionLabs['a'];
+  const labConfig = expeditionLabs[labId] || expeditionLabs['1'] || expeditionLabs['a'];
   const products = labConfig.checkpoints;
 
   const [submittedIds, setSubmittedIds] = useState<string[]>([]);
@@ -139,35 +139,64 @@ export default function LabMapView({ labId }: LabMapViewProps) {
       };
     }
 
-    // 1. Planned Full Route (connecting all checkpoints in sequence)
-    let plannedD = `M ${nodePositions[0].x} ${nodePositions[0].y}`;
-    const plannedMidpoints: { x: number; y: number }[] = [];
+    const sectorSeed = labId === '2' || labId === 'b' ? 1 : labId === '3' || labId === 'c' ? 2 : 0;
 
-    for (let i = 0; i < nodePositions.length - 1; i++) {
-      const p1 = nodePositions[i];
-      const p2 = nodePositions[i + 1];
-      const midX = (p1.x + p2.x) / 2;
-      const midY = (p1.y + p2.y) / 2;
-      plannedMidpoints.push({ x: midX, y: midY });
-      plannedD += ` L ${p2.x} ${p2.y}`;
-    }
+    // Helper to generate smooth winding nautical S-curves between waypoints (curved, organic, zero sharp corners)
+    const generateCurvedVoyagePath = (pointsList: { x: number; y: number }[]) => {
+      if (pointsList.length < 2) return { pathD: '', midpoints: [] as { x: number; y: number }[] };
 
-    // 2. Completed / Unlocked Trail (connecting surveyed checkpoints in sequence)
-    const completedPositions = nodePositions.filter((p) => submittedIds.includes(p.id));
-    let completedD = '';
-    const completedMidpoints: { x: number; y: number }[] = [];
+      let d = `M ${pointsList[0].x.toFixed(1)} ${pointsList[0].y.toFixed(1)}`;
+      const midpoints: { x: number; y: number }[] = [];
 
-    if (completedPositions.length >= 2) {
-      completedD = `M ${completedPositions[0].x} ${completedPositions[0].y}`;
-      for (let i = 0; i < completedPositions.length - 1; i++) {
-        const p1 = completedPositions[i];
-        const p2 = completedPositions[i + 1];
-        const midX = (p1.x + p2.x) / 2;
-        const midY = (p1.y + p2.y) / 2;
-        completedMidpoints.push({ x: midX, y: midY });
-        completedD += ` L ${p2.x} ${p2.y}`;
+      for (let i = 0; i < pointsList.length - 1; i++) {
+        const p1 = pointsList[i];
+        const p2 = pointsList[i + 1];
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist === 0) continue;
+
+        const nx = -dy / dist;
+        const ny = dx / dist;
+
+        // Smooth wave amplitude (alternating direction per leg with sector-specific harmonic seed)
+        const sign = (i + sectorSeed) % 2 === 0 ? 1 : -1;
+        const amp = Math.min(28, Math.max(16, dist * 0.20)) * sign;
+
+        // Inflection midpoint between p1 and p2
+        const midX = p1.x + dx * 0.5;
+        const midY = p1.y + dy * 0.5;
+        midpoints.push({ x: midX, y: midY });
+
+        // First smooth S-curve lobe (p1 -> mid)
+        const cp1x = p1.x + dx * 0.16 + nx * amp * 1.15;
+        const cp1y = p1.y + dy * 0.16 + ny * amp * 1.15;
+        const cp2x = p1.x + dx * 0.34 + nx * amp * 1.15;
+        const cp2y = p1.y + dy * 0.34 + ny * amp * 1.15;
+
+        // Second smooth S-curve lobe (mid -> p2)
+        const cp3x = p1.x + dx * 0.66 - nx * amp * 1.15;
+        const cp3y = p1.y + dy * 0.66 - ny * amp * 1.15;
+        const cp4x = p1.x + dx * 0.84 - nx * amp * 1.15;
+        const cp4y = p1.y + dy * 0.84 - ny * amp * 1.15;
+
+        d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${midX.toFixed(1)} ${midY.toFixed(1)}`;
+        d += ` C ${cp3x.toFixed(1)} ${cp3y.toFixed(1)}, ${cp4x.toFixed(1)} ${cp4y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
       }
-    }
+
+      return { pathD: d, midpoints };
+    };
+
+    // 1. Planned Full Route in smooth curved nautical S-bends
+    const { pathD: plannedD, midpoints: plannedMidpoints } = generateCurvedVoyagePath(nodePositions);
+
+    // 2. Completed / Surveyed Illuminated Golden Trail
+    const completedPositions = nodePositions.filter((p) => submittedIds.includes(p.id));
+    const { pathD: completedD, midpoints: completedMidpoints } =
+      completedPositions.length >= 2
+        ? generateCurvedVoyagePath(completedPositions)
+        : { pathD: '', midpoints: [] };
 
     return {
       plannedPath: plannedD,
@@ -189,23 +218,23 @@ export default function LabMapView({ labId }: LabMapViewProps) {
   const selectedIndex = products.findIndex((p) => p.id === selectedProduct.id);
 
   return (
-    <div className="relative w-full h-[100dvh] bg-[#050302] text-[#2c1a0e] flex flex-col justify-between overflow-hidden select-none font-serif">
+    <div className="relative w-full h-[100dvh] bg-[#080503] text-[#2c1a0e] flex flex-col justify-between overflow-hidden select-none font-serif">
       {/* Background Lighting Vignette */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,_rgba(240,210,140,0.08)_0%,_rgba(4,2,1,0.98)_85%)] pointer-events-none z-0" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,_rgba(240,210,140,0.06)_0%,_rgba(4,2,1,0.98)_85%)] pointer-events-none z-0" />
 
       {/* 1. Header Ribbon HUD */}
-      <header className="relative z-30 flex items-center justify-between px-3.5 py-2 sm:px-6 sm:py-3 bg-[#140c07]/95 backdrop-blur-md border-b border-[#4d321d]/70 shadow-lg shrink-0 text-[#e8d5b5]">
+      <header className="relative z-30 flex items-center justify-between px-3.5 py-2 sm:px-6 sm:py-2.5 bg-[#120a06]/95 backdrop-blur-md border-b border-[#4d321d]/70 shadow-lg shrink-0 text-[#e8d5b5]">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/labs')}
             aria-label="Return to Expeditions"
-            className="w-8 h-8 rounded border border-[#6b4728] bg-[#22150e] flex items-center justify-center text-[#c99f58] hover:text-[#f3dfa2] active:scale-95 transition cursor-pointer shrink-0"
+            className="w-8 h-8 rounded border border-[#6b4728] bg-[#22150e] flex items-center justify-center text-[#c99f58] hover:text-[#f3dfa2] active:scale-95 transition cursor-pointer shrink-0 shadow-sm"
           >
             <span className="text-xs font-mono font-bold">◀</span>
           </button>
 
           <div className="min-w-0">
-            <span className="block text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.25em] text-[#9c7846] font-mono truncate">
+            <span className="block text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-[0.25em] text-[#9c7846] font-mono truncate">
               JOURNAL // {labConfig.name}
             </span>
             <h1 className="text-xs sm:text-base font-bold text-[#f2dfbe] truncate font-['Cinzel',_serif] tracking-wider">
@@ -219,38 +248,46 @@ export default function LabMapView({ labId }: LabMapViewProps) {
           <div className="flex p-0.5 rounded bg-[#0d0704] border border-[#52351e]">
             <button
               onClick={() => setViewMode('map')}
-              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${viewMode === 'map'
-                ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
-                : 'text-[#8c6f4b] hover:text-[#c49b4d]'
-                }`}
+              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${
+                viewMode === 'map'
+                  ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
+                  : 'text-[#8c6f4b] hover:text-[#c49b4d]'
+              }`}
             >
               Journal
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${viewMode === 'list'
-                ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
-                : 'text-[#8c6f4b] hover:text-[#c49b4d]'
-                }`}
+              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
+                  : 'text-[#8c6f4b] hover:text-[#c49b4d]'
+              }`}
             >
               List
             </button>
           </div>
 
-          <div className="text-right pl-2 border-l border-[#4d321d]/60">
-            <span className="block text-[7px] sm:text-[8px] tracking-widest uppercase text-[#8c6b41] font-mono font-bold">Relics</span>
-            <span className="text-xs sm:text-sm font-mono font-bold text-[#e5a842]">
-              {completedCount}/{totalCount}
-            </span>
+          <div className="text-right pl-2 border-l border-[#4d321d]/60 flex items-center gap-1.5">
+            <div>
+              <span className="block text-[7px] sm:text-[8px] tracking-widest uppercase text-[#8c6b41] font-mono font-bold leading-tight">
+                RELICS
+              </span>
+              <span className="text-xs sm:text-sm font-mono font-bold text-[#e5a842] leading-tight">
+                {completedCount}/{totalCount}
+              </span>
+            </div>
+            <div className="w-5 h-5 rounded-full bg-[#241308] border border-[#8c6d23] flex items-center justify-center shadow-inner">
+              <span className="text-[9px] text-[#ffd700]">✦</span>
+            </div>
           </div>
         </div>
       </header>
 
       {/* 2. Main Open Journal Workspace */}
-      <main className="relative z-10 flex-1 flex flex-col lg:flex-row items-center justify-between p-2 sm:p-3 lg:p-6 overflow-hidden w-full max-w-7xl mx-auto gap-2 lg:gap-0">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-2 sm:p-3 lg:p-4 overflow-hidden w-full max-w-7xl mx-auto">
         {viewMode === 'map' ? (
-          <div className="relative w-full h-full flex flex-col lg:flex-row items-center justify-between gap-2 lg:gap-0 lg:max-h-[88vh] lg:aspect-[16/9] lg:max-w-[1100px] lg:rounded-xl lg:border-4 lg:border-[#241308] lg:shadow-[0_20px_60px_rgba(0,0,0,0.98)] lg:overflow-hidden">
-
+          <div className="relative w-full h-full flex flex-col lg:flex-row items-center justify-between max-w-[1040px] aspect-[1024/615] max-h-[86vh] rounded-xl border-4 border-[#241308] shadow-[0_25px_65px_rgba(0,0,0,0.98)] overflow-hidden">
             {/* Desktop Full Open Book Spread Background */}
             <div
               style={{ backgroundImage: `url('/assets/images/journal-spread.png')` }}
@@ -267,7 +304,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                   backgroundPosition: 'left center',
                   backgroundRepeat: 'no-repeat',
                 }}
-                className="relative w-full h-auto aspect-[8/9] lg:h-full lg:w-auto max-w-full max-h-full rounded-xl lg:rounded-none border-2 sm:border-4 lg:border-none border-[#241308] shadow-[0_12px_36px_rgba(0,0,0,0.95)] lg:shadow-none overflow-hidden lg:bg-none"
+                className="relative h-full aspect-[8/9] max-w-full max-h-full rounded-xl lg:rounded-none border-2 sm:border-4 lg:border-none border-[#241308] shadow-[0_12px_36px_rgba(0,0,0,0.95)] lg:shadow-none overflow-hidden lg:bg-none"
               >
                 {/* Luminous Inked Golden Route (Dynamic SVG based on exact detected node locations) */}
                 {containerSize.width > 0 && containerSize.height > 0 && routePaths.plannedPath && (
@@ -283,27 +320,22 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                           <feMergeNode in="SourceGraphic" />
                         </feMerge>
                       </filter>
+                      <filter id="inkShadow" x="-10%" y="-10%" width="120%" height="120%">
+                        <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.6" />
+                      </filter>
                     </defs>
 
-                    {/* 1. Base Planned Route (Connecting all nodes in sequence) */}
+                    {/* 1. Deep Iron-Gall Black / Dark Brown Ink Dashed Zig-Zag Path */}
                     <path
                       d={routePaths.plannedPath}
                       fill="none"
-                      stroke="#4a3014"
-                      strokeWidth="2.5"
+                      stroke="#140803"
+                      strokeWidth="3.2"
+                      strokeDasharray="6 6"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      opacity={0.4}
-                    />
-                    <path
-                      d={routePaths.plannedPath}
-                      fill="none"
-                      stroke="#d4af37"
-                      strokeWidth="1.6"
-                      strokeDasharray="6 4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.7}
+                      opacity={0.92}
+                      filter="url(#inkShadow)"
                     />
 
                     {/* 2. Completed / Surveyed Illuminated Golden Trail */}
@@ -313,17 +345,18 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                           d={routePaths.completedPath}
                           fill="none"
                           stroke="#ffd700"
-                          strokeWidth="5"
+                          strokeWidth="5.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          opacity={0.5}
+                          opacity={0.6}
                           filter="url(#gold-ink-bleed)"
                         />
                         <path
                           d={routePaths.completedPath}
                           fill="none"
-                          stroke="#fff2b3"
+                          stroke="#fff4cc"
                           strokeWidth="2.4"
+                          strokeDasharray="6 5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           className="transition-all duration-700 ease-out"
@@ -331,7 +364,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       </>
                     )}
 
-                    {/* 3. Concentric Waypoint Rings centered on each measured node */}
+                    {/* 4. Concentric Waypoint Rings centered on each measured node */}
                     {routePaths.points.map((pt) => {
                       const isDone = submittedIds.includes(pt.id);
                       return (
@@ -339,18 +372,18 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                           <circle
                             cx={pt.x}
                             cy={pt.y}
-                            r={isDone ? 20 : 16}
+                            r={isDone ? 22 : 18}
                             fill="none"
-                            stroke={isDone ? "#ffd700" : "#8c6d23"}
-                            strokeWidth={isDone ? "1.5" : "1"}
-                            strokeDasharray={isDone ? "none" : "3 3"}
-                            opacity={isDone ? 0.9 : 0.45}
+                            stroke={isDone ? '#ffd700' : '#8c6d23'}
+                            strokeWidth={isDone ? '1.5' : '1'}
+                            strokeDasharray={isDone ? 'none' : '3 3'}
+                            opacity={isDone ? 0.95 : 0.45}
                           />
                           {isDone && (
                             <circle
                               cx={pt.x}
                               cy={pt.y}
-                              r={24}
+                              r={26}
                               fill="none"
                               stroke="#f5e19f"
                               strokeWidth="0.8"
@@ -362,21 +395,23 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       );
                     })}
 
-                    {/* 4. Midpoint Compass Stars */}
+                    {/* 5. Midpoint Nautical Rhumb Stars */}
                     {routePaths.plannedMidpoints.map((mid, idx) => (
                       <g key={`star-${idx}`} transform={`translate(${mid.x}, ${mid.y})`}>
+                        {/* 4-point compass diamond */}
                         <path
-                          d="M 0 -5 L 1.5 -1.5 L 5 0 L 1.5 1.5 L 0 5 L -1.5 1.5 L -5 0 L -1.5 -1.5 Z"
+                          d="M 0 -6 L 1.8 -1.8 L 6 0 L 1.8 1.8 L 0 6 L -1.8 1.8 L -6 0 L -1.8 -1.8 Z"
                           fill="#fff6d1"
-                          stroke="#7a5214"
+                          stroke="#6b4516"
                           strokeWidth="0.8"
+                          filter="drop-shadow(0 1px 2px rgba(0,0,0,0.5))"
                         />
                       </g>
                     ))}
                   </svg>
                 )}
 
-                {/* Interactive Checkpoint Pins */}
+                {/* Interactive Checkpoint Pins (Rich Cartographic Map Design) */}
                 {products.map((product, idx) => {
                   const isSubmitted = submittedIds.includes(product.id);
                   const isCurrent = selectedProduct?.id === product.id;
@@ -389,180 +424,214 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       }}
                       onClick={() => setSelectedProduct(product)}
                       style={{ left: `${product.x}%`, top: `${product.y}%` }}
-                      className="absolute -translate-x-1/2 -translate-y-1/2 w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center z-20 focus:outline-none touch-manipulation cursor-pointer group"
+                      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20 focus:outline-none touch-manipulation cursor-pointer group"
                     >
+                      {/* Outer Rotating Celestial Ring on Selected Waypoint */}
                       {isCurrent && (
-                        <span className="absolute w-8 h-8 rounded-full border border-dashed border-[#d4af37] animate-[spin_8s_linear_infinite] pointer-events-none" />
+                        <span className="absolute -top-1 w-9 h-9 sm:w-11 sm:h-11 rounded-full border border-dashed border-[#d4af37] animate-[spin_10s_linear_infinite] pointer-events-none" />
                       )}
 
+                      {/* Main Cartographic Compass Medallion */}
                       <div
-                        className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-serif font-bold text-[11px] sm:text-xs transition-all duration-200 group-hover:scale-110 shadow-md ${isSubmitted
-                          ? 'bg-gradient-to-b from-[#f5e19f] via-[#d4af37] to-[#7a5214] border-2 border-[#fff3cc] text-[#241308] shadow-[0_0_10px_rgba(212,175,55,0.85)] ring-1 ring-[#d4af37]'
-                          : isCurrent
-                            ? 'bg-gradient-to-b from-[#f9e295] to-[#aa7c11] border-2 border-[#2b1704] text-[#2b1704] scale-110 shadow-lg ring-2 ring-[#f3dfa2]/80'
-                            : 'bg-[#2b1b11]/90 border-2 border-[#8c6d23] text-[#d4af37]'
-                          }`}
+                        className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-115 ${
+                          isSubmitted
+                            ? 'bg-gradient-to-b from-[#fef08a] via-[#eab308] to-[#854d0e] border-2 border-[#fffbeb] text-[#1c1917] shadow-[0_0_14px_rgba(234,179,8,0.8)] ring-1 ring-[#eab308]'
+                            : isCurrent
+                              ? 'bg-gradient-to-b from-[#fef08a] via-[#d4af37] to-[#78350f] border-2 border-[#fff3cc] text-[#1a0e05] scale-110 shadow-[0_0_16px_rgba(212,175,55,0.9)] ring-2 ring-[#fde047]'
+                              : 'bg-gradient-to-b from-[#2b1708] via-[#1a0f05] to-[#0d0702] border-2 border-[#8c6d23] text-[#d4af37] shadow-[0_4px_10px_rgba(0,0,0,0.85)]'
+                        }`}
                       >
-                        {isSubmitted ? '✦' : ['I', 'II', 'III', 'IV', 'V'][idx] || idx + 1}
+                        {/* Subtle 4-axis compass notch markers */}
+                        <div className="absolute -top-0.5 w-1 h-0.5 bg-[#8c6d23] rounded-full pointer-events-none" />
+                        <div className="absolute -bottom-0.5 w-1 h-0.5 bg-[#8c6d23] rounded-full pointer-events-none" />
+                        <div className="absolute -left-0.5 w-0.5 h-1 bg-[#8c6d23] rounded-full pointer-events-none" />
+                        <div className="absolute -right-0.5 w-0.5 h-1 bg-[#8c6d23] rounded-full pointer-events-none" />
+
+                        {/* Stamped Roman Numeral or Cleared Star */}
+                        <span className="font-serif font-black text-[11px] sm:text-xs leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
+                          {isSubmitted ? '✦' : ['I', 'II', 'III', 'IV', 'V'][idx] || idx + 1}
+                        </span>
                       </div>
+
+                      {/* Needle Tip Pointing to Exact Coordinates */}
+                      <div
+                        className={`w-0 h-0 border-l-[4px] border-r-[4px] border-l-transparent border-r-transparent border-t-[5px] -mt-0.5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)] ${
+                          isSubmitted ? 'border-t-[#eab308]' : isCurrent ? 'border-t-[#d4af37]' : 'border-t-[#8c6d23]'
+                        }`}
+                      />
+
+                      {/* Small Waypoint Tag */}
+                      <span className="mt-0.5 px-1 py-0.2 rounded bg-[#120a06]/95 border border-[#8c6d23]/40 text-[7.5px] sm:text-[8.5px] font-mono font-bold text-[#e8d5b5] shadow-xs pointer-events-none">
+                        WP-0{idx + 1}
+                      </span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* ================= MOBILE ONLY: Dossier Scrap (Zero Emojis) ================= */}
-            <div className="lg:hidden w-full shrink-0 z-30 pointer-events-auto px-2 pb-1">
+            {/* ================= MOBILE ONLY: Dossier Scrap ================= */}
+            <div className="lg:hidden w-full shrink-0 z-30 pointer-events-auto px-3 pb-2">
               <div
                 style={{
                   backgroundImage: `url('/assets/images/expedition_status_bg.png')`,
                   aspectRatio: '520 / 310',
                 }}
-                className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_12px_30px_rgba(0,0,0,0.9)] select-none"
+                className="relative w-full max-w-[460px] mx-auto bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_14px_32px_rgba(0,0,0,0.95)] select-none"
               >
-                {/* Antique Rivet Close Button */}
+                {/* Antique Close Button */}
                 <button
                   onClick={() => setViewMode('list')}
-                  className="absolute top-[8%] right-[5.5%] w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center focus:outline-none touch-manipulation cursor-pointer z-40 transition-all duration-150 active:scale-95 group shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
+                  className="absolute top-[8%] right-[5.5%] w-7 h-7 rounded-full flex items-center justify-center focus:outline-none touch-manipulation cursor-pointer z-40 transition-all duration-150 active:scale-95 group shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
                 >
                   <div className="absolute inset-0 rounded-full bg-[#2F1F11] border-2 border-[#5c3e21] shadow-[inset_0_1px_3px_rgba(0,0,0,0.8),_0_2px_4px_rgba(0,0,0,0.6)] group-hover:bg-[#432A18]" />
-                  <span className="relative text-xs sm:text-sm font-bold font-serif text-[#a17c4f] drop-shadow-[0_1px_0_rgba(0,0,0,0.3)]">
+                  <span className="relative text-xs font-bold font-serif text-[#a17c4f] drop-shadow-[0_1px_0_rgba(0,0,0,0.3)]">
                     ✕
                   </span>
                 </button>
 
-                {/* Printable Parchment Area */}
-                <div className="absolute inset-0 pt-[20%] pb-[7%] px-[10%] flex flex-col justify-between text-[#2b1704]">
+                {/* Printable Parchment Area (Clean safe zone lifting button well above bottom leather edge) */}
+                <div className="absolute inset-0 pt-[16%] pb-[13%] px-[10%] flex flex-col justify-between text-[#2b1704]">
                   {/* Badge Row */}
-                  <div className="flex items-center justify-between border-b border-[#8b6943]/30 pb-0.5 pr-5 sm:pr-6">
+                  <div className="flex items-center justify-between border-b border-[#8b6943]/35 pb-1 pr-6">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={14} color="#7a5214" />
-                      <span className="text-[8px] font-extrabold uppercase font-mono tracking-widest text-[#7a5214] truncate">
-                        SIC PARVIS MAGNA
+                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={15} color="#7a5214" />
+                      <span className="text-[9px] font-extrabold uppercase font-mono tracking-widest text-[#7a5214] truncate">
+                        WAYPOINT 0{selectedIndex + 1} • SIC PARVIS MAGNA
                       </span>
                     </div>
                     <span
-                      className={`text-[7px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 ${submittedIds.includes(selectedProduct.id)
-                        ? 'bg-[#2b5131]/15 text-[#2b5131] border border-[#2b5131]/30'
-                        : 'bg-[#7a5214]/10 text-[#7a5214] border border-[#7a5214]/25'
-                        }`}
+                      className={`text-[8px] font-mono font-bold px-2 py-0.5 rounded shrink-0 shadow-xs ${
+                        submittedIds.includes(selectedProduct.id)
+                          ? 'bg-[#8b261d]/15 text-[#8b261d] border border-[#8b261d]/40'
+                          : 'bg-[#7a5214]/10 text-[#7a5214] border border-[#7a5214]/30'
+                      }`}
                     >
                       {submittedIds.includes(selectedProduct.id) ? 'LOGGED ✦' : 'PENDING'}
                     </span>
                   </div>
 
-                  {/* Title & Description */}
-                  <div className="py-0.5">
-                    <h3 className="text-[11px] sm:text-[12px] font-bold text-[#2b1704] leading-tight line-clamp-1 font-['Cinzel',_serif]">
+                  {/* Big Prominent Title & Handwritten Description */}
+                  <div className="py-1 my-auto">
+                    <h3 className="text-base sm:text-lg font-bold text-[#1c0f05] leading-tight font-['EB_Garamond',_serif] tracking-tight line-clamp-1 drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
                       {selectedProduct.name}
                     </h3>
-                    <p className="text-[9.5px] sm:text-[10px] text-[#543d2b] italic leading-tight line-clamp-2 mt-0.5 font-[family-name:var(--font-handwriting)]">
+                    <p className="text-xs sm:text-[13px] text-[#4a2810] italic leading-snug line-clamp-2 mt-1 font-[family-name:var(--font-handwriting)] font-semibold">
                       &quot;{selectedProduct.description}&quot;
                     </p>
                   </div>
 
-                  {/* CTA Button */}
-                  <div>
+                  {/* CTA Button Lifted Up Above Leather Bottom Rim */}
+                  <div className="pt-1">
                     <button
                       onClick={() => setActiveModalProduct(selectedProduct)}
                       style={{
                         clipPath:
-                          'polygon(4px 0%, calc(100% - 4px) 0%, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0% calc(100% - 4px), 0% 4px)',
+                          'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
                       }}
-                      className="w-full py-1.5 px-2 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#1a0e05] font-bold text-[9px] uppercase tracking-wider shadow transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fdf3cc]/40"
+                      className="w-full py-2 sm:py-2.5 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10.5px] sm:text-xs uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-2 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
                     >
                       <span>{submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
-                      <span className="text-[8px]">➔</span>
+                      <span className="text-xs">➔</span>
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Developer Quick Controls */}
-              <div className="flex items-center justify-between px-3 pt-1.5">
+              <div className="flex items-center justify-between max-w-[460px] mx-auto px-4 pt-1.5 pb-1">
                 <button
                   type="button"
                   onClick={() => handleSimulateCompletion(selectedProduct.id)}
-                  className="text-[8px] font-mono font-bold text-[#d4af37]/80 hover:text-[#d4af37] hover:underline cursor-pointer"
+                  className="text-[8.5px] font-mono font-bold text-[#d4af37]/90 hover:text-[#d4af37] hover:underline cursor-pointer"
                 >
                   [ SIMULATE: {submittedIds.includes(selectedProduct.id) ? 'UNMARK' : 'COMPLETE'} ]
                 </button>
                 <button
                   type="button"
                   onClick={handleResetProgress}
-                  className="text-[8px] font-mono text-[#a88a58]/70 hover:text-[#a88a58] hover:underline cursor-pointer"
+                  className="text-[8.5px] font-mono text-[#a88a58]/80 hover:text-[#a88a58] hover:underline cursor-pointer"
                 >
                   [ RESET ALL ]
                 </button>
               </div>
             </div>
 
-            {/* ================= DESKTOP ONLY: Right Page Field Ledger (Zero Emojis & Authentic Theme) ================= */}
-            <div className="hidden lg:flex relative w-1/2 h-full z-10 p-5 sm:p-6 flex-col justify-between overflow-y-auto">
-              <div>
-                {/* Header */}
-                <div className="flex items-center justify-between border-b-2 border-[#8b6943]/40 pb-1.5 mb-3">
-                  <div>
-                    <span className="block text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#7a481c]">
-                      EXPEDITION LEDGER // {labConfig.name.toUpperCase()}
-                    </span>
-                    <h2 className="text-lg font-bold text-[#241308] font-['EB_Garamond',_serif] tracking-tight">
-                      Field Reconnaissance & Log
-                    </h2>
-                  </div>
-                  <span
-                    className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded border ${submittedIds.includes(selectedProduct.id)
-                      ? 'bg-[#8B1A1A]/10 text-[#8B1A1A] border-[#8B1A1A]/40 -rotate-2'
-                      : 'bg-[#7a5214]/10 text-[#7a5214] border-[#7a5214]/30'
-                      }`}
-                  >
-                    {submittedIds.includes(selectedProduct.id) ? '✦ SURVEY RECORDED' : 'UNSURVEYED COORD'}
+            {/* ================= DESKTOP ONLY: Right Page Field Ledger ================= */}
+            <div className="hidden lg:flex relative w-1/2 h-full z-10 pt-7 pb-6 pl-12 pr-8 sm:pt-8 sm:pb-7 sm:pl-14 sm:pr-10 flex-col justify-between overflow-y-auto">
+              {/* Top Header Section */}
+              <div className="flex items-start justify-between border-b-2 border-[#8b6943]/35 pb-2">
+                <div>
+                  <span className="block text-[9.5px] font-mono font-bold uppercase tracking-[0.25em] text-[#7a481c]">
+                    EXPEDITION DOSSIER // {labConfig.name.toUpperCase()}
                   </span>
+                  <h2 className="text-xl sm:text-2xl font-bold text-[#241308] font-['EB_Garamond',_serif] tracking-tight leading-tight mt-0.5">
+                    Field Reconnaissance & Log
+                  </h2>
                 </div>
+                <span
+                  className={`text-[9.5px] font-mono font-bold px-2.5 py-1 rounded border shadow-sm ${
+                    submittedIds.includes(selectedProduct.id)
+                      ? 'bg-[#8b261d]/15 text-[#8b261d] border-[#8b261d]/40 -rotate-2'
+                      : 'bg-[#7a5214]/10 text-[#7a5214] border-[#7a5214]/30'
+                  }`}
+                >
+                  {submittedIds.includes(selectedProduct.id) ? '✦ SURVEY CLEARED' : 'UNSURVEYED COORD'}
+                </span>
+              </div>
 
-                {/* Selected Waypoint Dossier Box */}
-                <div className="my-2.5 p-3 rounded-lg border border-[#8b6943]/40 bg-[#ede0cb]/80 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06),_0_2px_8px_rgba(40,20,5,0.08)]">
-                  <div className="flex items-center justify-between border-b border-[#8b6943]/30 pb-1.5 mb-2">
+              {/* Selected Waypoint Dossier Plaque */}
+              <div className="my-auto py-2">
+                <div className="p-3.5 sm:p-4 rounded-lg border border-[#8b6943]/35 bg-[#2b180d]/[0.03] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]">
+                  {/* Waypoint Coordinates & Status */}
+                  <div className="flex items-center justify-between border-b border-[#8b6943]/25 pb-2 mb-2">
                     <div className="flex items-center gap-2">
-                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={18} color="#4a2810" />
+                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={18} color="#7a481c" />
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#7a481c]">
                         WAYPOINT 0{selectedIndex + 1} • LAT: {selectedProduct.y}°N · LNG: {selectedProduct.x}°W
                       </span>
                     </div>
+                    <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-[#8c6f4b]">
+                      SIC PARVIS MAGNA
+                    </span>
                   </div>
 
-                  <h3 className="text-base font-bold text-[#241308] font-['EB_Garamond',_serif] leading-tight">
+                  {/* Waypoint Title */}
+                  <h3 className="text-lg sm:text-xl font-bold text-[#241308] font-['EB_Garamond',_serif] leading-tight">
                     {selectedProduct.name}
                   </h3>
 
-                  <div className="mt-2 pl-3 border-l-2 border-[#7a481c]/50">
+                  {/* Field Notes Handwriting Quote */}
+                  <div className="mt-2.5 pl-3 border-l-2 border-[#7a481c]/50">
                     <p className="text-sm text-[#3d200e] font-[family-name:var(--font-handwriting)] font-semibold italic leading-relaxed">
                       &quot;{selectedProduct.description}&quot;
                     </p>
                   </div>
                 </div>
 
-                {/* Celestial Coordinate Index (5 Quadrant Tiles) */}
-                <div className="my-3">
-                  <span className="block text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#652B19] mb-2">
-                    Celestial Coordinate Index
+                {/* Celestial Coordinate Index (5 Waypoint Selector Buttons) */}
+                <div className="mt-3 sm:mt-4">
+                  <span className="block text-[9.5px] font-mono font-bold uppercase tracking-[0.2em] text-[#652B19] mb-1.5">
+                    CELESTIAL COORDINATE INDEX
                   </span>
-                  <div className="grid grid-cols-5 gap-1.5">
+                  <div className="grid grid-cols-5 gap-2">
                     {products.map((p, i) => {
                       const isDone = submittedIds.includes(p.id);
                       const isSel = selectedProduct.id === p.id;
                       return (
                         <button
                           key={p.id}
+                          type="button"
                           onClick={() => setSelectedProduct(p)}
-                          className={`p-2 rounded-md border flex flex-col items-center justify-between gap-1 transition cursor-pointer ${isSel
-                            ? 'bg-[#d4af37]/35 border-[#7a5214] ring-1 ring-[#d4af37] shadow-sm'
-                            : 'bg-[#ebdcc3]/50 border-[#8b6943]/30 hover:bg-[#ebdcc3]/85'
-                            }`}
+                          className={`py-2 px-1 rounded-md border flex flex-col items-center justify-between gap-1 transition-all cursor-pointer ${
+                            isSel
+                              ? 'bg-[#d4af37]/35 border-[#7a5214] ring-2 ring-[#d4af37]/80 shadow-md scale-[1.03]'
+                              : 'bg-[#2b180d]/[0.03] border-[#8b6943]/30 hover:bg-[#2b180d]/[0.07] hover:border-[#7a5214]/50'
+                          }`}
                         >
-                          <CheckpointIcon index={i} size={16} color={isSel ? '#241308' : '#6b4c1b'} />
-                          <span className="text-[10px] font-mono font-bold text-[#241308]">
-                            {isDone ? '✦' : `WP-0${i + 1}`}
+                          <CheckpointIcon index={i} size={16} color={isSel ? '#241308' : isDone ? '#8b261d' : '#7a5214'} />
+                          <span className="text-[9.5px] font-mono font-bold text-[#241308] tracking-tight">
+                            {isDone ? '✦ LOGGED' : `WP-0${i + 1}`}
                           </span>
                         </button>
                       );
@@ -571,21 +640,22 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                 </div>
               </div>
 
-              {/* Action Button & Dev Links */}
-              <div className="flex flex-col gap-2 pt-2 border-t border-[#8b6943]/30">
+              {/* Action Button & Dev Bar */}
+              <div className="pt-2 border-t border-[#8b6943]/25 flex flex-col gap-2">
                 <button
+                  type="button"
                   onClick={() => setActiveModalProduct(selectedProduct)}
                   style={{
                     clipPath:
-                      'polygon(8px 0%, calc(100% - 8px) 0%, 100% 8px, 100% calc(100% - 8px), calc(100% - 6px) 100%, 8px 100%, 0% calc(100% - 8px), 0% 8px)',
+                      'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
                   }}
-                  className="w-full py-2.5 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-2 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fdf3cc]/40"
+                  className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2 font-['Cinzel',_serif] cursor-pointer border-t border-[#fff3cc]/50"
                 >
                   <span>{submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
-                  <span>➔</span>
+                  <span className="text-xs">➔</span>
                 </button>
 
-                <div className="flex items-center justify-between pt-1 text-[9px] font-mono">
+                <div className="flex items-center justify-between px-1 text-[8.5px] font-mono">
                   <button
                     type="button"
                     onClick={() => handleSimulateCompletion(selectedProduct.id)}
@@ -621,16 +691,19 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center font-serif font-bold text-xs shrink-0 ${isDone
-                        ? 'bg-gradient-to-b from-[#f3e5ab] via-[#d4af37] to-[#7a5214] text-[#1a0e05] border border-[#f3e5ab]'
-                        : 'bg-[#2B1B11] text-[#D4AF37] border border-[#8A6839]'
-                        }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-serif font-bold text-xs shrink-0 ${
+                        isDone
+                          ? 'bg-gradient-to-b from-[#f3e5ab] via-[#d4af37] to-[#7a5214] text-[#1a0e05] border border-[#f3e5ab]'
+                          : 'bg-[#2B1B11] text-[#D4AF37] border border-[#8A6839]'
+                      }`}
                     >
                       {isDone ? '✦' : ['I', 'II', 'III', 'IV', 'V'][idx] || idx + 1}
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-[#F5E6CC] truncate font-['Cinzel',_serif]">{product.name}</div>
-                      <div className="text-[11px] text-[#8C6F4B] italic truncate font-[family-name:var(--font-handwriting)]">{product.description}</div>
+                      <div className="text-[11px] text-[#8C6F4B] italic truncate font-[family-name:var(--font-handwriting)]">
+                        {product.description}
+                      </div>
                     </div>
                   </div>
                   <span className="text-[10px] uppercase font-mono px-2.5 py-1 rounded bg-[#2a1b11] text-[#c49b4d] font-bold shrink-0">
