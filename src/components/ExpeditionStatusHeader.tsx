@@ -5,57 +5,76 @@ import React from 'react';
 interface ExpeditionStatusHeaderProps {
   completedCount?: number;
   totalCount?: number;
+  completedCheckpoints?: number;
+  totalCheckpoints?: number;
+  overallPercentage?: number;
 }
 
 export default function ExpeditionStatusHeader({
   completedCount = 0,
   totalCount = 3,
+  completedCheckpoints = 0,
+  totalCheckpoints = 15,
+  overallPercentage = 0,
 }: ExpeditionStatusHeaderProps) {
   return (
-    <div className="relative w-full max-w-lg mx-auto drop-shadow-[0_12px_28px_rgba(0,0,0,0.85)] select-none">
+    <div className="relative w-full max-w-[480px] mx-auto drop-shadow-[0_14px_32px_rgba(0,0,0,0.92)] select-none font-serif">
       <div
         style={{
           backgroundImage: `url('/assets/images/expedition_status_bg.png')`,
-          aspectRatio: '520 / 230',
+          aspectRatio: '520 / 250',
         }}
         className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center"
       >
         {/* Printable Parchment Safe Zone */}
-        <div className="absolute inset-0 pt-[23%] pb-[9%] px-[12%] flex flex-col items-center justify-between text-center">
-          {/* Main Stamped White Heading */}
-          <h1 className="font-serif font-black text-lg sm:text-2xl tracking-[3px] text-[#FFFFFF] drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] uppercase leading-none">
-            EXPEDITION STATUS
-          </h1>
-
-          {/* Typewriter Subtitle */}
-          <p className="font-courier font-bold text-[9.5px] sm:text-[11px] tracking-[3px] text-[#3D230D] uppercase -mt-0.5">
-            {completedCount} OF {totalCount} SECTORS DISCOVERED
-          </p>
+        <div className="absolute inset-0 pt-[17%] pb-[8%] px-[11%] flex flex-col items-center justify-between text-center">
+          {/* Main Uncharted Heading */}
+          <div>
+            <h1 className="font-['Cinzel',_serif] font-black text-lg sm:text-2xl tracking-[0.18em] text-[#1c0f05] drop-shadow-[0_1px_0_rgba(255,255,255,0.5)] uppercase leading-tight">
+              EXPEDITION STATUS
+            </h1>
+            <p className="font-['Cinzel',_serif] font-bold text-[9px] sm:text-[10px] tracking-[0.22em] text-[#7a481c] uppercase mt-0.5">
+              {completedCount} OF {totalCount} SECTORS DISCOVERED • SIC PARVIS MAGNA
+            </p>
+          </div>
 
           {/* 3 Circular Sector Badge Indicators */}
-          <div className="flex items-center justify-center gap-3 sm:gap-4 pb-0.5">
+          <div className="flex items-center justify-center gap-3 sm:gap-4 my-auto">
             {Array.from({ length: totalCount }).map((_, idx) => {
               const isCompleted = idx < completedCount;
               return (
                 <div
                   key={idx}
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-courier font-bold text-xs shadow-md transition-all ${isCompleted
-                      ? 'bg-gradient-to-b from-[#f5e19f] via-[#d4af37] to-[#7a5214] border border-[#fff3cc] text-[#241308] ring-1 ring-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,0.7)]'
-                      : 'bg-[#1b1009] border border-[#5c3e21] text-[#8c6f4b]'
-                    }`}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-mono font-bold text-xs shadow-md transition-all ${
+                    isCompleted
+                      ? 'bg-gradient-to-b from-[#fef08a] via-[#eab308] to-[#854d0e] border-2 border-[#fffbeb] text-[#1c1917] shadow-[0_0_10px_rgba(234,179,8,0.8)] ring-1 ring-[#eab308]'
+                      : 'bg-gradient-to-b from-[#2b1708] via-[#1a0f05] to-[#0d0702] border-2 border-[#8c6d23] text-[#d4af37]'
+                  }`}
                 >
                   {isCompleted ? (
-                    <img
-                      src="/assets/images/avery-pirate-coin.png"
-                      alt="Completed"
-                      className="w-4 h-4 sm:w-5 sm:h-5 object-contain drop-shadow"
-                    />
+                    <span className="text-xs text-[#1c1917]">✦</span>
                   ) : (
                     `0${idx + 1}`
                   )}
                 </div>
               );
             })}
+          </div>
+
+          {/* Antique Explorer Progress Bar (Showing Overall Checkpoint Ratings) */}
+          <div className="w-full max-w-[340px] flex flex-col gap-1">
+            <div className="flex items-center justify-between text-[8px] sm:text-[9px] font-mono font-extrabold uppercase tracking-wider text-[#6b4516]">
+              <span>Overall Logged: {completedCheckpoints}/{totalCheckpoints}</span>
+              <span className="text-[#8b261d]">{overallPercentage}% RATED</span>
+            </div>
+
+            {/* Recessed Brass Gauge Bar */}
+            <div className="relative w-full h-2 sm:h-2.5 rounded-full bg-[#1e1108]/30 border border-[#7a481c]/50 p-0.5 shadow-inner overflow-hidden">
+              <div
+                style={{ width: `${Math.max(4, overallPercentage)}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-[#8c6d23] via-[#d4af37] to-[#ffd700] shadow-[0_0_8px_rgba(212,175,55,0.8)] transition-all duration-700 ease-out"
+              />
+            </div>
           </div>
         </div>
       </div>
