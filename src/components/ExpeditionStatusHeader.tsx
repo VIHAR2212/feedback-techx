@@ -18,7 +18,7 @@ export default function ExpeditionStatusHeader({
   overallPercentage = 0,
 }: ExpeditionStatusHeaderProps) {
   return (
-    <div className="relative w-full max-w-[480px] mx-auto drop-shadow-[0_14px_32px_rgba(0,0,0,0.92)] select-none font-serif">
+    <div className="relative w-full max-w-[480px] mx-auto drop-shadow-[0_14px_32px_rgba(0,0,0,0.92)] select-none">
       <div
         style={{
           backgroundImage: `url('/assets/images/expedition_status_bg.png')`,
@@ -27,13 +27,13 @@ export default function ExpeditionStatusHeader({
         className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center"
       >
         {/* Printable Parchment Safe Zone */}
-        <div className="absolute inset-0 pt-[17%] pb-[8%] px-[11%] flex flex-col items-center justify-between text-center">
-          {/* Main Uncharted Heading */}
+        <div className="absolute inset-0 pt-[17%] pb-[8%] px-[12%] flex flex-col items-center justify-between text-center">
+          {/* Main Uncharted Themed Heading */}
           <div>
-            <h1 className="font-['Cinzel',_serif] font-black text-lg sm:text-2xl tracking-[0.18em] text-[#1c0f05] drop-shadow-[0_1px_0_rgba(255,255,255,0.5)] uppercase leading-tight">
+            <h1 className="font-[family-name:var(--font-uncharted)] font-bold text-xl sm:text-2xl tracking-[0.14em] text-[#1c0f05] drop-shadow-[0_1px_0_rgba(255,255,255,0.6)] uppercase leading-none">
               EXPEDITION STATUS
             </h1>
-            <p className="font-['Cinzel',_serif] font-bold text-[9px] sm:text-[10px] tracking-[0.22em] text-[#7a481c] uppercase mt-0.5">
+            <p className="font-[family-name:var(--font-uncharted)] text-[9.5px] sm:text-[10.5px] tracking-[0.16em] text-[#7a481c] uppercase mt-1">
               {completedCount} OF {totalCount} SECTORS DISCOVERED • SIC PARVIS MAGNA
             </p>
           </div>
@@ -62,7 +62,7 @@ export default function ExpeditionStatusHeader({
           </div>
 
           {/* Antique Explorer Progress Bar (Showing Overall Checkpoint Ratings) */}
-          <div className="w-full max-w-[340px] flex flex-col gap-1">
+          <div className="w-full max-w-[320px] flex flex-col gap-1">
             <div className="flex items-center justify-between text-[8px] sm:text-[9px] font-mono font-extrabold uppercase tracking-wider text-[#6b4516]">
               <span>Overall Logged: {completedCheckpoints}/{totalCheckpoints}</span>
               <span className="text-[#8b261d]">{overallPercentage}% RATED</span>

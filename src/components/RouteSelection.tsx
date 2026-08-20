@@ -39,7 +39,7 @@ export default function RouteSelection() {
     totalCheckpoints > 0 ? Math.round((completedCheckpoints / totalCheckpoints) * 100) : 0;
 
   return (
-    <div className="relative min-h-[100dvh] w-full text-[#2c1a0e] flex flex-col items-center justify-start py-6 px-3.5 sm:px-6 overflow-x-hidden font-serif select-none">
+    <div className="relative min-h-[100dvh] w-full text-[#2c1a0e] flex flex-col items-center justify-start py-6 px-3.5 sm:px-6 overflow-x-hidden select-none">
       {/* Original Parchment Map Background */}
       <div
         style={{ backgroundImage: `url('/assets/images/expedition_map_bg.jpg')` }}
@@ -84,16 +84,16 @@ export default function RouteSelection() {
                 className="relative w-full drop-shadow-[0_12px_28px_rgba(0,0,0,0.88)] cursor-pointer group"
                 onClick={() => router.push(`/labs/${lab.id}`)}
               >
-                {/* Torn Parchment Dossier Plaque */}
+                {/* Torn Parchment Dossier Plaque with Generous Inset Padding */}
                 <div
                   style={{
                     backgroundImage: `url('/assets/images/torn-card-bg.png')`,
                   }}
-                  className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center p-5 sm:p-6 flex flex-col justify-between min-h-[195px] text-[#241308]"
+                  className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center px-10 sm:px-12 py-6 sm:py-7 flex flex-col justify-between min-h-[200px] text-[#241308]"
                 >
                   {/* Decorative Red Ink Wax Seal for Completed Surveys */}
                   {isCompleted && (
-                    <div className="absolute -top-1 -right-1 sm:top-1 sm:right-1 w-12 h-12 pointer-events-none opacity-90 z-20">
+                    <div className="absolute top-1 right-2 w-12 h-12 pointer-events-none opacity-90 z-20">
                       <div className="w-10 h-10 rounded-full border-2 border-dashed border-[#8b261d] flex items-center justify-center rotate-12 bg-[#8b261d]/15 shadow-sm">
                         <span className="text-[9px] font-mono font-black text-[#8b261d] uppercase tracking-tighter">
                           SEALED
@@ -103,24 +103,24 @@ export default function RouteSelection() {
                   )}
 
                   {/* Header Sub-Row: Sector Tag & Recon Counter */}
-                  <div className="flex items-center justify-between border-b border-[#8b6943]/35 pb-1.5 mb-1.5 pr-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3.5 h-3.5 rounded-full bg-[#24140a] border border-[#8c6d23] flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
+                  <div className="flex items-center justify-between border-b border-[#8b6943]/35 pb-1.5 mb-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-3 h-3 rounded-full bg-[#24140a] border border-[#8c6d23] flex items-center justify-center shrink-0">
+                        <div className="w-1 h-1 rounded-full bg-[#d4af37]" />
                       </div>
-                      <span className="text-[10px] font-mono font-extrabold uppercase tracking-[0.2em] text-[#6b4516]">
+                      <span className="text-[9.5px] sm:text-[10px] font-mono font-extrabold uppercase tracking-wider text-[#6b4516] truncate">
                         {environmentTag}
                       </span>
                     </div>
 
                     {isCompleted ? (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-dashed border-[#8b261d] bg-[#8b261d]/15 text-[#8b261d]">
+                      <div className="flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-[#8b261d] bg-[#8b261d]/15 text-[#8b261d] shrink-0">
                         <span className="text-[8.5px] font-mono font-bold uppercase tracking-wider">
-                          ✦ Survey Cleared
+                          ✦ Cleared
                         </span>
                       </div>
                     ) : (
-                      <div className="px-2 py-0.5 rounded border border-[#7a481c]/40 bg-[#7a481c]/10 text-[#7a481c]">
+                      <div className="px-2 py-0.5 rounded border border-[#7a481c]/40 bg-[#7a481c]/10 text-[#7a481c] shrink-0">
                         <span className="text-[8.5px] font-mono font-bold uppercase tracking-wider">
                           Recon: {progress.completed}/{progress.total}
                         </span>
@@ -130,7 +130,7 @@ export default function RouteSelection() {
 
                   {/* Title & Lore Description */}
                   <div className="my-auto py-1">
-                    <h2 className="text-xl sm:text-2xl font-bold font-['EB_Garamond',_serif] text-[#1c0f05] tracking-tight leading-snug group-hover:text-[#522b10] transition-colors drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+                    <h2 className="text-lg sm:text-xl font-bold font-[family-name:var(--font-uncharted)] text-[#1c0f05] tracking-wide leading-snug group-hover:text-[#522b10] transition-colors drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
                       {lab.name}: {lab.title}
                     </h2>
                     <p className="text-xs sm:text-[13px] text-[#4a2810] font-[family-name:var(--font-handwriting)] font-semibold italic leading-relaxed mt-0.5 line-clamp-2">
@@ -165,7 +165,7 @@ export default function RouteSelection() {
                           clipPath:
                             'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
                         }}
-                        className="w-full py-2.5 px-4 bg-gradient-to-r from-[#2b100b] via-[#4a1c15] to-[#2b100b] text-[#f2dfbe] font-bold text-xs uppercase tracking-widest shadow-md transition hover:brightness-125 active:scale-[0.99] flex items-center justify-between border-t border-[#8b261d]/50 font-['Cinzel',_serif] cursor-pointer"
+                        className="w-full py-2.5 px-4 bg-gradient-to-r from-[#2b100b] via-[#4a1c15] to-[#2b100b] text-[#f2dfbe] font-bold text-[11px] sm:text-xs uppercase tracking-widest shadow-md transition hover:brightness-125 active:scale-[0.99] flex items-center justify-between border-t border-[#8b261d]/50 font-[family-name:var(--font-uncharted)] cursor-pointer"
                       >
                         <span>Review {lab.title}</span>
                         <span className="px-2 py-0.5 text-[8.5px] bg-[#8b261d] text-[#fff0d6] rounded-full border border-[#d6655a]/40 font-mono font-bold uppercase tracking-widest">
@@ -183,7 +183,7 @@ export default function RouteSelection() {
                           clipPath:
                             'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
                         }}
-                        className="w-full py-2.5 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-xs uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.99] flex items-center justify-between border-t border-[#fff3cc]/60 font-['Cinzel',_serif] cursor-pointer"
+                        className="w-full py-2.5 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[11px] sm:text-xs uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.99] flex items-center justify-between border-t border-[#fff3cc]/60 font-[family-name:var(--font-uncharted)] cursor-pointer"
                       >
                         <span>Enter {lab.title}</span>
                         <span className="text-xs">➔</span>
