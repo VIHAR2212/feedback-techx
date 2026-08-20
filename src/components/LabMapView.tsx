@@ -254,7 +254,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
             {/* Desktop Full Open Book Spread Background */}
             <div
               style={{ backgroundImage: `url('/assets/images/journal-spread.png')` }}
-              className="hidden lg:block absolute inset-0 w-full h-full bg-cover bg-center pointer-events-none z-0"
+              className="hidden lg:block absolute inset-0 w-full h-full bg-[length:100%_100%] bg-center bg-no-repeat pointer-events-none z-0"
             />
 
             {/* ================= MAP SECTION (LEFT SPREAD) ================= */}
@@ -267,7 +267,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                   backgroundPosition: 'left center',
                   backgroundRepeat: 'no-repeat',
                 }}
-                className="relative h-full aspect-[8/9] max-w-full max-h-full rounded-xl lg:rounded-none border-2 sm:border-4 lg:border-none border-[#241308] shadow-[0_12px_36px_rgba(0,0,0,0.95)] lg:shadow-none overflow-hidden lg:bg-none"
+                className="relative w-full h-auto aspect-[8/9] lg:h-full lg:w-auto max-w-full max-h-full rounded-xl lg:rounded-none border-2 sm:border-4 lg:border-none border-[#241308] shadow-[0_12px_36px_rgba(0,0,0,0.95)] lg:shadow-none overflow-hidden lg:bg-none"
               >
                 {/* Luminous Inked Golden Route (Dynamic SVG based on exact detected node locations) */}
                 {containerSize.width > 0 && containerSize.height > 0 && routePaths.plannedPath && (
@@ -498,15 +498,15 @@ export default function LabMapView({ labId }: LabMapViewProps) {
             </div>
 
             {/* ================= DESKTOP ONLY: Right Page Field Ledger (Zero Emojis & Authentic Theme) ================= */}
-            <div className="hidden lg:flex relative w-1/2 h-full z-10 p-8 sm:p-10 flex-col justify-between overflow-y-auto">
+            <div className="hidden lg:flex relative w-1/2 h-full z-10 p-5 sm:p-6 flex-col justify-between overflow-y-auto">
               <div>
                 {/* Header */}
-                <div className="flex items-center justify-between border-b-2 border-[#8b6943]/40 pb-2 mb-4">
+                <div className="flex items-center justify-between border-b-2 border-[#8b6943]/40 pb-1.5 mb-3">
                   <div>
                     <span className="block text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#7a481c]">
                       EXPEDITION LEDGER // {labConfig.name.toUpperCase()}
                     </span>
-                    <h2 className="text-xl font-bold text-[#241308] font-['EB_Garamond',_serif] tracking-tight">
+                    <h2 className="text-lg font-bold text-[#241308] font-['EB_Garamond',_serif] tracking-tight">
                       Field Reconnaissance & Log
                     </h2>
                   </div>
@@ -521,21 +521,21 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                 </div>
 
                 {/* Selected Waypoint Dossier Box */}
-                <div className="my-4 p-4 rounded-lg border border-[#8b6943]/40 bg-[#ede0cb]/80 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06),_0_2px_8px_rgba(40,20,5,0.08)]">
-                  <div className="flex items-center justify-between border-b border-[#8b6943]/30 pb-2 mb-2.5">
+                <div className="my-2.5 p-3 rounded-lg border border-[#8b6943]/40 bg-[#ede0cb]/80 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06),_0_2px_8px_rgba(40,20,5,0.08)]">
+                  <div className="flex items-center justify-between border-b border-[#8b6943]/30 pb-1.5 mb-2">
                     <div className="flex items-center gap-2">
-                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={22} color="#4a2810" />
+                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={18} color="#4a2810" />
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#7a481c]">
                         WAYPOINT 0{selectedIndex + 1} • LAT: {selectedProduct.y}°N · LNG: {selectedProduct.x}°W
                       </span>
                     </div>
                   </div>
 
-                  <h3 className="text-lg font-bold text-[#241308] font-['EB_Garamond',_serif] leading-tight">
+                  <h3 className="text-base font-bold text-[#241308] font-['EB_Garamond',_serif] leading-tight">
                     {selectedProduct.name}
                   </h3>
 
-                  <div className="mt-2.5 pl-3 border-l-2 border-[#7a481c]/50">
+                  <div className="mt-2 pl-3 border-l-2 border-[#7a481c]/50">
                     <p className="text-sm text-[#3d200e] font-[family-name:var(--font-handwriting)] font-semibold italic leading-relaxed">
                       &quot;{selectedProduct.description}&quot;
                     </p>
@@ -543,11 +543,11 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                 </div>
 
                 {/* Celestial Coordinate Index (5 Quadrant Tiles) */}
-                <div className="my-5">
-                  <span className="block text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#652B19] mb-2.5">
+                <div className="my-3">
+                  <span className="block text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#652B19] mb-2">
                     Celestial Coordinate Index
                   </span>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-5 gap-1.5">
                     {products.map((p, i) => {
                       const isDone = submittedIds.includes(p.id);
                       const isSel = selectedProduct.id === p.id;
@@ -555,12 +555,12 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                         <button
                           key={p.id}
                           onClick={() => setSelectedProduct(p)}
-                          className={`p-2.5 rounded-md border flex flex-col items-center justify-between gap-1.5 transition cursor-pointer ${isSel
+                          className={`p-2 rounded-md border flex flex-col items-center justify-between gap-1 transition cursor-pointer ${isSel
                             ? 'bg-[#d4af37]/35 border-[#7a5214] ring-1 ring-[#d4af37] shadow-sm'
                             : 'bg-[#ebdcc3]/50 border-[#8b6943]/30 hover:bg-[#ebdcc3]/85'
                             }`}
                         >
-                          <CheckpointIcon index={i} size={18} color={isSel ? '#241308' : '#6b4c1b'} />
+                          <CheckpointIcon index={i} size={16} color={isSel ? '#241308' : '#6b4c1b'} />
                           <span className="text-[10px] font-mono font-bold text-[#241308]">
                             {isDone ? '✦' : `WP-0${i + 1}`}
                           </span>
@@ -572,14 +572,14 @@ export default function LabMapView({ labId }: LabMapViewProps) {
               </div>
 
               {/* Action Button & Dev Links */}
-              <div className="flex flex-col gap-2.5 pt-3 border-t border-[#8b6943]/30">
+              <div className="flex flex-col gap-2 pt-2 border-t border-[#8b6943]/30">
                 <button
                   onClick={() => setActiveModalProduct(selectedProduct)}
                   style={{
                     clipPath:
                       'polygon(8px 0%, calc(100% - 8px) 0%, 100% 8px, 100% calc(100% - 8px), calc(100% - 6px) 100%, 8px 100%, 0% calc(100% - 8px), 0% 8px)',
                   }}
-                  className="w-full py-3 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-2 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fdf3cc]/40"
+                  className="w-full py-2.5 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-2 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fdf3cc]/40"
                 >
                   <span>{submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
                   <span>➔</span>

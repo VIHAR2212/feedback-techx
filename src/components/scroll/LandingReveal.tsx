@@ -11,14 +11,23 @@ import { TechXLogoText, ProductShowcaseText } from '@/components/uncharted/TechX
 
 const TOTAL_FRAMES = 120;
 const FRAME_PREFIX = '/frames/frame_';
-const FRAME_SUFFIX = '_delay-0.016s.jpg';
+// WebP frames (downscaled by scripts/optimize-frames.mjs) are the primary
+// source; the original JPGs stay on disk as an onerror fallback.
+const FRAME_SUFFIX = '_delay-0.016s.webp';
+const FRAME_FALLBACK_SUFFIX = '_delay-0.016s.jpg';
 // Scroll distance the frame sequence plays out over, in viewport heights.
 const SCROLL_HEIGHT_VH = 400;
+// Number of frames fetched in parallel. Browsers cap connections per host,
+// so firing all 120 at once just queues them and stalls the main thread.
+const PRELOAD_CONCURRENCY = 5;
+// The page becomes interactive once these first frames are ready; the rest
+// stream in the background while the user is already scrolling.
+const READY_FRAME_COUNT = 3;
 
-function frameSrc(i: number) {
+function frameSrc(i: number, suffix: string = FRAME_SUFFIX) {
   // Internal frame index is 0-based (0..TOTAL_FRAMES-1); filenames on disk
   // are 1-based (ezgif-frame-001.jpg .. ezgif-frame-120.jpg).
-  return `${FRAME_PREFIX}${String(i + 1).padStart(3, '0')}${FRAME_SUFFIX}`;
+  return `${FRAME_PREFIX}${String(i + 1).padStart(3, '0')}${suffix}`;
 }
 
 export default function LandingReveal() {
@@ -29,6 +38,7 @@ export default function LandingReveal() {
   const rafRef = useRef<number>(0);
 
   const [loaded, setLoaded] = useState(false);
+  const [ready, setReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [showCard, setShowCard] = useState(false);
 
@@ -98,21 +108,51 @@ export default function LandingReveal() {
   const cardY = useTransform(smoothProgress, [0.90, 0.98], [30, 0]);
   const scrollHintOpacity = useTransform(smoothProgress, [0, 0.05], [1, 0]);
 
-  // Preload every frame.
+  // Preload every frame in bounded waves: the first READY_FRAME_COUNT frames
+  // get priority (they unblock the UI), the rest trickle in at
+  // PRELOAD_CONCURRENCY at a time so the browser never queues a 25MB flood
+  // and the main thread isn't choked by concurrent JPEG/WebP decodes.
   useEffect(() => {
     const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
     let count = 0;
+    let readyFired = false;
+    let cursor = 0;
 
-    for (let i = 0; i < TOTAL_FRAMES; i++) {
+    const resolve = (i: number) => {
+      count++;
+      setLoadProgress(Math.round((count / TOTAL_FRAMES) * 100));
+      if (!readyFired && count >= READY_FRAME_COUNT) {
+        readyFired = true;
+        setReady(true);
+      }
+      if (count === TOTAL_FRAMES) setLoaded(true);
+      pump();
+    };
+
+    const loadImage = (i: number) => {
       const img = new window.Image();
-      img.src = frameSrc(i);
-      img.onload = img.onerror = () => {
-        count++;
-        setLoadProgress(Math.round((count / TOTAL_FRAMES) * 100));
-        if (count === TOTAL_FRAMES) setLoaded(true);
+      img.decoding = 'async';
+      img.fetchPriority = i < READY_FRAME_COUNT ? 'high' : 'low';
+      img.onload = () => resolve(i);
+      img.onerror = () => {
+        if (img.src.endsWith(FRAME_SUFFIX)) {
+          img.src = frameSrc(i, FRAME_FALLBACK_SUFFIX);
+        } else {
+          resolve(i);
+        }
       };
+      img.src = frameSrc(i);
       images[i] = img;
-    }
+    };
+
+    const pump = () => {
+      while (cursor < TOTAL_FRAMES && cursor - count < PRELOAD_CONCURRENCY) {
+        loadImage(cursor);
+        cursor++;
+      }
+    };
+
+    pump();
     framesRef.current = images;
   }, []);
 
@@ -136,7 +176,7 @@ export default function LandingReveal() {
 
   // Drive the canvas frame smoothly from spring progress.
   useEffect(() => {
-    if (!loaded) return;
+    if (!ready) return;
     drawFrame(0);
 
     const unsub = smoothProgress.on('change', (v) => {
@@ -150,7 +190,7 @@ export default function LandingReveal() {
     });
 
     return () => unsub();
-  }, [loaded, smoothProgress, drawFrame]);
+  }, [ready, smoothProgress, drawFrame]);
 
   // Toggle whether the signup card can capture pointer input
   useEffect(() => {
@@ -165,12 +205,12 @@ export default function LandingReveal() {
       if (!canvas) return;
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      if (loaded) drawFrame(currentFrameRef.current);
+      if (ready) drawFrame(currentFrameRef.current);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [loaded, drawFrame]);
+  }, [ready, drawFrame]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,7 +244,7 @@ export default function LandingReveal() {
             ref useScroll binds to is stable from the very first render. */}
         <div
           className={`absolute inset-0 z-30 flex flex-col items-center justify-center gap-6 bg-black/95 text-white transition-opacity duration-500 ${
-            loaded ? 'pointer-events-none opacity-0' : 'opacity-100'
+            ready ? 'pointer-events-none opacity-0' : 'opacity-100'
           }`}
         >
           {/* Rotating compass astrolabe background ring */}

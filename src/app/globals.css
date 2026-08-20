@@ -21,8 +21,6 @@
   font-display: swap;
 }
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --background: #1a1a1a;  /* Charcoal Dark Black */
   --color-background: var(--background);
@@ -124,42 +122,6 @@
   --chart-5: #dc2626;
 
   /* Sidebar */
-  --sidebar: #262626;
-  --sidebar-foreground: #f5f5f4;
-  --sidebar-primary: #d97706;
-  --sidebar-primary-foreground: #1a1a1a;
-  --sidebar-accent: #333333;
-  --sidebar-accent-foreground: #f5f5f4;
-  --sidebar-border: #404040;
-  --sidebar-ring: #d97706;
-}
-
-.dark {
-  /* Same as root since we're always dark */
-  --background: #1a1a1a;
-  --foreground: #f5f5f4;
-  --card: #262626;
-  --card-foreground: #f5f5f4;
-  --popover: #262626;
-  --popover-foreground: #f5f5f4;
-  --primary: #d97706;
-  --primary-foreground: #1a1a1a;
-  --secondary: #333333;
-  --secondary-foreground: #f5f5f4;
-  --muted: #404040;
-  --muted-foreground: #a8a29e;
-  --accent: #b45309;
-  --accent-foreground: #f5f5f4;
-  --destructive: #dc2626;
-  --destructive-foreground: #f5f5f4;
-  --border: #404040;
-  --input: #404040;
-  --ring: #d97706;
-  --chart-1: #d97706;
-  --chart-2: #f59e0b;
-  --chart-3: #059669;
-  --chart-4: #2563eb;
-  --chart-5: #dc2626;
   --sidebar: #262626;
   --sidebar-foreground: #f5f5f4;
   --sidebar-primary: #d97706;
@@ -374,13 +336,6 @@
   transform: scale(1.02);
   box-shadow: 0 4px 20px rgba(217, 119, 6, 0.3);
 }
-
-/* Gemstone Rating Tiers */
-.gem-rough { background: linear-gradient(135deg, #78716c, #57534e); }
-.gem-emerald { background: linear-gradient(135deg, #059669, #047857); }
-.gem-ruby { background: linear-gradient(135deg, #dc2626, #b91c1c); }
-.gem-sapphire { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
-.gem-diamond { background: linear-gradient(135deg, #e5e7eb, #d1d5db); }
 
 /* Loading Screen */
 .loading-screen {
@@ -644,26 +599,6 @@ select.tablet-input option {
   background: linear-gradient(to bottom, #d97706, #f59e0b);
 }
 
-/* Wooden Plank Item Background */
-.wooden-plank-card {
-  background: linear-gradient(180deg, #3d2314 0%, #2e1a0f 45%, #23130a 100%);
-  box-shadow: 
-    inset 0 1px 1px rgba(255, 255, 255, 0.15),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.7),
-    0 4px 10px rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(138, 77, 33, 0.45);
-}
-
-.wooden-plank-card-highlight {
-  background: linear-gradient(180deg, #573117 0%, #3e210e 45%, #2b1407 100%);
-  box-shadow: 
-    inset 0 1px 2px rgba(251, 191, 36, 0.4),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.8),
-    0 0 16px rgba(245, 158, 11, 0.35),
-    0 4px 12px rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(245, 158, 11, 0.7);
-}
-
 /* ==========================================================================
    UNCHARTED LOST TREASURE & SECTOR MAP EXPEDITION STYLES
    ========================================================================== */
@@ -688,86 +623,6 @@ select.tablet-input option {
   --font-title: var(--font-uncharted-title);
   --font-display: var(--font-uncharted-title);
   --font-serif: var(--font-uncharted-serif), "IM Fell English", Georgia, serif;
-}
-
-/* Field Dossier / Manila Folder Card Styling */
-.dossier-card {
-  position: relative;
-  background-color: #F3E5C8;
-  background-image: 
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 23px,
-      rgba(101, 43, 25, 0.05) 24px
-    ),
-    radial-gradient(circle at 10% 10%, rgba(101, 43, 25, 0.07) 0%, transparent 45%),
-    radial-gradient(circle at 90% 90%, rgba(101, 43, 25, 0.09) 0%, transparent 45%),
-    linear-gradient(135deg, #F8EED8 0%, #E7D4AD 100%);
-  color: #2C1E14;
-  border: 1.5px solid #8C6F42;
-  border-radius: 4px;
-  box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.25),
-    0 10px 28px rgba(0, 0, 0, 0.5),
-    inset 0 0 25px rgba(101, 43, 25, 0.12);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  overflow: hidden;
-}
-
-.dossier-card:hover {
-  transform: translateY(-3px) scale(1.01) !important;
-  box-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.3),
-    0 16px 36px rgba(0, 0, 0, 0.65),
-    inset 0 0 30px rgba(101, 43, 25, 0.15);
-}
-
-/* Manila Top Offset Folder Tab */
-.dossier-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 14px;
-  background: #E3D1A5;
-  border: 1.5px solid #8C6F42;
-  border-bottom: none;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 6px;
-  font-family: monospace;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #4A2E1B;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  position: relative;
-  top: 1.5px;
-}
-
-/* Rubber Stamp Cleared / Status Watermark in Background */
-.ink-stamp-watermark {
-  position: absolute;
-  right: 1.2rem;
-  top: 2rem;
-  transform: rotate(-12deg);
-  border: 2.5px dashed rgba(168, 50, 36, 0.35);
-  border-radius: 6px;
-  padding: 4px 12px;
-  font-family: monospace;
-  font-weight: 800;
-  font-size: 0.85rem;
-  letter-spacing: 2px;
-  color: rgba(168, 50, 36, 0.4);
-  pointer-events: none;
-  user-select: none;
-  text-transform: uppercase;
-}
-
-.ink-stamp-cleared {
-  border-color: rgba(31, 58, 43, 0.6);
-  color: rgba(31, 58, 43, 0.65);
-  transform: rotate(8deg);
 }
 
 /* Authentic Vintage Parchment & Expedition Card Styles */
@@ -935,13 +790,6 @@ select.tablet-input option {
   transform: scaleY(1.2);
   transform-origin: center;
   display: inline-block;
-}
-
-/* Vintage Map Grid Background Overlay */
-.vintage-map-bg {
-  background-image: 
-    radial-gradient(rgba(212, 175, 55, 0.12) 1px, transparent 0);
-  background-size: 24px 24px;
 }
 
 /* Parchment sheet style */
