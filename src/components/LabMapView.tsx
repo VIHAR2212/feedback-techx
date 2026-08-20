@@ -290,7 +290,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
           <div className="relative w-full h-full flex flex-col lg:flex-row items-center justify-between max-w-[1040px] aspect-[1024/615] max-h-[86vh] rounded-xl border-4 border-[#241308] shadow-[0_25px_65px_rgba(0,0,0,0.98)] overflow-hidden">
             {/* Desktop Full Open Book Spread Background */}
             <div
-              style={{ backgroundImage: `url('/assets/images/journal-spread.png')` }}
+              style={{ backgroundImage: `url('${labConfig.mapImage || '/assets/images/journal-spread-lab1.jpg'}')` }}
               className="hidden lg:block absolute inset-0 w-full h-full bg-[length:100%_100%] bg-center bg-no-repeat pointer-events-none z-0"
             />
 
@@ -299,7 +299,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
               <div
                 ref={mapContainerRef}
                 style={{
-                  backgroundImage: `url('/assets/images/journal-spread.png')`,
+                  backgroundImage: `url('${labConfig.mapImage || '/assets/images/journal-spread-lab1.jpg'}')`,
                   backgroundSize: '200% 100%',
                   backgroundPosition: 'left center',
                   backgroundRepeat: 'no-repeat',
@@ -325,11 +325,11 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       </filter>
                     </defs>
 
-                    {/* 1. Deep Iron-Gall Black / Dark Brown Ink Dashed Zig-Zag Path */}
+                    {/* 1. Deep Iron-Gall / Thematic Ink Dashed Zig-Zag Path */}
                     <path
                       d={routePaths.plannedPath}
                       fill="none"
-                      stroke="#140803"
+                      stroke={labConfig.inkColor || '#140803'}
                       strokeWidth="3.2"
                       strokeDasharray="6 6"
                       strokeLinecap="round"
@@ -338,23 +338,23 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       filter="url(#inkShadow)"
                     />
 
-                    {/* 2. Completed / Surveyed Illuminated Golden Trail */}
+                    {/* 2. Completed / Surveyed Illuminated Thematic Trail */}
                     {routePaths.completedPath && (
                       <>
                         <path
                           d={routePaths.completedPath}
                           fill="none"
-                          stroke="#ffd700"
+                          stroke={labConfig.glowColor || '#ffd700'}
                           strokeWidth="5.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          opacity={0.6}
+                          opacity={0.65}
                           filter="url(#gold-ink-bleed)"
                         />
                         <path
                           d={routePaths.completedPath}
                           fill="none"
-                          stroke="#fff4cc"
+                          stroke={labConfig.coreGlow || '#fff4cc'}
                           strokeWidth="2.4"
                           strokeDasharray="6 5"
                           strokeLinecap="round"
@@ -374,7 +374,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                             cy={pt.y}
                             r={isDone ? 22 : 18}
                             fill="none"
-                            stroke={isDone ? '#ffd700' : '#8c6d23'}
+                            stroke={isDone ? (labConfig.glowColor || '#ffd700') : '#8c6d23'}
                             strokeWidth={isDone ? '1.5' : '1'}
                             strokeDasharray={isDone ? 'none' : '3 3'}
                             opacity={isDone ? 0.95 : 0.45}
@@ -385,7 +385,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                               cy={pt.y}
                               r={26}
                               fill="none"
-                              stroke="#f5e19f"
+                              stroke={labConfig.coreGlow || '#f5e19f'}
                               strokeWidth="0.8"
                               strokeDasharray="2 4"
                               opacity={0.6}
@@ -416,6 +416,15 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                   const isSubmitted = submittedIds.includes(product.id);
                   const isCurrent = selectedProduct?.id === product.id;
 
+                  const submittedPinStyle =
+                    labConfig.themeType === 'jungle'
+                      ? 'bg-gradient-to-b from-[#bbf7d0] via-[#22c55e] to-[#14532d] border-2 border-[#dcfce7] text-[#052e16] shadow-[0_0_14px_rgba(34,197,94,0.85)] ring-1 ring-[#22c55e]'
+                      : labConfig.themeType === 'frost'
+                        ? 'bg-gradient-to-b from-[#bae6fd] via-[#0284c7] to-[#0c4a6e] border-2 border-[#e0f2fe] text-[#082f49] shadow-[0_0_14px_rgba(56,189,248,0.85)] ring-1 ring-[#38bdf8]'
+                        : labConfig.themeType === 'volcano'
+                          ? 'bg-gradient-to-b from-[#fed7aa] via-[#ea580c] to-[#7c2d12] border-2 border-[#ffedd5] text-[#431407] shadow-[0_0_14px_rgba(249,115,22,0.85)] ring-1 ring-[#ea580c]'
+                          : 'bg-gradient-to-b from-[#fef08a] via-[#eab308] to-[#854d0e] border-2 border-[#fffbeb] text-[#1c1917] shadow-[0_0_14px_rgba(234,179,8,0.8)] ring-1 ring-[#eab308]';
+
                   return (
                     <button
                       key={product.id}
@@ -435,7 +444,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       <div
                         className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-115 ${
                           isSubmitted
-                            ? 'bg-gradient-to-b from-[#fef08a] via-[#eab308] to-[#854d0e] border-2 border-[#fffbeb] text-[#1c1917] shadow-[0_0_14px_rgba(234,179,8,0.8)] ring-1 ring-[#eab308]'
+                            ? submittedPinStyle
                             : isCurrent
                               ? 'bg-gradient-to-b from-[#fef08a] via-[#d4af37] to-[#78350f] border-2 border-[#fff3cc] text-[#1a0e05] scale-110 shadow-[0_0_16px_rgba(212,175,55,0.9)] ring-2 ring-[#fde047]'
                               : 'bg-gradient-to-b from-[#2b1708] via-[#1a0f05] to-[#0d0702] border-2 border-[#8c6d23] text-[#d4af37] shadow-[0_4px_10px_rgba(0,0,0,0.85)]'
@@ -456,7 +465,17 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       {/* Needle Tip Pointing to Exact Coordinates */}
                       <div
                         className={`w-0 h-0 border-l-[4px] border-r-[4px] border-l-transparent border-r-transparent border-t-[5px] -mt-0.5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)] ${
-                          isSubmitted ? 'border-t-[#eab308]' : isCurrent ? 'border-t-[#d4af37]' : 'border-t-[#8c6d23]'
+                          isSubmitted
+                            ? labConfig.themeType === 'jungle'
+                              ? 'border-t-[#22c55e]'
+                              : labConfig.themeType === 'frost'
+                                ? 'border-t-[#0284c7]'
+                                : labConfig.themeType === 'volcano'
+                                  ? 'border-t-[#ea580c]'
+                                  : 'border-t-[#eab308]'
+                            : isCurrent
+                              ? 'border-t-[#d4af37]'
+                              : 'border-t-[#8c6d23]'
                         }`}
                       />
 
