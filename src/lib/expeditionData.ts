@@ -105,7 +105,7 @@ const baseExpeditionLabs: Record<string, ExpeditionLab> = {
     sourceLab: '2',
     chapterNumber: 'Chapter II',
     name: 'Sector 02',
-    title: 'Libertalia Pirate Haven',
+    title: 'LAB NO. 2',
     subtitle: 'Investigate lost pirate coves, IoT telemetry matrices, and automated defenses.',
     badgeTitle: 'Libertalia Explorer',
     fragmentId: '2',
