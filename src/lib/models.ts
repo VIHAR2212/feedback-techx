@@ -32,10 +32,11 @@ export interface FeedbackEntry {
   studentName: string;
   studentEmail: string;
   studentDepartment: string;
-  rating: GemstoneTier;
+  rating: number;
   comment: string;
   tableId: string;
-  timestamp: string;
+  labId?: string;
+  timestamp: string | Date;
   createdAt?: Date;
 }
 
@@ -52,6 +53,7 @@ export interface ExpeditionUser {
   discoveredClues: string[];
   discoveredTreasures: string[];
   completionDate?: string;
+  isCompleted?: boolean;
 }
 
 export interface Admin {

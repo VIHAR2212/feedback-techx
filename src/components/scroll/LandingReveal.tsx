@@ -2,11 +2,11 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { motion, useScroll, useTransform, useMotionValue, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { DEPARTMENT_OPTIONS } from '@/lib/mock-data';
-import { isExpeditionComplete } from '@/lib/expedition-storage';
+import { getSubmittedFeedbackForUser } from '@/lib/expeditionData';
 import { TechXLogoText, ProductShowcaseText } from '@/components/uncharted/TechXTypography';
 
 const TOTAL_FRAMES = 120;
@@ -56,13 +56,18 @@ export default function LandingReveal() {
     offset: ['start start', 'end end'],
   });
 
-  // Ratchet that resets when the user is back at the very top of the
-  // page. Within a single scroll-down pass it only moves forward (so the
-  // logo doesn't flicker back in if you nudge up slightly mid-scroll),
-  // but scrolling all the way back up to the start brings it back.
+  // Fast, silky smooth spring interpolation for high-precision 60fps tracking
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 260,
+    damping: 28,
+    mass: 0.15,
+    restDelta: 0.0001,
+  });
+
+  // Ratchet that resets when the user is back at the very top of the page.
   const maxProgress = useMotionValue(0);
   useEffect(() => {
-    const unsub = scrollYProgress.on('change', (v) => {
+    const unsub = smoothProgress.on('change', (v) => {
       if (v <= 0.01) {
         maxProgress.set(v);
       } else if (v > maxProgress.get()) {
@@ -70,32 +75,28 @@ export default function LandingReveal() {
       }
     });
     return () => unsub();
-  }, [scrollYProgress, maxProgress]);
+  }, [smoothProgress, maxProgress]);
 
-  // Logo: fully visible at the top, fades out once and for all as the
-  // frame sequence gets going.
-  const logoOpacity = useTransform(maxProgress, [0, 0.08, 0.18], [1, 1, 0]);
-  const logoScale = useTransform(maxProgress, [0, 0.18], [1, 0.85]);
+  // Logo: fully visible at the top, fades out quickly as scrolling starts
+  const logoOpacity = useTransform(maxProgress, [0, 0.08, 0.16], [1, 1, 0]);
+  const logoScale = useTransform(maxProgress, [0, 0.16], [1, 0.88]);
 
-  // Short info blurbs + the Product Showcase logo, spread across the long
-  // middle stretch of the scroll so the frame background is never on its
-  // own for hundreds of vh. Each one fades in, holds, then fades out
-  // before the next takes over.
-  const blurb1Opacity = useTransform(scrollYProgress, [0.2, 0.28, 0.34, 0.38], [0, 1, 1, 0]);
-  const blurb1Y = useTransform(scrollYProgress, [0.2, 0.28], [24, 0]);
+  // Information blurbs + Product Showcase on tightened, fluid intervals
+  const blurb1Opacity = useTransform(smoothProgress, [0.18, 0.25, 0.32, 0.38], [0, 1, 1, 0]);
+  const blurb1Y = useTransform(smoothProgress, [0.18, 0.25], [20, 0]);
 
-  const midOpacity = useTransform(scrollYProgress, [0.4, 0.48, 0.54, 0.58], [0, 1, 1, 0]);
-  const midY = useTransform(scrollYProgress, [0.4, 0.48], [24, 0]);
+  const midOpacity = useTransform(smoothProgress, [0.40, 0.47, 0.53, 0.58], [0, 1, 1, 0]);
+  const midY = useTransform(smoothProgress, [0.40, 0.47], [20, 0]);
 
-  const blurb2Opacity = useTransform(scrollYProgress, [0.6, 0.68, 0.74, 0.78], [0, 1, 1, 0]);
-  const blurb2Y = useTransform(scrollYProgress, [0.6, 0.68], [24, 0]);
+  const blurb2Opacity = useTransform(smoothProgress, [0.60, 0.67, 0.73, 0.78], [0, 1, 1, 0]);
+  const blurb2Y = useTransform(smoothProgress, [0.60, 0.67], [20, 0]);
 
-  const blurb3Opacity = useTransform(scrollYProgress, [0.8, 0.86, 0.9], [0, 1, 1]);
-  const blurb3Y = useTransform(scrollYProgress, [0.8, 0.86], [24, 0]);
+  const blurb3Opacity = useTransform(smoothProgress, [0.80, 0.86, 0.90], [0, 1, 1]);
+  const blurb3Y = useTransform(smoothProgress, [0.80, 0.86], [20, 0]);
 
-  const cardOpacity = useTransform(scrollYProgress, [0.92, 1], [0, 1]);
-  const cardY = useTransform(scrollYProgress, [0.92, 1], [40, 0]);
-  const scrollHintOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
+  const cardOpacity = useTransform(smoothProgress, [0.90, 0.98], [0, 1]);
+  const cardY = useTransform(smoothProgress, [0.90, 0.98], [30, 0]);
+  const scrollHintOpacity = useTransform(smoothProgress, [0, 0.05], [1, 0]);
 
   // Preload every frame.
   useEffect(() => {
@@ -133,12 +134,12 @@ export default function LandingReveal() {
     ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   }, []);
 
-  // Drive the canvas frame from scroll progress.
+  // Drive the canvas frame smoothly from spring progress.
   useEffect(() => {
     if (!loaded) return;
     drawFrame(0);
 
-    const unsub = scrollYProgress.on('change', (v) => {
+    const unsub = smoothProgress.on('change', (v) => {
       const clamped = Math.max(0, Math.min(1, v));
       const idx = Math.min(Math.floor(clamped * TOTAL_FRAMES), TOTAL_FRAMES - 1);
       if (idx !== currentFrameRef.current) {
@@ -149,14 +150,13 @@ export default function LandingReveal() {
     });
 
     return () => unsub();
-  }, [loaded, scrollYProgress, drawFrame]);
+  }, [loaded, smoothProgress, drawFrame]);
 
-  // Toggle whether the signup card can capture pointer input, once the
-  // scroll has nearly bottomed out.
+  // Toggle whether the signup card can capture pointer input
   useEffect(() => {
-    const unsub = scrollYProgress.on('change', (v) => setShowCard(v > 0.9));
+    const unsub = smoothProgress.on('change', (v) => setShowCard(v > 0.88));
     return () => unsub();
-  }, [scrollYProgress]);
+  }, [smoothProgress]);
 
   // Canvas resize.
   useEffect(() => {
@@ -187,9 +187,10 @@ export default function LandingReveal() {
 
     setSubmitting(true);
     login({ name, department, email });
-    const complete = isExpeditionComplete(email);
+    const submitted = getSubmittedFeedbackForUser(email);
+    const complete = submitted.length >= 25 || (typeof window !== 'undefined' && localStorage.getItem(`completion_${email}`) === 'true');
     setTimeout(() => {
-      router.push(complete ? '/finish' : '/expedition');
+      router.push(complete ? '/finish' : '/labs');
     }, 250);
   };
 
@@ -246,17 +247,27 @@ export default function LandingReveal() {
 
         {/* Info blurb 1 — introduces TechX */}
         <motion.div
-          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4 sm:px-6 text-center"
           style={{ opacity: blurb1Opacity, y: blurb1Y }}
         >
-          <div className="max-w-xl expedition-card-glass rounded-2xl p-6 sm:p-8 border border-amber-500/30">
-            <p className="text-[11px] font-cinzel font-semibold uppercase tracking-[0.4em] text-[#dfcfb3]/70">
-              ❖ Welcome Explorer ❖
+          <div
+            className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
+            style={{
+              backgroundImage: "url('/textures/parchment-banner.png')",
+              backgroundSize: '100% 100%',
+              backgroundRepeat: 'no-repeat',
+            }}
+          >
+            <p className="text-[10px] sm:text-xs font-cinzel font-bold uppercase tracking-[0.3em] text-[#63320c] drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+              ✦ Welcome Explorer ✦
             </p>
-            <h2 className="mt-2 text-2xl sm:text-3xl font-uncharted font-bold text-[#dfcfb3] drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+            <h2
+              style={{ fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif" }}
+              className="mt-1 font-uncharted text-xl sm:text-2xl md:text-3xl font-black text-[#1a0902] drop-shadow-[0_1px_0_rgba(255,255,255,0.5)] tracking-wide leading-tight"
+            >
               Welcome to TechX
             </h2>
-            <p className="mt-3 text-sm sm:text-base leading-relaxed text-stone-300 font-sans">
+            <p className="mt-2 text-xs sm:text-sm md:text-base leading-relaxed text-[#381c0c] font-sans font-semibold drop-shadow-[0_1px_0_rgba(255,255,255,0.25)]">
               A hands-on showcase of student-built innovations spread across three expedition checkpoints. Explore, evaluate discoveries, and forge your expedition certificate.
             </p>
           </div>
@@ -274,17 +285,27 @@ export default function LandingReveal() {
 
         {/* Info blurb 2 — what to expect at the checkpoints */}
         <motion.div
-          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4 sm:px-6 text-center"
           style={{ opacity: blurb2Opacity, y: blurb2Y }}
         >
-          <div className="max-w-xl expedition-card-glass rounded-2xl p-6 sm:p-8 border border-white/20">
-            <p className="text-[11px] font-cinzel font-semibold uppercase tracking-[0.4em] text-[#dfcfb3]/70">
-              ❖ Three Checkpoints ❖
+          <div
+            className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
+            style={{
+              backgroundImage: "url('/textures/parchment-banner.png')",
+              backgroundSize: '100% 100%',
+              backgroundRepeat: 'no-repeat',
+            }}
+          >
+            <p className="text-[10px] sm:text-xs font-cinzel font-bold uppercase tracking-[0.3em] text-[#63320c] drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+              ✦ Three Checkpoints ✦
             </p>
-            <h2 className="mt-2 text-2xl sm:text-3xl font-uncharted font-bold text-[#dfcfb3] drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+            <h2
+              style={{ fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif" }}
+              className="mt-1 font-uncharted text-xl sm:text-2xl md:text-3xl font-black text-[#1a0902] drop-shadow-[0_1px_0_rgba(255,255,255,0.5)] tracking-wide leading-tight"
+            >
               Discover • Rate • Collect
             </h2>
-            <p className="mt-3 text-sm sm:text-base leading-relaxed text-stone-300 font-sans">
+            <p className="mt-2 text-xs sm:text-sm md:text-base leading-relaxed text-[#381c0c] font-sans font-semibold drop-shadow-[0_1px_0_rgba(255,255,255,0.25)]">
               Explore each lab checkpoint, bestow gemstone ratings, and unearth certificate shards along the path. Clues and hidden treasure caches await along the trail.
             </p>
           </div>
@@ -292,17 +313,27 @@ export default function LandingReveal() {
 
         {/* Info blurb 3 — call to action into the signup card */}
         <motion.div
-          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4 sm:px-6 text-center"
           style={{ opacity: blurb3Opacity, y: blurb3Y }}
         >
-          <div className="max-w-xl expedition-card-glass rounded-2xl p-6 sm:p-8 border border-white/20">
-            <p className="text-[11px] font-cinzel font-semibold uppercase tracking-[0.4em] text-[#dfcfb3]/70">
-              ❖ Are You Prepared? ❖
+          <div
+            className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
+            style={{
+              backgroundImage: "url('/textures/parchment-banner.png')",
+              backgroundSize: '100% 100%',
+              backgroundRepeat: 'no-repeat',
+            }}
+          >
+            <p className="text-[10px] sm:text-xs font-cinzel font-bold uppercase tracking-[0.3em] text-[#63320c] drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+              ✦ Are You Prepared? ✦
             </p>
-            <h2 className="mt-2 text-2xl sm:text-3xl font-uncharted font-bold text-[#dfcfb3] drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+            <h2
+              style={{ fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif" }}
+              className="mt-1 font-uncharted text-xl sm:text-2xl md:text-3xl font-black text-[#1a0902] drop-shadow-[0_1px_0_rgba(255,255,255,0.5)] tracking-wide leading-tight"
+            >
               Your Expedition Awaits
             </h2>
-            <p className="mt-3 text-sm sm:text-base leading-relaxed text-stone-300 font-sans">
+            <p className="mt-2 text-xs sm:text-sm md:text-base leading-relaxed text-[#381c0c] font-sans font-semibold drop-shadow-[0_1px_0_rgba(255,255,255,0.25)]">
               Scroll onward to claim your explorer credentials and enter the uncharted grounds.
             </p>
           </div>

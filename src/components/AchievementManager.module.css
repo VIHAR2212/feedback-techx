@@ -12,14 +12,15 @@
 .achievement {
   width: 360px;
   max-width: calc(100vw - 2rem);
-  background: linear-gradient(#2b2b2b, #1f1f1f);
-  color: #fff;
+  background: linear-gradient(#1C1510, #120E0B);
+  color: #F4ECD8;
+  border: 1px solid #C5A059;
   border-radius: 6px;
   overflow: hidden;
   display: flex;
   align-items: center;
-  box-shadow: 0 10px 18px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03);
-  font-family: var(--font-minecraft), monospace;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.85);
+  font-family: var(--font-uncharted-sans), 'Montserrat', sans-serif;
   font-size: 14px;
   pointer-events: auto;
   transform-origin: top right;

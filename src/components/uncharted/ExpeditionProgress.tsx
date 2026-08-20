@@ -8,18 +8,18 @@ import Link from 'next/link';
 
 export default function ExpeditionProgress() {
   const { user } = useUser();
-  const { isCompleted, shards } = useCompletion();
+  const { isCompleted, shards = [] } = useCompletion();
   const pathname = usePathname();
 
   // Only shown once the user is actually inside the expedition, not on the
-  // landing/sign-in page — a returning user can have a saved session (and
-  // therefore a truthy `user`) while still sitting on "/" with the sign-in
-  // form pre-filled, and the tracker showing there is misleading.
+  // landing/sign-in page or leaderboard pages where space and signboard design take precedence.
   const isLandingPage = pathname === '/';
+  const isLeaderboardPage = pathname === '/leaderboard' || pathname.startsWith('/admin/leaderboard');
 
-  if (!user || isLandingPage) return null;
+  if (!user || isLandingPage || isLeaderboardPage) return null;
 
-  const pct = Math.min(100, Math.round((shards.length / LAB_ORDER.length) * 100));
+  const earnedShards = shards || [];
+  const pct = Math.min(100, Math.round((earnedShards.length / LAB_ORDER.length) * 100));
 
   const shardSlots = [
     { labId: 'a', name: 'Emerald', icon: '💎', color: 'from-emerald-600 to-emerald-400', glow: 'shadow-[0_0_12px_#34d399]' },
@@ -51,7 +51,7 @@ export default function ExpeditionProgress() {
           {/* 3 Shard Gem Sockets */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             {shardSlots.map((slot) => {
-              const earned = shards.includes(slot.labId);
+              const earned = earnedShards.includes(slot.labId);
               return (
                 <div
                   key={slot.labId}
@@ -88,7 +88,7 @@ export default function ExpeditionProgress() {
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="text-right font-cinzel text-[11px] sm:text-xs">
             <span className="font-bold text-amber-300 drop-shadow">
-              {shards.length}/{LAB_ORDER.length}
+              {earnedShards.length}/{LAB_ORDER.length}
             </span>
             <span className="text-stone-400 ml-1 hidden sm:inline uppercase tracking-wider">
               Shards

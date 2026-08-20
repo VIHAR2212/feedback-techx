@@ -3,7 +3,19 @@
 
 @font-face {
   font-family: 'Base02';
-  src: url('/fonts/Base02.ttf') format('truetype');
+  src: url('/fonts/Base02.ttf') format('truetype'),
+       url('/assets/fonts/Base 02.ttf') format('truetype'),
+       url('/assets/fonts/base-02.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Base 02';
+  src: url('/assets/fonts/Base 02.ttf') format('truetype'),
+       url('/assets/fonts/base-02.ttf') format('truetype'),
+       url('/fonts/Base02.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -17,10 +29,12 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-uncharted: var(--font-base02), 'Base02', var(--font-cinzel-decorative), 'Cinzel Decorative', Georgia, serif;
+  --font-uncharted: var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', var(--font-cinzel-decorative), 'Cinzel Decorative', Georgia, serif;
+  --font-base02: var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif;
   --font-cinzel: var(--font-cinzel), 'Cinzel', serif;
   --font-cinzel-decorative: var(--font-cinzel-decorative), 'Cinzel Decorative', serif;
   --font-marcellus: var(--font-marcellus), 'Marcellus', serif;
+  --font-handwriting: 'Caveat', 'Segoe Print', 'Ink Free', 'Bradley Hand', cursive;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -587,3 +601,377 @@ select.tablet-input option {
   animation: tablet-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
   border-color: #a83232 !important;
 }
+
+/* ============================================
+   UNCHARTED SIGNBOARD & LEADERBOARD STYLES
+   ============================================ */
+
+.font-handwriting {
+  font-family: var(--font-handwriting), 'Caveat', 'Kalam', cursive;
+}
+
+/* Nathan Drake handwriting ink effect */
+.uncharted-ink-title {
+  font-family: var(--font-handwriting), 'Caveat', 'Kalam', cursive;
+  color: #0d0805;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35), 0 0 2px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.04em;
+}
+
+/* Strict Wooden Board Scroll Container */
+.signboard-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217, 119, 6, 0.6) rgba(25, 14, 8, 0.5);
+  overscroll-behavior: contain;
+}
+
+.signboard-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.signboard-scroll::-webkit-scrollbar-track {
+  background: rgba(25, 14, 8, 0.4);
+  border-radius: 9999px;
+}
+
+.signboard-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #b45309, #d97706);
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.signboard-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #d97706, #f59e0b);
+}
+
+/* Wooden Plank Item Background */
+.wooden-plank-card {
+  background: linear-gradient(180deg, #3d2314 0%, #2e1a0f 45%, #23130a 100%);
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.7),
+    0 4px 10px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(138, 77, 33, 0.45);
+}
+
+.wooden-plank-card-highlight {
+  background: linear-gradient(180deg, #573117 0%, #3e210e 45%, #2b1407 100%);
+  box-shadow: 
+    inset 0 1px 2px rgba(251, 191, 36, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.8),
+    0 0 16px rgba(245, 158, 11, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(245, 158, 11, 0.7);
+}
+
+/* ==========================================================================
+   UNCHARTED LOST TREASURE & SECTOR MAP EXPEDITION STYLES
+   ========================================================================== */
+
+:root {
+  /* Uncharted Lost Treasure Palette */
+  --uc-gold:        #D4AF37;
+  --uc-gold-bright: #F3E5AB;
+  --uc-navy:        #0B131E;
+  --uc-jungle:      #1F3A2B;
+  --uc-parchment:   #F3E5C8;
+  --uc-parchment-dark: #E4D0A8;
+  --uc-rust:        #652B19;
+  --uc-cream:       #F9F4E8;
+  --uc-blood:       #8B1A1A;
+  --uc-brass:       #B8860B;
+
+  --border-color: #A88448;
+  --text-muted: #6B553B;
+
+  --font-uncharted-title: var(--font-uncharted-title), "Antonio", "Impact", sans-serif;
+  --font-title: var(--font-uncharted-title);
+  --font-display: var(--font-uncharted-title);
+  --font-serif: var(--font-uncharted-serif), "IM Fell English", Georgia, serif;
+}
+
+/* Field Dossier / Manila Folder Card Styling */
+.dossier-card {
+  position: relative;
+  background-color: #F3E5C8;
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 23px,
+      rgba(101, 43, 25, 0.05) 24px
+    ),
+    radial-gradient(circle at 10% 10%, rgba(101, 43, 25, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 90% 90%, rgba(101, 43, 25, 0.09) 0%, transparent 45%),
+    linear-gradient(135deg, #F8EED8 0%, #E7D4AD 100%);
+  color: #2C1E14;
+  border: 1.5px solid #8C6F42;
+  border-radius: 4px;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 10px 28px rgba(0, 0, 0, 0.5),
+    inset 0 0 25px rgba(101, 43, 25, 0.12);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  overflow: hidden;
+}
+
+.dossier-card:hover {
+  transform: translateY(-3px) scale(1.01) !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 16px 36px rgba(0, 0, 0, 0.65),
+    inset 0 0 30px rgba(101, 43, 25, 0.15);
+}
+
+/* Manila Top Offset Folder Tab */
+.dossier-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  background: #E3D1A5;
+  border: 1.5px solid #8C6F42;
+  border-bottom: none;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 6px;
+  font-family: monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4A2E1B;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  position: relative;
+  top: 1.5px;
+}
+
+/* Rubber Stamp Cleared / Status Watermark in Background */
+.ink-stamp-watermark {
+  position: absolute;
+  right: 1.2rem;
+  top: 2rem;
+  transform: rotate(-12deg);
+  border: 2.5px dashed rgba(168, 50, 36, 0.35);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  color: rgba(168, 50, 36, 0.4);
+  pointer-events: none;
+  user-select: none;
+  text-transform: uppercase;
+}
+
+.ink-stamp-cleared {
+  border-color: rgba(31, 58, 43, 0.6);
+  color: rgba(31, 58, 43, 0.65);
+  transform: rotate(8deg);
+}
+
+/* Authentic Vintage Parchment & Expedition Card Styles */
+.simple-card {
+  background-color: var(--uc-parchment);
+  background-image: 
+    radial-gradient(circle at 10% 10%, rgba(101, 43, 25, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 90% 90%, rgba(101, 43, 25, 0.08) 0%, transparent 50%),
+    linear-gradient(135deg, #F5E8CE 0%, #E6D2AA 100%);
+  color: #2C1E14;
+  border: 2px solid #A88448;
+  border-radius: 8px;
+  box-shadow: 
+    0 12px 35px rgba(0, 0, 0, 0.8),
+    inset 0 0 30px rgba(101, 43, 25, 0.15),
+    0 0 0 1px rgba(243, 229, 171, 0.2);
+  position: relative;
+}
+
+/* Double-line vintage cartography border effect */
+.vintage-border {
+  border: 3px double #A88448;
+  outline: 1px solid #523D24;
+  outline-offset: -6px;
+}
+
+/* Embossed Brass Plaque & Aged Leather Adventure Button */
+.simple-btn-primary {
+  background: linear-gradient(180deg, #E0B84C 0%, #A97E25 50%, #7E5B10 100%);
+  color: #1A1108;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border-radius: 3px;
+  border: 1.5px solid #FDF0C8;
+  outline: 1px solid #4E3812;
+  cursor: pointer;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(60, 40, 5, 0.5);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 0 1px 0 rgba(255, 241, 197, 0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.simple-btn-primary:hover {
+  background: linear-gradient(180deg, #F0CA5E 0%, #BA8E2C 50%, #8E6814 100%);
+  box-shadow: 
+    0 6px 18px rgba(212, 175, 55, 0.45),
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
+}
+
+.simple-btn-primary:active {
+  transform: translateY(1px);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Red Ink Field Stamp Button */
+.btn-field-stamp {
+  background: #7A2117;
+  background-image: 
+    radial-gradient(circle at center, rgba(168, 50, 36, 0.9) 0%, #681910 100%);
+  color: #FFF6E5;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border-radius: 3px;
+  border: 1.5px solid #C45547;
+  outline: 1px dashed #FFA494;
+  outline-offset: -4px;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-field-stamp:hover {
+  background: #8F271B;
+  box-shadow: 
+    0 6px 18px rgba(168, 50, 36, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Gold Pulse for Collectible/Submit Highlights */
+@keyframes goldPulse {
+  0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.8), 0 4px 14px rgba(0, 0, 0, 0.6); }
+  70% { box-shadow: 0 0 0 14px rgba(212, 175, 55, 0), 0 4px 14px rgba(0, 0, 0, 0.6); }
+  100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0), 0 4px 14px rgba(0, 0, 0, 0.6); }
+}
+
+.gold-pulse {
+  animation: goldPulse 2.2s infinite;
+}
+
+/* Uncharted Distressed Ultra-Tall Condensed Title Typography */
+.uncharted-title {
+  font-family: var(--font-uncharted-title);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  transform: scaleY(1.35);
+  transform-origin: center;
+  display: inline-block;
+  color: #1A120B;
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.4), 0 2px 5px rgba(0, 0, 0, 0.35);
+}
+
+.uncharted-sub-title {
+  font-family: var(--font-uncharted-title);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transform: scaleY(1.2);
+  transform-origin: center;
+  display: inline-block;
+  color: #652B19;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.uncharted-card-title {
+  font-family: var(--font-uncharted-title);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  transform: scaleY(1.3);
+  transform-origin: left center;
+  display: inline-block;
+  color: #110C08;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.uncharted-num-title {
+  font-family: var(--font-uncharted-title);
+  font-weight: 700;
+  text-transform: uppercase;
+  transform: scaleY(1.3);
+  transform-origin: left center;
+  display: inline-block;
+  color: #652B19;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.uncharted-btn-text {
+  font-family: var(--font-uncharted-title);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transform: scaleY(1.2);
+  transform-origin: center;
+  display: inline-block;
+}
+
+/* Vintage Map Grid Background Overlay */
+.vintage-map-bg {
+  background-image: 
+    radial-gradient(rgba(212, 175, 55, 0.12) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Parchment sheet style */
+.uncharted-parchment-sheet {
+  background-color: #F5EAD4;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.05) 0%, transparent 60%),
+    linear-gradient(180deg, #FAF3E6 0%, #EBDBC1 100%);
+  border: 3px double #A88448;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.85);
+  color: #2C1E14;
+}
+
+.uncharted-btn-gold {
+  background: linear-gradient(180deg, #D4AF37 0%, #8C6D1F 100%);
+  color: #1A1108;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border-radius: 4px;
+  border: 1px solid #FFF1C5;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  transition: all 0.2s ease;
+}
+
+.uncharted-btn-gold:hover {
+  background: linear-gradient(180deg, #E6C250 0%, #A68226 100%);
+  transform: translateY(-2px);
+}
+
+

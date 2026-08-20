@@ -58,8 +58,9 @@ export async function GET() {
       if (feedback.comment && feedback.comment.trim() !== '') {
         stats.totalComments++;
       }
+      const tsString = typeof feedback.timestamp === 'string' ? feedback.timestamp : feedback.timestamp instanceof Date ? feedback.timestamp.toISOString() : '';
       if (!stats.lastRated || new Date(feedback.timestamp) > new Date(stats.lastRated)) {
-        stats.lastRated = feedback.timestamp;
+        stats.lastRated = tsString;
       }
     }
 

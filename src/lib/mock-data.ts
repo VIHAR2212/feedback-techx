@@ -7,9 +7,9 @@ import { Lab, Clue, Treasure } from './models';
 export const LABS: Lab[] = [
   {
     labId: 'a',
-    labName: 'Checkpoint A — Mountain Pass',
+    labName: "Chapter 01 — King's Bay",
     products: [
-      { id: 'a1', name: 'Trueconnect.jio', icon: '📡' },
+      { id: 'a1', name: 'Trueconnect.jio', icon: '📶' },
       { id: 'a2', name: 'Drone', icon: '🚁' },
       { id: 'a3', name: 'Samsung Ecosystem', icon: '📱' },
       { id: 'a4', name: 'IP Camera', icon: '📹' },
@@ -19,39 +19,39 @@ export const LABS: Lab[] = [
     ],
   },
   {
-    labId: 'b',
-    labName: 'Checkpoint B — Lost Temple',
+    labId: 'c',
+    labName: 'Chapter 02 — Libertalia',
     products: [
-      { id: 'b1', name: 'SimilaCure', icon: '💊' },
-      { id: 'b2', name: 'Allotrak', icon: '📊' },
-      { id: 'b3', name: 'Reliance Samarth', icon: '🛍️' },
-      { id: 'b4', name: 'Video Door Phone', icon: '🚪' },
-      { id: 'b5', name: 'Motherboard Setup Raw — 1', icon: '⚙️' },
-      { id: 'b6', name: 'Dial Club', icon: '☎️' },
-      { id: 'b7', name: 'The Hobby Tribe', icon: '🌐' },
-      { id: 'b8', name: 'Copilot', icon: '🤖' },
-      { id: 'b9', name: 'IOT Monitoring', icon: '📡' },
+      { id: 'c1', name: 'SimilaCure', icon: '💊' },
+      { id: 'c2', name: 'Allotrak', icon: '📊' },
+      { id: 'c3', name: 'Reliance Samarth', icon: '🛍️' },
+      { id: 'c4', name: 'Video Door Phone', icon: '🚪' },
+      { id: 'c5', name: 'Motherboard Setup Raw — 1', icon: '⚙️' },
+      { id: 'c6', name: 'Dial Club', icon: '☎️' },
+      { id: 'c7', name: 'The Hobby Tribe', icon: '🌐' },
+      { id: 'c8', name: 'Copilot', icon: '🤖' },
+      { id: 'c9', name: 'IOT Monitoring', icon: '📡' },
     ],
   },
   {
-    labId: 'c',
-    labName: 'Checkpoint C — Coastal Ruins',
+    labId: 'd',
+    labName: 'Chapter 03 — New Devon',
     products: [
-      { id: 'c1', name: 'DND Services', icon: '🚫' },
-      { id: 'c2', name: 'Her Circle', icon: '♀️' },
-      { id: 'c3', name: 'Optimyz', icon: '📈' },
-      { id: 'c4', name: 'RDiscovery', icon: '🔬' },
-      { id: 'c5', name: 'PaperPal', icon: '📝' },
-      { id: 'c6', name: 'MDVR Camera Shivsahi', icon: '🚌' },
-      { id: 'c7', name: 'Motherboard Setup Raw — 2', icon: '🛠️' },
-      { id: 'c8', name: 'OSM', icon: '🗺️' },
-      { id: 'c9', name: 'Apple Ecosystem', icon: '🍏' },
-      { id: 'c10', name: 'EDQuest', icon: '🎓' },
+      { id: 'd1', name: 'DND Services', icon: '🚫' },
+      { id: 'd2', name: 'Her Circle', icon: '♀️' },
+      { id: 'd3', name: 'Optimyz', icon: '📈' },
+      { id: 'd4', name: 'RDiscovery', icon: '🔬' },
+      { id: 'd5', name: 'PaperPal', icon: '📝' },
+      { id: 'd6', name: 'MDVR Camera Shivsahi', icon: '🚌' },
+      { id: 'd7', name: 'Motherboard Setup Raw — 2', icon: '🛠️' },
+      { id: 'd8', name: 'OSM', icon: '🗺️' },
+      { id: 'd9', name: 'Apple Ecosystem', icon: '🍏' },
+      { id: 'd10', name: 'EDQuest', icon: '🎓' },
     ],
   },
 ];
 
-export const LAB_ORDER: string[] = LABS.map((l) => l.labId); // ["a","b","c"]
+export const LAB_ORDER: string[] = LABS.map((l) => l.labId); // ["a","c","d"]
 
 export function getLabById(labId: string): Lab | undefined {
   return LABS.find((l) => l.labId === labId);

@@ -75,12 +75,18 @@ export function TechXLogoText({
         {/* Shimmer light sweep container */}
         <div className="shimmer-text flex items-baseline">
           {/* "Tech" in chiseled antiqued gold */}
-          <span className={`font-uncharted font-extrabold ${sizeStyles.tech} text-chiseled-gold inline-block tracking-tight`}>
+          <span
+            style={{ fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif" }}
+            className={`font-uncharted font-extrabold ${sizeStyles.tech} text-chiseled-gold inline-block tracking-tight`}
+          >
             Tech
           </span>
 
           {/* "X" in crimson rune stone */}
-          <span className={`font-uncharted font-black ${sizeStyles.x} text-crimson-rune inline-block transform hover:scale-105 transition-transform duration-300`}>
+          <span
+            style={{ fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif" }}
+            className={`font-uncharted font-black ${sizeStyles.x} text-crimson-rune inline-block transform hover:scale-105 transition-transform duration-300`}
+          >
             X
           </span>
         </div>
@@ -145,7 +151,10 @@ export function ProductShowcaseText({
 
       {/* Main "Product Showcase" embossed text */}
       <div className="relative z-10 shimmer-text">
-        <h2 className="font-uncharted font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-uncharted-emboss tracking-wider leading-tight">
+        <h2
+          style={{ fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif" }}
+          className="font-uncharted font-extrabold text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-uncharted-emboss tracking-wider leading-tight"
+        >
           Product Showcase
         </h2>
       </div>

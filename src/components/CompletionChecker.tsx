@@ -14,11 +14,11 @@ export default function CompletionChecker() {
     if (!user) return;
 
     const checkCompletion = () => {
-      const userStorageKey = `submittedFeedback_${user.email}`;
-      const storedSubmissions = JSON.parse(localStorage.getItem(userStorageKey) || '[]');
+      const userStorageKey = `feedback_submitted_${user.email}`;
+      const storedSubmissions = JSON.parse(localStorage.getItem(userStorageKey) || localStorage.getItem(`submittedFeedback_${user.email}`) || '[]');
       const count = storedSubmissions.length;
       
-      if (count >= 25 && !isCompleted) {
+      if (count >= 15 && !isCompleted) {
         localStorage.setItem(`completion_${user.email}`, 'true');
         localStorage.setItem('completion_state', 'true');
         
