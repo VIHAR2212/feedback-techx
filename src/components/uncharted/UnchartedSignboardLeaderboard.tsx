@@ -235,95 +235,99 @@ export default function UnchartedSignboardLeaderboard({
 
   return (
     <>
-      <div className="relative mx-auto flex w-full h-full max-w-[1700px] flex-col items-center justify-end select-none pb-0 pointer-events-none translate-y-6 sm:translate-y-10 md:translate-y-14 lg:translate-y-16">
+      <div className="relative mx-auto flex w-full h-full max-w-[1920px] flex-col items-center justify-center select-none p-0 pointer-events-none scale-100 sm:scale-[1.02] md:scale-[1.04] lg:scale-[1.06] xl:scale-[1.08] origin-center transition-all duration-300">
         
-        {/* Large Grounded Signboard Container */}
+        {/* Full Signboard Container Centered over Background Video */}
         <div className="relative w-full aspect-[1024/576] max-h-[96vh] flex items-center justify-center">
-          
-          {/* Weathered Standing Wooden Signboard Frame Planted on Ground */}
-          <img
-            src="/textures/uncharted-signboard.png"
-            alt="Uncharted Signboard"
-            style={{
-              filter: 'brightness(1.20) contrast(1.08) saturate(1.10) drop-shadow(0 20px 40px rgba(0,0,0,0.85)) drop-shadow(0 0 25px rgba(251,191,36,0.12))',
-            }}
-            className="absolute inset-0 w-full h-full object-contain object-bottom pointer-events-none z-0"
-          />
 
-          {/* 1. TOP "LEADERBOARD" TITLE IN DISTRESSED CARVED BLACK LETTERING */}
+          {/* 1. TOP "LEADERBOARD" TITLE WITH TIMBER PLANK TEXTURE (LOCKED GOLDEN) */}
           <div 
-            className="absolute z-10 text-center flex flex-col items-center justify-center pointer-events-auto"
+            className="absolute z-10 text-center flex items-center justify-center pointer-events-auto"
             style={{
-              top: '9.0%',
-              left: '23.0%',
-              width: '35.0%',
+              top: '-3.4%',
+              left: '25.0%',
+              width: '50.0%',
+              height: '16.0%',
             }}
           >
+            {/* Wooden plank background texture behind title */}
+            <img
+              src="/textures/leaderboard-title-plank.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none drop-shadow-[0_8px_16px_rgba(0,0,0,0.85)] select-none"
+            />
+
+            {/* Distressed Carved "LEADERBOARD" Title - LOCKED GOLDEN #EFBF04 */}
             <h1
-              style={{ fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif" }}
-              className="font-uncharted font-black text-lg sm:text-xl md:text-2xl lg:text-[34px] xl:text-[38px] uppercase tracking-[0.16em] text-[#0a0502] drop-shadow-[0_1px_2px_rgba(255,255,255,0.55)] transform -rotate-0.5 leading-none"
+              style={{
+                fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif",
+                color: '#EFBF04',
+              }}
+              className="relative z-10 font-uncharted font-black text-xl sm:text-2xl md:text-3xl lg:text-[36px] xl:text-[42px] uppercase tracking-[0.22em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_0_14px_rgba(239,191,4,0.45)] transform -rotate-0.5 leading-none select-none px-4 pt-0.5"
             >
               LEADERBOARD
             </h1>
           </div>
 
-          {/* 2. INNER RECTANGLE: TRANSPARENT OVERLAY (No background box) WITH CARVED GOLDEN TYPOGRAPHY */}
+          {/* 2. INNER RECTANGLE: EXPANSIVE CENTERED OVERLAY WITH CARVED TYPOGRAPHY */}
           <div 
             className="absolute z-10 overflow-hidden flex flex-col pointer-events-auto"
             style={{
-              top: '21.0%',
-              left: '23.0%',
-              width: '35.0%',
-              height: '35.0%',
+              top: '14.2%',
+              left: '16.5%',
+              width: '67.0%',
+              height: '65.0%',
             }}
           >
-            {/* Header Row in Carved Gold */}
-            <div className="flex items-center justify-between border-b border-[#a87f58]/50 px-2 sm:px-3 py-1 font-cinzel font-extrabold text-[#fde68a] uppercase tracking-widest shrink-0 bg-black/25 backdrop-blur-[1px] rounded-t-lg drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-              {/* Left Column: RANK */}
-              <div className="flex items-center min-w-[70px] sm:min-w-[95px] md:min-w-[105px]">
-                <span className="w-8 sm:w-10 text-left sm:text-center font-black tracking-widest text-[#f59e0b] text-xs sm:text-sm md:text-base lg:text-[16px] drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+            {/* Header Row in 3 Equal / Balanced Columns */}
+            <div className="grid grid-cols-[110px_1fr_160px] sm:grid-cols-[140px_1fr_190px] md:grid-cols-[160px_1fr_210px] items-center border-b border-[#a87f58]/60 px-4 sm:px-6 py-0.5 font-cinzel font-black uppercase tracking-widest shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#DEA193' }}>
+              {/* Left Column: RANK (Shifted more to the right) */}
+              <div className="text-left pl-6 sm:pl-10 md:pl-14">
+                <span className="font-black tracking-widest text-sm sm:text-base md:text-lg lg:text-[21px] xl:text-[23px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#DEA193' }}>
                   RANK
                 </span>
               </div>
 
-              {/* Middle Column: EXPLORER / DISCOVERY */}
-              <div className="flex-1 text-center px-1">
-                <span className="inline-block tracking-[0.22em] text-[#fef08a] font-black text-xs sm:text-sm md:text-base lg:text-[17px] drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+              {/* Middle Column: EXPLORER / DISCOVERY (Centered - untouched) */}
+              <div className="text-center px-2">
+                <span className="inline-block tracking-[0.24em] font-black text-sm sm:text-base md:text-lg lg:text-[21px] xl:text-[23px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#DEA193' }}>
                   {viewMode === 'users' ? 'EXPLORER' : 'DISCOVERY'}
                 </span>
               </div>
 
-              {/* Right Column: CHECKPOINTS / RATING + Search Icon */}
-              <div className="flex items-center justify-end gap-1 sm:gap-1.5 min-w-[70px] sm:min-w-[95px] md:min-w-[105px]">
-                <span className="text-right tracking-widest font-black text-[#fde68a] text-xs sm:text-sm md:text-base lg:text-[16px] drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+              {/* Right Column: CHECKPOINTS / RATING (Shifted more to the left) + Search Icon */}
+              <div className="flex items-center justify-center pr-6 sm:pl-0 sm:pr-10 md:pr-14 gap-1.5 sm:gap-2">
+                <span className="text-center tracking-widest font-black text-sm sm:text-base md:text-lg lg:text-[21px] xl:text-[23px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#DEA193' }}>
                   {viewMode === 'users' ? 'CHECKPOINTS' : 'RATING'}
                 </span>
                 <button
                   onClick={() => setShowSearch(!showSearch)}
                   title="Search"
-                  className="opacity-75 hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
+                  className="opacity-80 hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
                 >
-                  <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#fde68a]" />
+                  <Search className="h-4 w-4 sm:h-4.5 sm:w-4.5" style={{ color: '#DEA193' }} />
                 </button>
               </div>
             </div>
 
             {/* Collapsible Search Input */}
             {showSearch && (
-              <div className="bg-black/50 px-2 py-1 border-b border-[#a8825c]/50 flex items-center gap-1.5 shrink-0">
-                <Search className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[#fde68a]/80" />
+              <div className="bg-black/70 px-3 py-1 border-b border-[#a8825c]/50 flex items-center gap-2 shrink-0">
+                <Search className="h-4 w-4" style={{ color: '#DEA193' }} />
                 <input
                   type="text"
                   placeholder={viewMode === 'users' ? 'Search explorer…' : 'Search discovery…'}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent text-[10px] sm:text-xs text-[#fef08a] placeholder-[#d97706]/70 outline-none font-cinzel"
+                  className="w-full bg-transparent text-sm sm:text-base text-[#DEA193] placeholder-[#a8825c]/70 outline-none font-cinzel font-bold"
                   autoFocus
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="text-xs text-[#fde68a] font-bold px-1 cursor-pointer"
+                    className="text-sm font-bold px-1.5 cursor-pointer"
+                    style={{ color: '#DEA193' }}
                   >
                     ✕
                   </button>
@@ -331,11 +335,11 @@ export default function UnchartedSignboardLeaderboard({
               </div>
             )}
 
-            {/* Scrollable list directly on the timber grain */}
-            <div className="signboard-scroll flex-1 overflow-y-auto overscroll-contain px-1 sm:px-2 py-0.5 divide-y divide-[#7d502a]/35">
+            {/* Non-scrollable Top 10 List directly on the timber grain */}
+            <div className="flex-1 overflow-hidden flex flex-col justify-around px-2 sm:px-4 py-0 divide-y divide-[#7d502a]/15">
               {viewMode === 'users' ? (
                 filteredLeaderboard.length > 0 ? (
-                  filteredLeaderboard.map((entry, index) => {
+                  filteredLeaderboard.slice(0, 10).map((entry, index) => {
                     const isYou = Boolean(
                       user && (
                         (entry.name && user.name && entry.name.toLowerCase() === user.name.toLowerCase()) ||
@@ -348,106 +352,102 @@ export default function UnchartedSignboardLeaderboard({
                     return (
                       <div
                         key={`${entry.name}-${index}`}
-                        className={`flex items-center justify-between px-2 sm:px-3 py-1 sm:py-1.5 rounded transition-all ${
+                        className={`grid grid-cols-[110px_1fr_160px] sm:grid-cols-[140px_1fr_190px] md:grid-cols-[160px_1fr_210px] items-center px-3 sm:px-5 py-0 rounded transition-all leading-tight ${
                           isYou
-                            ? 'bg-[#3b2311]/85 text-[#fffbeb] font-bold shadow-[0_0_15px_rgba(245,158,11,0.3)] my-0.5 border border-amber-400/80'
-                            : 'hover:bg-[#2e180c]/55 text-[#fef3c7]'
+                            ? 'bg-[#3b2311]/90 font-black shadow-[0_0_12px_rgba(222,161,147,0.35)] border border-[#DEA193]/80'
+                            : 'hover:bg-[#2e180c]/55'
                         }`}
                       >
-                        {/* Left: Rank & Avatar & Formatted Explorer Name */}
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 truncate">
+                        {/* Left: Rank (Shifted more to the right) */}
+                        <div className="text-left pl-6 sm:pl-10 md:pl-14">
                           <span
-                            className={`w-6 sm:w-8 text-center font-cinzel font-extrabold text-[11px] sm:text-xs md:text-sm shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] ${
-                              isYou ? 'text-[#fef08a]' : 'text-[#f59e0b]'
-                            }`}
+                            className="font-cinzel font-black text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
+                            style={{ color: '#DEA193' }}
                           >
                             {rank}
                           </span>
-
-                          {/* Circular Explorer Avatar Portrait with Gold Trim */}
-                          <div
-                            className={`flex h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 items-center justify-center rounded-full text-[9px] sm:text-[11px] md:text-xs font-bold shrink-0 shadow-md ${
-                              isYou
-                                ? 'bg-gradient-to-b from-[#b45309] to-[#452b12] text-[#fef08a] border border-[#fde68a]'
-                                : 'bg-gradient-to-b from-[#6b3e18] to-[#2a1408] text-[#fde68a] border border-[#b45309]/80'
-                            }`}
-                          >
-                            {entry.name ? entry.name.charAt(0).toUpperCase() : 'E'}
-                          </div>
-
-                          {/* Formatted Explorer Name in Golden Cinzel Serif Typography */}
-                          <div className="flex items-center gap-1.5 truncate min-w-0">
-                            <span
-                              className={`truncate font-cinzel text-xs sm:text-sm md:text-base font-bold tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] ${
-                                isYou ? 'text-[#ffffff]' : 'text-[#fef08a]'
-                              }`}
-                            >
-                              {displayName}
-                            </span>
-
-                            {isYou && (
-                              <span className="text-[7px] sm:text-[8px] bg-[#d97706] text-[#1c0f05] px-1 py-0.2 rounded font-black tracking-wider uppercase shrink-0 shadow-xs">
-                                YOU
-                              </span>
-                            )}
-
-                            {entry.isCompleted && (
-                              <span
-                                title="Expedition Completed"
-                                className="text-xs sm:text-sm text-amber-400 shrink-0 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]"
-                              >
-                                ★
-                              </span>
-                            )}
-                          </div>
                         </div>
 
-                        {/* Right: Checkpoints Score in Glowing Gold */}
-                        <span
-                          className={`font-mono text-xs sm:text-sm md:text-base font-bold shrink-0 pl-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] ${
-                            isYou ? 'text-[#fef08a]' : 'text-[#fde68a]'
-                          }`}
-                        >
-                          {getScore(entry, index)}
-                        </span>
+                        {/* Middle: Centered Explorer Name (untouched) */}
+                        <div className="flex items-center justify-center gap-2 truncate min-w-0 px-2">
+                          <span
+                            className="truncate font-cinzel text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] font-black tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] text-center"
+                            style={{ color: isYou ? '#ffffff' : '#DEA193' }}
+                          >
+                            {displayName}
+                          </span>
+
+                          {isYou && (
+                            <span className="text-[8px] sm:text-[9px] bg-[#DEA193] text-[#1c0f05] px-1.5 py-0.5 rounded font-black tracking-wider uppercase shrink-0 shadow-xs">
+                              YOU
+                            </span>
+                          )}
+
+                          {entry.isCompleted && (
+                            <span
+                              title="Expedition Completed"
+                              className="text-xs sm:text-sm shrink-0 drop-shadow-[0_0_8px_rgba(222,161,147,0.8)]"
+                              style={{ color: '#DEA193' }}
+                            >
+                              ★
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Right: Centered Checkpoints Score (Shifted more to the left) */}
+                        <div className="text-center pr-6 sm:pl-0 sm:pr-10 md:pr-14">
+                          <span
+                            className="font-mono text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
+                            style={{ color: '#DEA193' }}
+                          >
+                            {getScore(entry, index)}
+                          </span>
+                        </div>
                       </div>
                     );
                   })
                 ) : (
-                  <div className="flex h-full items-center justify-center text-center text-xs text-[#fde68a]/70 py-6 font-cinzel drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  <div className="flex h-full items-center justify-center text-center text-sm sm:text-base py-4 font-cinzel font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ color: '#DEA193' }}>
                     {searchQuery ? 'No matching explorers found.' : 'No explorer records yet.'}
                   </div>
                 )
               ) : (
                 filteredProducts.length > 0 ? (
-                  filteredProducts.map((entry, index) => {
+                  filteredProducts.slice(0, 10).map((entry, index) => {
                     const rank = String(index + 1).padStart(2, '0');
                     return (
                       <div
                         key={entry.productId}
-                        className="flex items-center justify-between px-2 sm:px-3 py-1 sm:py-1.5 rounded text-xs sm:text-sm md:text-base hover:bg-[#2e180c]/55 text-[#fef3c7] transition-colors"
+                        className="grid grid-cols-[110px_1fr_160px] sm:grid-cols-[140px_1fr_190px] md:grid-cols-[160px_1fr_210px] items-center px-3 sm:px-5 py-0 rounded leading-tight hover:bg-[#2e180c]/55 transition-colors"
                       >
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 truncate">
-                          <span className="w-6 sm:w-8 text-center font-cinzel font-bold text-[#f59e0b] text-[11px] sm:text-xs shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                        {/* Left: Rank (Shifted more to the right) */}
+                        <div className="text-left pl-6 sm:pl-10 md:pl-14">
+                          <span className="font-cinzel font-black text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ color: '#DEA193' }}>
                             {rank}
                           </span>
-                          <div className="flex flex-col min-w-0 truncate">
-                            <span className="truncate font-cinzel font-bold text-[#fef08a] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                              {entry.productName}
-                            </span>
-                            <span className="text-[9px] sm:text-[10px] font-mono text-[#fde68a]/70 truncate drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
-                              {entry.labName} • {entry.totalRatings} ratings
-                            </span>
-                          </div>
                         </div>
-                        <span className="font-mono text-xs sm:text-sm md:text-base font-bold text-[#fde68a] shrink-0 pl-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                          ⭐ {entry.averageRating.toFixed(1)}
-                        </span>
+
+                        {/* Middle: Centered Discovery Name & Info */}
+                        <div className="flex flex-col items-center justify-center min-w-0 truncate px-2">
+                          <span className="truncate font-cinzel font-black text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] text-center" style={{ color: '#DEA193' }}>
+                            {entry.productName}
+                          </span>
+                          <span className="text-[10px] sm:text-xs font-mono font-bold truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] opacity-85 text-center" style={{ color: '#DEA193' }}>
+                            {entry.labName} • {entry.totalRatings} ratings
+                          </span>
+                        </div>
+
+                        {/* Right: Centered Rating (Shifted more to the left) */}
+                        <div className="text-center pr-6 sm:pl-0 sm:pr-10 md:pr-14">
+                          <span className="font-mono text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ color: '#DEA193' }}>
+                            ⭐ {entry.averageRating.toFixed(1)}
+                          </span>
+                        </div>
                       </div>
                     );
                   })
                 ) : (
-                  <div className="flex h-full items-center justify-center text-center text-xs text-[#fde68a]/70 py-6 font-cinzel drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                  <div className="flex h-full items-center justify-center text-center text-sm sm:text-base py-4 font-cinzel font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ color: '#DEA193' }}>
                     {searchQuery ? 'No matching discoveries found.' : 'No discovery data yet.'}
                   </div>
                 )
@@ -460,4 +460,3 @@ export default function UnchartedSignboardLeaderboard({
     </>
   );
 }
-

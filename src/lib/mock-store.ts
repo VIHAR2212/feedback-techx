@@ -119,6 +119,54 @@ const defaultUsers: ExpeditionUser[] = [
     discoveredTreasures: [],
     isCompleted: false,
   },
+  {
+    email: 'flynn@mercenary.org',
+    name: 'Harry Flynn',
+    department: 'EXTC',
+    completedProducts: ['a-p1'],
+    unlockedLabs: ['a'],
+    completedLabs: [],
+    shards: [],
+    discoveredClues: [],
+    discoveredTreasures: [],
+    isCompleted: false,
+  },
+  {
+    email: 'tenzin@himalayas.net',
+    name: 'Tenzin Sherpa',
+    department: 'CIVIL',
+    completedProducts: ['a-p1'],
+    unlockedLabs: ['a'],
+    completedLabs: [],
+    shards: [],
+    discoveredClues: [],
+    discoveredTreasures: [],
+    isCompleted: false,
+  },
+  {
+    email: 'marlowe@hermetic.co.uk',
+    name: 'Katherine Marlowe',
+    department: 'COMPS',
+    completedProducts: ['a-p1'],
+    unlockedLabs: ['a'],
+    completedLabs: [],
+    shards: [],
+    discoveredClues: [],
+    discoveredTreasures: [],
+    isCompleted: false,
+  },
+  {
+    email: 'talbot@hermetic.co.uk',
+    name: 'Talbot Hermetic',
+    department: 'MECH',
+    completedProducts: ['a-p1'],
+    unlockedLabs: ['a'],
+    completedLabs: [],
+    shards: [],
+    discoveredClues: [],
+    discoveredTreasures: [],
+    isCompleted: false,
+  },
 ];
 
 const initialUsersMap = new Map<string, ExpeditionUser>();
@@ -173,6 +221,114 @@ const defaultFeedback: FeedbackEntry[] = [
     timestamp: new Date(Date.now() - 1400000).toISOString(),
     createdAt: new Date(Date.now() - 1400000),
   },
+  {
+    _id: 'fb-5',
+    studentName: 'Chloe Frazer',
+    studentEmail: 'chloe@expedition.io',
+    studentDepartment: 'IT',
+    labId: 'a',
+    tableId: 'a-p1',
+    rating: 4,
+    comment: 'Interesting tech relics.',
+    timestamp: new Date(Date.now() - 1200000).toISOString(),
+    createdAt: new Date(Date.now() - 1200000),
+  },
+  {
+    _id: 'fb-6',
+    studentName: 'Nadine Ross',
+    studentEmail: 'nadine@shoreline.sec',
+    studentDepartment: 'MECH',
+    labId: 'a',
+    tableId: 'a-p2',
+    rating: 4,
+    comment: 'Rigorous expedition challenge.',
+    timestamp: new Date(Date.now() - 1100000).toISOString(),
+    createdAt: new Date(Date.now() - 1100000),
+  },
+  {
+    _id: 'fb-7',
+    studentName: 'Samuel Drake',
+    studentEmail: 'sam@libertalia.org',
+    studentDepartment: 'AI-DS',
+    labId: 'a',
+    tableId: 'a-p1',
+    rating: 4,
+    comment: 'Great clues everywhere.',
+    timestamp: new Date(Date.now() - 900000).toISOString(),
+    createdAt: new Date(Date.now() - 900000),
+  },
+  {
+    _id: 'fb-8',
+    studentName: 'Rafe Adler',
+    studentEmail: 'rafe@adlercorp.com',
+    studentDepartment: 'CIVIL',
+    labId: 'a',
+    tableId: 'a-p1',
+    rating: 3,
+    comment: 'High ambition expedition.',
+    timestamp: new Date(Date.now() - 800000).toISOString(),
+    createdAt: new Date(Date.now() - 800000),
+  },
+  {
+    _id: 'fb-9',
+    studentName: 'Charlie Cutter',
+    studentEmail: 'cutter@history.org',
+    studentDepartment: 'VLSI',
+    labId: 'a',
+    tableId: 'a-p1',
+    rating: 3,
+    comment: 'Solid historical reference.',
+    timestamp: new Date(Date.now() - 700000).toISOString(),
+    createdAt: new Date(Date.now() - 700000),
+  },
+  {
+    _id: 'fb-10',
+    studentName: 'Harry Flynn',
+    studentEmail: 'flynn@mercenary.org',
+    studentDepartment: 'EXTC',
+    labId: 'a',
+    tableId: 'a-p1',
+    rating: 3,
+    comment: 'Found the entrance waypoint.',
+    timestamp: new Date(Date.now() - 600000).toISOString(),
+    createdAt: new Date(Date.now() - 600000),
+  },
+  {
+    _id: 'fb-11',
+    studentName: 'Tenzin Sherpa',
+    studentEmail: 'tenzin@himalayas.net',
+    studentDepartment: 'CIVIL',
+    labId: 'a',
+    tableId: 'a-p1',
+    rating: 3,
+    comment: 'Guided path scouted.',
+    timestamp: new Date(Date.now() - 500000).toISOString(),
+    createdAt: new Date(Date.now() - 500000),
+  },
+  {
+    _id: 'fb-12',
+    studentName: 'Katherine Marlowe',
+    studentEmail: 'marlowe@hermetic.co.uk',
+    studentDepartment: 'COMPS',
+    labId: 'a',
+    tableId: 'a-p1',
+    rating: 3,
+    comment: 'Order and history examined.',
+    timestamp: new Date(Date.now() - 400000).toISOString(),
+    createdAt: new Date(Date.now() - 400000),
+  },
+  {
+    _id: 'fb-13',
+    studentName: 'Talbot Hermetic',
+    studentEmail: 'talbot@hermetic.co.uk',
+    studentDepartment: 'MECH',
+    labId: 'a',
+    tableId: 'a-p1',
+    rating: 3,
+    comment: 'Cipher decoded.',
+    timestamp: new Date(Date.now() - 300000).toISOString(),
+    createdAt: new Date(Date.now() - 300000),
+  },
 ];
 
 if (!g.__unchartedStore) {
@@ -188,10 +344,12 @@ if (!g.__unchartedStore) {
     initialized: true,
   };
 } else {
-  // Ensure default users exist if empty
-  if (g.__unchartedStore.users.size === 0) {
-    defaultUsers.forEach((u) => g.__unchartedStore!.users.set(u.email, u));
-  }
+  // Ensure all default users exist even across hot-reloads
+  defaultUsers.forEach((u) => {
+    if (!g.__unchartedStore!.users.has(u.email)) {
+      g.__unchartedStore!.users.set(u.email, u);
+    }
+  });
   if (g.__unchartedStore.feedback.length === 0) {
     g.__unchartedStore.feedback = defaultFeedback;
   }

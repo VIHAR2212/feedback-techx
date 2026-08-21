@@ -74,40 +74,23 @@ export default function AdminLeaderboardPage() {
 
   return (
     <AdminRouteGuard>
-      <main className="relative h-screen min-h-screen w-full overflow-hidden text-foreground flex flex-col justify-end items-center">
-        {/* Fallback scenic image behind video */}
-        <img
-          src="/assets/images/leaderboard_scenic_bg.jpg"
-          alt="Expedition Background"
-          className="pointer-events-none fixed inset-0 h-full w-full object-cover z-0"
-        />
-
+      <main className="relative h-screen min-h-screen w-full overflow-hidden bg-black text-foreground flex flex-col justify-center items-center">
         {/* Looping muted background video */}
-        {!videoError && (
-          <video
-            ref={videoRef}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-            onError={() => {
-              console.error('Failed to load /videos/leaderboard-bg.mp4');
-              setVideoError(true);
-            }}
-            className="pointer-events-none fixed inset-0 h-full w-full object-cover z-0"
-          >
-            <source src="/videos/leaderboard-bg.mp4" type="video/mp4" />
-          </video>
-        )}
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="pointer-events-none fixed inset-0 h-full w-full object-contain md:object-cover z-0"
+        >
+          <source src="/videos/leaderboard-background.mp4" type="video/mp4" />
+          <source src="/videos/leaderboard-bg.mp4" type="video/mp4" />
+        </video>
 
-        {/* Subtle dark tint */}
-        <div
-          className="pointer-events-none fixed inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/45 z-[1]"
-        />
-
-        {/* Main Uncharted Signboard Content with Admin Controls Grounded at Bottom */}
-        <div className="relative z-10 w-full h-full flex flex-col justify-end items-center pb-0">
+        {/* Main Uncharted Signboard Content Centered */}
+        <div className="relative z-10 w-full h-full flex flex-col justify-center items-center p-0">
           <UnchartedSignboardLeaderboard
             leaderboard={leaderboard}
             productStats={productStats}
