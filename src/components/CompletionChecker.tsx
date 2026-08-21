@@ -1,24 +1,31 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useCompletion } from '@/context/CompletionContext';
+import { expeditionLabs, isLabCompleted } from '@/lib/expeditionData';
 
 export default function CompletionChecker() {
   const { user } = useUser();
   const { isCompleted } = useCompletion();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.email) return;
+
+    // Never hijack or force redirect when user is browsing leaderboard, labs, admin, or certificate views
+    const safePaths = ['/leaderboard', '/admin', '/finish', '/labs', '/certificate'];
+    if (pathname && safePaths.some((p) => pathname.startsWith(p))) {
+      return;
+    }
 
     const checkCompletion = () => {
-      const userStorageKey = `feedback_submitted_${user.email}`;
-      const storedSubmissions = JSON.parse(localStorage.getItem(userStorageKey) || localStorage.getItem(`submittedFeedback_${user.email}`) || '[]');
-      const count = storedSubmissions.length;
+      const labKeys = Object.keys(expeditionLabs);
+      const allDone = labKeys.length > 0 && labKeys.every((labId) => isLabCompleted(labId, user.email));
       
-      if (count >= 15 && !isCompleted) {
+      if (allDone && !isCompleted) {
         localStorage.setItem(`completion_${user.email}`, 'true');
         localStorage.setItem('completion_state', 'true');
         
@@ -28,12 +35,9 @@ export default function CompletionChecker() {
       }
     };
 
-    // Check on mount
-    checkCompletion();
-
-    // Listen for feedback submission events
+    // Listen only when feedback is actively submitted
     const handleFeedbackSubmitted = () => {
-      setTimeout(checkCompletion, 100); // Small delay to ensure localStorage is updated
+      setTimeout(checkCompletion, 100);
     };
 
     window.addEventListener('feedbackSubmitted', handleFeedbackSubmitted);
@@ -41,7 +45,8 @@ export default function CompletionChecker() {
     return () => {
       window.removeEventListener('feedbackSubmitted', handleFeedbackSubmitted);
     };
-  }, [user, isCompleted, router]);
+  }, [user, isCompleted, router, pathname]);
 
-  return null; // This component doesn't render anything
+  return null;
 }
+

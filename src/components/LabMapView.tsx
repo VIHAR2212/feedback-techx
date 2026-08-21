@@ -38,15 +38,49 @@ const defaultLabMapImages: Record<string, string> = {
   'kings-bay': '/assets/images/journal-spread-lab3.jpg',
 };
 
+type ExpeditionTheme = 'jungle' | 'ice' | 'volcanic';
+
+const THEME_STYLES: Record<
+  ExpeditionTheme,
+  {
+    unsurveyedStroke: string;
+    unsurveyedTexture: string;
+    glowColor: string;
+    coreGlow: string;
+    emberFlicker?: boolean;
+  }
+> = {
+  jungle: {
+    unsurveyedStroke: '#2b180d',
+    unsurveyedTexture: '#1a0f08',
+    glowColor: '#22d98a',
+    coreGlow: '#c9ffe8',
+  },
+  ice: {
+    unsurveyedStroke: '#1c2b38',
+    unsurveyedTexture: '#0f1a22',
+    glowColor: '#3fc4f0',
+    coreGlow: '#dff6ff',
+  },
+  volcanic: {
+    unsurveyedStroke: '#3a1408',
+    unsurveyedTexture: '#1f0a04',
+    glowColor: '#ff7a1a',
+    coreGlow: '#ffe1b0',
+    emberFlicker: true,
+  },
+};
+
 interface LabMapViewProps {
   labId: string;
+  userEmail?: string;
 }
 
-export default function LabMapView({ labId }: LabMapViewProps) {
+export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapViewProps) {
   const router = useRouter();
   const { user } = useUser();
-  const userEmail = user?.email || 'explorer@field.recon';
-
+  const userEmail = propUserEmail || user?.email || 'explorer@field.recon';
+  const labAliases: Record<string, string> = { '1': '1', a: '1', '2': '2', c: '2', '3': '3', d: '3' };
   const labKey = labAliases[labId] || labId || '1';
 
   // Real-time reactive labs state from database (syncs with Admin page edits)
@@ -54,9 +88,17 @@ export default function LabMapView({ labId }: LabMapViewProps) {
   const labConfig = labs[labKey] || labs[labId] || expeditionLabs[labKey] || expeditionLabs[labId] || expeditionLabs['1'];
   const mapBgImage = labConfig?.mapImage || defaultLabMapImages[labId] || defaultLabMapImages[labKey] || '/assets/images/journal-spread-lab1.jpg';
   const themeType = labConfig?.themeType || (labKey === '2' ? 'frost' : labKey === '3' ? 'volcano' : 'jungle');
-  const inkColor = labConfig?.inkColor || (themeType === 'frost' ? '#0f2238' : themeType === 'volcano' ? '#240902' : '#1b381e');
-  const glowColor = labConfig?.glowColor || (themeType === 'frost' ? '#38bdf8' : themeType === 'volcano' ? '#f97316' : '#10b981');
-  const coreGlow = labConfig?.coreGlow || (themeType === 'frost' ? '#e0f2fe' : themeType === 'volcano' ? '#fef08a' : '#d1fae5');
+  
+  const normalizedTheme: ExpeditionTheme =
+    themeType === 'frost' || themeType === 'ice'
+      ? 'ice'
+      : themeType === 'volcano' || themeType === 'volcanic'
+        ? 'volcanic'
+        : 'jungle';
+
+  const themeStyle = THEME_STYLES[normalizedTheme];
+  const glowColor = themeStyle.glowColor;
+  const coreGlow = themeStyle.coreGlow;
 
   const products: CheckpointNode[] = useMemo(() => labConfig?.checkpoints || [], [labConfig]);
 
@@ -171,20 +213,18 @@ export default function LabMapView({ labId }: LabMapViewProps) {
     }));
   }, [products, containerSize]);
 
-  // Smooth natural curved spline (Catmull-Rom to Cubic Bezier) through exact node centers
+  // Smooth natural Catmull-Rom tangent cubic spline through exact node centers (pure tangents, no wave bow)
   const routePaths = useMemo(() => {
     if (nodePixelPositions.length < 2) {
       return {
         plannedPath: '',
         completedPath: '',
-        plannedMidpoints: [] as { x: number; y: number }[],
-        completedMidpoints: [] as { x: number; y: number }[],
         points: nodePixelPositions,
       };
     }
 
     const n = nodePixelPositions.length;
-    const tension = 0.52;
+    const tension = 0.45;
 
     // Calculate boundary & internal tangent vectors for smooth continuous curvature
     const tangents = nodePixelPositions.map((p, i) => {
@@ -207,9 +247,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
     });
 
     let plannedPath = `M ${nodePixelPositions[0].x.toFixed(1)} ${nodePixelPositions[0].y.toFixed(1)}`;
-    const plannedMidpoints: { x: number; y: number }[] = [];
     const completedSegments: string[] = [];
-    const completedMidpoints: { x: number; y: number }[] = [];
 
     for (let i = 0; i < n - 1; i++) {
       const p1 = nodePixelPositions[i];
@@ -217,49 +255,21 @@ export default function LabMapView({ labId }: LabMapViewProps) {
       const t1 = tangents[i];
       const t2 = tangents[i + 1];
 
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const segLen = Math.hypot(dx, dy) || 1;
-
-      // Normal perpendicular unit vector for organic oceanic wave bow
-      const nx = -dy / segLen;
-      const ny = dx / segLen;
-
-      // Alternating wave direction to create natural S-curves and cove loops
-      const waveSign = i % 2 === 0 ? 1 : -1;
-      const bowDisplacement = Math.min(segLen * 0.16, 26) * waveSign;
-
-      const cp1 = {
-        x: p1.x + t1.x + nx * bowDisplacement,
-        y: p1.y + t1.y + ny * bowDisplacement,
-      };
-      const cp2 = {
-        x: p2.x - t2.x + nx * bowDisplacement,
-        y: p2.y - t2.y + ny * bowDisplacement,
-      };
+      // No perpendicular wave — pure tangent-based cubic bezier
+      const cp1 = { x: p1.x + t1.x, y: p1.y + t1.y };
+      const cp2 = { x: p2.x - t2.x, y: p2.y - t2.y };
 
       const segD = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} C ${cp1.x.toFixed(1)} ${cp1.y.toFixed(1)}, ${cp2.x.toFixed(1)} ${cp2.y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
       plannedPath += ` C ${cp1.x.toFixed(1)} ${cp1.y.toFixed(1)}, ${cp2.x.toFixed(1)} ${cp2.y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
 
-      // Exact mathematical midpoint along cubic bezier curve at t = 0.5
-      const midX = 0.125 * p1.x + 0.375 * cp1.x + 0.375 * cp2.x + 0.125 * p2.x;
-      const midY = 0.125 * p1.y + 0.375 * cp1.y + 0.375 * cp2.y + 0.125 * p2.y;
-      const mid = { x: midX, y: midY };
-
-      plannedMidpoints.push(mid);
-
-      // If both adjacent waypoints are submitted, survey/complete this segment
       if (submittedIds.includes(p1.id) && submittedIds.includes(p2.id)) {
         completedSegments.push(segD);
-        completedMidpoints.push(mid);
       }
     }
 
     return {
       plannedPath,
       completedPath: completedSegments.join(' '),
-      plannedMidpoints,
-      completedMidpoints,
       points: nodePixelPositions,
     };
   }, [nodePixelPositions, submittedIds]);
@@ -370,59 +380,75 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                     className="absolute inset-0 w-full h-full pointer-events-none z-10"
                   >
                     <defs>
-                      <filter id="gold-ink-bleed" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
+                      {/* Hand-drawn wobble for the unsurveyed trail */}
+                      <filter id="trail-wobble" x="-10%" y="-10%" width="120%" height="120%">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="7" result="noise" />
+                        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.5" xChannelSelector="R" yChannelSelector="G" />
+                      </filter>
+
+                      {/* Warm ink bleed for completed segments — reused across themes */}
+                      <filter id="ink-bleed" x="-25%" y="-25%" width="150%" height="150%">
+                        <feGaussianBlur stdDeviation="2.5" result="blur" />
                         <feMerge>
                           <feMergeNode in="blur" />
                           <feMergeNode in="SourceGraphic" />
                         </feMerge>
                       </filter>
-                      <filter id="inkShadow" x="-10%" y="-10%" width="120%" height="120%">
-                        <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.6" />
-                      </filter>
+
+                      {/* Ember flicker for volcanic theme */}
+                      {themeStyle.emberFlicker && (
+                        <filter id="ember-flicker" x="-25%" y="-25%" width="150%" height="150%">
+                          <feGaussianBlur stdDeviation="1.5" result="blur">
+                            <animate attributeName="stdDeviation" values="1.5;2.4;1.5" dur="1.8s" repeatCount="indefinite" />
+                          </feGaussianBlur>
+                          <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                          </feMerge>
+                        </filter>
+                      )}
                     </defs>
 
-                    {/* 1. Initial Planned Path: Deep Charcoal / Black Antique Cartography Ink */}
+                    {/* Unsurveyed trail — solid, wobbled, hand-drawn organic jitter */}
                     <path
                       d={routePaths.plannedPath}
                       fill="none"
-                      stroke="#0a0502"
-                      strokeWidth="4"
+                      stroke={themeStyle.unsurveyedTexture}
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={0.85}
+                      filter="url(#trail-wobble)"
+                    />
+                    <path
+                      d={routePaths.plannedPath}
+                      fill="none"
+                      stroke={themeStyle.unsurveyedStroke}
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       opacity={0.9}
-                      filter="url(#inkShadow)"
-                    />
-                    <path
-                      d={routePaths.plannedPath}
-                      fill="none"
-                      stroke="#2b180d"
-                      strokeWidth="2"
-                      strokeDasharray="6 4.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.95}
+                      filter="url(#trail-wobble)"
                     />
 
-                    {/* 2. Completed / Surveyed Thematic Glow Trail (Illuminates in map color theme ONLY after completing) */}
+                    {/* Surveyed / completed — theme glow */}
                     {routePaths.completedPath && (
                       <>
                         <path
                           d={routePaths.completedPath}
                           fill="none"
-                          stroke={glowColor}
-                          strokeWidth="8"
+                          stroke={themeStyle.glowColor}
+                          strokeWidth="7"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          opacity={0.95}
-                          filter="url(#gold-ink-bleed)"
+                          opacity={0.9}
+                          filter={themeStyle.emberFlicker ? 'url(#ember-flicker)' : 'url(#ink-bleed)'}
                         />
                         <path
                           d={routePaths.completedPath}
                           fill="none"
-                          stroke={coreGlow}
-                          strokeWidth="2.8"
-                          strokeDasharray="7 4"
+                          stroke={themeStyle.coreGlow}
+                          strokeWidth="2.2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           className="transition-all duration-700 ease-out"
@@ -430,7 +456,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       </>
                     )}
 
-                    {/* 3. Concentric Waypoint Rings centered on each measured node */}
+                    {/* Concentric Waypoint Rings centered on each measured node */}
                     {routePaths.points.map((pt) => {
                       const isDone = submittedIds.includes(pt.id);
                       return (
@@ -440,7 +466,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                             cy={pt.y}
                             r={isDone ? 22 : 18}
                             fill="none"
-                            stroke={isDone ? glowColor : '#2b180d'}
+                            stroke={isDone ? themeStyle.glowColor : themeStyle.unsurveyedStroke}
                             strokeWidth={isDone ? '1.8' : '1'}
                             strokeDasharray={isDone ? 'none' : '3 3'}
                             opacity={isDone ? 0.95 : 0.6}
@@ -451,30 +477,12 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                               cy={pt.y}
                               r={26}
                               fill="none"
-                              stroke={coreGlow}
+                              stroke={themeStyle.coreGlow}
                               strokeWidth="1"
                               strokeDasharray="2 4"
                               opacity={0.8}
                             />
                           )}
-                        </g>
-                      );
-                    })}
-
-                    {/* 4. Midpoint Nautical Rhumb Stars (Dark initially, glowing when segment completed) */}
-                    {routePaths.plannedMidpoints.map((mid, idx) => {
-                      const isCompleted = routePaths.completedMidpoints.some(
-                        (cm) => Math.hypot(cm.x - mid.x, cm.y - mid.y) < 2
-                      );
-                      return (
-                        <g key={`star-${idx}`} transform={`translate(${mid.x}, ${mid.y})`}>
-                          <path
-                            d="M 0 -6 L 1.8 -1.8 L 6 0 L 1.8 1.8 L 0 6 L -1.8 1.8 L -6 0 L -1.8 -1.8 Z"
-                            fill={isCompleted ? coreGlow : '#140c06'}
-                            stroke={isCompleted ? glowColor : '#3d2512'}
-                            strokeWidth={isCompleted ? '1.4' : '0.8'}
-                            filter={isCompleted ? 'url(#gold-ink-bleed)' : 'drop-shadow(0 1px 1px rgba(0,0,0,0.6))'}
-                          />
                         </g>
                       );
                     })}
