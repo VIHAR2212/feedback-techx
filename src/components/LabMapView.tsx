@@ -568,19 +568,19 @@ export default function LabMapView({ labId }: LabMapViewProps) {
             </div>
 
             {/* ================= MOBILE ONLY: Dossier Scrap ================= */}
-            <div className="lg:hidden w-full shrink-0 z-30 pointer-events-auto px-2 pt-1 pb-1">
+            <div className="lg:hidden w-full shrink-0 z-30 pointer-events-auto px-2 pt-1 pb-2">
               <div
                 style={{
                   backgroundImage: `url('/assets/images/expedition_status_bg.png')`,
                   aspectRatio: '520 / 285',
                 }}
-                className="relative w-full max-w-[390px] sm:max-w-[420px] mx-auto bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_12px_28px_rgba(0,0,0,0.95)] select-none"
+                className="relative w-full max-w-[390px] sm:max-w-[420px] mx-auto bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_12px_28px_rgba(0,0,0,0.95)] select-none overflow-hidden"
               >
                 {/* Printable Parchment Area: comfortably positioned below Drake's ring */}
-                <div className="absolute inset-0 pt-[19%] pb-[9%] px-[7%] sm:px-[8%] flex flex-col justify-between text-[#2b1704]">
+                <div className="absolute inset-0 pt-[18%] pb-[6%] px-[7%] sm:px-[8%] flex flex-col justify-between text-[#2b1704] overflow-hidden">
                   {/* Badge Row */}
-                  <div className="flex items-center justify-between border-b border-[#8b6943]/30 pb-0.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="flex items-center justify-between border-b border-[#8b6943]/30 pb-0.5 shrink-0">
+                    <div className="flex items-center gap-1.5 min-w-0 pr-1">
                       <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={13} color="#7a5214" />
                       <span className="text-[8px] sm:text-[9px] font-extrabold uppercase font-mono tracking-wider text-[#7a5214] truncate">
                         WAYPOINT {String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, '0')} • SIC PARVIS MAGNA
@@ -598,48 +598,31 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                   </div>
 
                   {/* Big Prominent Title & Handwritten Description */}
-                  <div className="py-0.5 my-auto">
-                    <h3 className="text-sm sm:text-base font-bold text-[#1c0f05] leading-tight font-['EB_Garamond',_serif] tracking-tight truncate drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+                  <div className="py-0.5 my-auto min-h-0 flex-1 flex flex-col justify-center overflow-hidden">
+                    <h3 className="text-xs sm:text-sm font-bold text-[#1c0f05] leading-tight font-['EB_Garamond',_serif] tracking-tight truncate drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
                       {selectedProduct?.name || 'Waypoint'}
                     </h3>
-                    <p className="text-[11px] sm:text-xs text-[#4a2810] italic leading-snug line-clamp-2 mt-0.5 font-[family-name:var(--font-handwriting)] font-semibold">
+                    <p className="text-[10px] sm:text-[11.5px] text-[#4a2810] italic leading-tight line-clamp-1 sm:line-clamp-2 mt-0.5 font-[family-name:var(--font-handwriting)] font-semibold">
                       &quot;{selectedProduct?.description || 'Select coordinate to inspect'}&quot;
                     </p>
                   </div>
 
                   {/* CTA Button */}
-                  <div className="pt-0.5">
+                  <div className="pt-0.5 shrink-0">
                     <button
+                      type="button"
                       onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
                       style={{
                         clipPath:
                           'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
                       }}
-                      className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
+                      className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
                     >
-                      <span>{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
-                      <span className="text-xs">➔</span>
+                      <span className="truncate">{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
+                      <span className="text-xs shrink-0">➔</span>
                     </button>
                   </div>
                 </div>
-              </div>
-
-              {/* Quick Simulator Controls */}
-              <div className="flex items-center justify-between max-w-[390px] sm:max-w-[420px] mx-auto px-3 pt-1 pb-0.5">
-                <button
-                  type="button"
-                  onClick={() => selectedProduct && handleSimulateCompletion(selectedProduct.id)}
-                  className="text-[8px] sm:text-[8.5px] font-mono font-bold text-[#d4af37]/90 hover:text-[#d4af37] hover:underline cursor-pointer"
-                >
-                  [ SIMULATE: {selectedProduct && submittedIds.includes(selectedProduct.id) ? 'UNMARK' : 'COMPLETE'} ]
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResetProgress}
-                  className="text-[8px] sm:text-[8.5px] font-mono text-[#a88a58]/80 hover:text-[#a88a58] hover:underline cursor-pointer"
-                >
-                  [ RESET ALL ]
-                </button>
               </div>
             </div>
 
@@ -726,8 +709,8 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                 </div>
               </div>
 
-              {/* Action Button & Dev Bar */}
-              <div className="pt-2 border-t border-[#8b6943]/25 flex flex-col gap-2">
+              {/* Action Button */}
+              <div className="pt-2 border-t border-[#8b6943]/25">
                 <button
                   type="button"
                   onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
@@ -740,24 +723,6 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                   <span>{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
                   <span className="text-xs">➔</span>
                 </button>
-
-                <div className="flex items-center justify-between px-1 text-[8.5px] font-mono">
-                  <button
-                    type="button"
-                    onClick={() => selectedProduct && handleSimulateCompletion(selectedProduct.id)}
-                    className="font-bold text-[#7a481c] hover:text-[#241308] hover:underline cursor-pointer"
-                  >
-                    [ SIMULATE: {selectedProduct && submittedIds.includes(selectedProduct.id) ? 'UNMARK' : 'COMPLETE NODE'} ]
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleResetProgress}
-                    className="text-[#8c6f4b] hover:text-[#241308] hover:underline cursor-pointer"
-                  >
-                    [ CLEAR LOG ENTRIES ]
-                  </button>
-                </div>
               </div>
             </div>
           </div>
