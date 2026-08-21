@@ -382,56 +382,46 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       </filter>
                     </defs>
 
-                    {/* 1. Planned Nautical Chart Route: Thematic Ink & Dashed Spline */}
+                    {/* 1. Initial Planned Path: Deep Charcoal / Black Antique Cartography Ink */}
                     <path
                       d={routePaths.plannedPath}
                       fill="none"
-                      stroke={inkColor}
-                      strokeWidth="5"
+                      stroke="#0a0502"
+                      strokeWidth="4"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      opacity={0.7}
+                      opacity={0.9}
                       filter="url(#inkShadow)"
                     />
                     <path
                       d={routePaths.plannedPath}
                       fill="none"
-                      stroke={glowColor}
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.75}
-                      filter="url(#gold-ink-bleed)"
-                    />
-                    <path
-                      d={routePaths.plannedPath}
-                      fill="none"
-                      stroke="#fffbe8"
-                      strokeWidth="2.2"
-                      strokeDasharray="6 5"
+                      stroke="#2b180d"
+                      strokeWidth="2"
+                      strokeDasharray="6 4.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       opacity={0.95}
                     />
 
-                    {/* 2. Completed / Surveyed Illuminated Thematic Trail */}
+                    {/* 2. Completed / Surveyed Thematic Glow Trail (Illuminates in map color theme ONLY after completing) */}
                     {routePaths.completedPath && (
                       <>
                         <path
                           d={routePaths.completedPath}
                           fill="none"
                           stroke={glowColor}
-                          strokeWidth="7"
+                          strokeWidth="8"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          opacity={0.9}
+                          opacity={0.95}
                           filter="url(#gold-ink-bleed)"
                         />
                         <path
                           d={routePaths.completedPath}
                           fill="none"
                           stroke={coreGlow}
-                          strokeWidth="2.6"
+                          strokeWidth="2.8"
                           strokeDasharray="7 4"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -450,10 +440,10 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                             cy={pt.y}
                             r={isDone ? 22 : 18}
                             fill="none"
-                            stroke={isDone ? glowColor : '#8c6d23'}
-                            strokeWidth={isDone ? '1.5' : '1'}
+                            stroke={isDone ? glowColor : '#2b180d'}
+                            strokeWidth={isDone ? '1.8' : '1'}
                             strokeDasharray={isDone ? 'none' : '3 3'}
-                            opacity={isDone ? 0.95 : 0.45}
+                            opacity={isDone ? 0.95 : 0.6}
                           />
                           {isDone && (
                             <circle
@@ -462,27 +452,32 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                               r={26}
                               fill="none"
                               stroke={coreGlow}
-                              strokeWidth="0.8"
+                              strokeWidth="1"
                               strokeDasharray="2 4"
-                              opacity={0.6}
+                              opacity={0.8}
                             />
                           )}
                         </g>
                       );
                     })}
 
-                    {/* 4. Midpoint Nautical Rhumb Stars */}
-                    {routePaths.plannedMidpoints.map((mid, idx) => (
-                      <g key={`star-${idx}`} transform={`translate(${mid.x}, ${mid.y})`}>
-                        <path
-                          d="M 0 -6 L 1.8 -1.8 L 6 0 L 1.8 1.8 L 0 6 L -1.8 1.8 L -6 0 L -1.8 -1.8 Z"
-                          fill="#fff6d1"
-                          stroke="#6b4516"
-                          strokeWidth="0.8"
-                          filter="drop-shadow(0 1px 2px rgba(0,0,0,0.5))"
-                        />
-                      </g>
-                    ))}
+                    {/* 4. Midpoint Nautical Rhumb Stars (Dark initially, glowing when segment completed) */}
+                    {routePaths.plannedMidpoints.map((mid, idx) => {
+                      const isCompleted = routePaths.completedMidpoints.some(
+                        (cm) => Math.hypot(cm.x - mid.x, cm.y - mid.y) < 2
+                      );
+                      return (
+                        <g key={`star-${idx}`} transform={`translate(${mid.x}, ${mid.y})`}>
+                          <path
+                            d="M 0 -6 L 1.8 -1.8 L 6 0 L 1.8 1.8 L 0 6 L -1.8 1.8 L -6 0 L -1.8 -1.8 Z"
+                            fill={isCompleted ? coreGlow : '#140c06'}
+                            stroke={isCompleted ? glowColor : '#3d2512'}
+                            strokeWidth={isCompleted ? '1.4' : '0.8'}
+                            filter={isCompleted ? 'url(#gold-ink-bleed)' : 'drop-shadow(0 1px 1px rgba(0,0,0,0.6))'}
+                          />
+                        </g>
+                      );
+                    })}
                   </svg>
                 )}
 
