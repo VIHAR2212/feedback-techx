@@ -14,7 +14,7 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     if (!authLoading && isAdmin) {
-      router.push('/admin/dashboard');
+      router.push('/admin');
     }
   }, [isAdmin, authLoading, router]);
 
@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
     setError('');
     try {
       const success = await login(username, password);
-      if (success) router.push('/admin/dashboard');
+      if (success) router.push('/admin');
       else setError('Invalid credentials');
     } catch {
       setError('Login failed. Please try again.');
@@ -44,7 +44,7 @@ export default function AdminLoginPage() {
   if (isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        <p className="text-sm">Redirecting to dashboard…</p>
+        <p className="text-sm">Redirecting…</p>
       </div>
     );
   }

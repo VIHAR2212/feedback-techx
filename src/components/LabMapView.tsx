@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
+import { useLabs } from '@/context/LabsContext';
 import {
   expeditionLabs,
   getSubmittedFeedbackForUser,
@@ -14,6 +15,29 @@ import ProductObservationModal from './ProductObservationModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckpointIcon } from './RusticIcons';
 
+const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+const labAliases: Record<string, string> = {
+  a: '1',
+  b: '2',
+  c: '3',
+  portolan: '1',
+  libertalia: '2',
+  'kings-bay': '3',
+};
+
+const defaultLabMapImages: Record<string, string> = {
+  '1': '/assets/images/journal-spread-lab1.jpg',
+  '2': '/assets/images/journal-spread-lab2.jpg',
+  '3': '/assets/images/journal-spread-lab3.jpg',
+  a: '/assets/images/journal-spread-lab1.jpg',
+  b: '/assets/images/journal-spread-lab2.jpg',
+  c: '/assets/images/journal-spread-lab3.jpg',
+  portolan: '/assets/images/journal-spread-lab1.jpg',
+  libertalia: '/assets/images/journal-spread-lab2.jpg',
+  'kings-bay': '/assets/images/journal-spread-lab3.jpg',
+};
+
 interface LabMapViewProps {
   labId: string;
 }
@@ -23,19 +47,36 @@ export default function LabMapView({ labId }: LabMapViewProps) {
   const { user } = useUser();
   const userEmail = user?.email || 'explorer@field.recon';
 
-  const labConfig = expeditionLabs[labId] || expeditionLabs['1'] || expeditionLabs['a'];
-  const products = labConfig.checkpoints;
+  const labKey = labAliases[labId] || labId || '1';
+
+  // Real-time reactive labs state from database (syncs with Admin page edits)
+  const { labs } = useLabs();
+  const labConfig = labs[labKey] || labs[labId] || expeditionLabs[labKey] || expeditionLabs[labId] || expeditionLabs['1'];
+  const mapBgImage = labConfig?.mapImage || defaultLabMapImages[labId] || defaultLabMapImages[labKey] || '/assets/images/journal-spread-lab1.jpg';
+  const themeType = labConfig?.themeType || (labKey === '2' ? 'frost' : labKey === '3' ? 'volcano' : 'jungle');
+  const inkColor = labConfig?.inkColor || (themeType === 'frost' ? '#0f2238' : themeType === 'volcano' ? '#240902' : '#1b381e');
+  const glowColor = labConfig?.glowColor || (themeType === 'frost' ? '#38bdf8' : themeType === 'volcano' ? '#f97316' : '#10b981');
+  const coreGlow = labConfig?.coreGlow || (themeType === 'frost' ? '#e0f2fe' : themeType === 'volcano' ? '#fef08a' : '#d1fae5');
+
+  const products: CheckpointNode[] = useMemo(() => labConfig?.checkpoints || [], [labConfig]);
 
   const [submittedIds, setSubmittedIds] = useState<string[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<CheckpointNode>(products[0]);
+  const [selectedProduct, setSelectedProduct] = useState<CheckpointNode>(
+    products[0] || {
+      id: 'default',
+      name: 'Survey Point',
+      description: 'Initial checkpoint',
+      icon: '🧭',
+      x: 50,
+      y: 50,
+    }
+  );
   const [activeModalProduct, setActiveModalProduct] = useState<CheckpointNode | null>(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
 
-  // Dynamic Node Position Detection
+  // Dynamic Map Container Size & Node Coordinates
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const nodeRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
-  const [nodePositions, setNodePositions] = useState<{ id: string; x: number; y: number }[]>([]);
   const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   useEffect(() => {
@@ -45,65 +86,57 @@ export default function LabMapView({ labId }: LabMapViewProps) {
     }
   }, [userEmail]);
 
-  const updateNodePositions = useCallback(() => {
-    if (!mapContainerRef.current) return;
-    const mapRect = mapContainerRef.current.getBoundingClientRect();
-    if (mapRect.width === 0 || mapRect.height === 0) return;
-
-    setContainerSize({ width: mapRect.width, height: mapRect.height });
-
-    const detected = products.map((product) => {
-      const el = nodeRefs.current[product.id];
-      if (el) {
-        const nodeRect = el.getBoundingClientRect();
-        return {
-          id: product.id,
-          x: nodeRect.left + nodeRect.width / 2 - mapRect.left,
-          y: nodeRect.top + nodeRect.height / 2 - mapRect.top,
-        };
+  // Keep selectedProduct in sync when products change or initial load
+  useEffect(() => {
+    if (products.length > 0) {
+      const found = products.find((p) => p.id === selectedProduct?.id);
+      if (found) {
+        setSelectedProduct(found);
+      } else {
+        setSelectedProduct(products[0]);
       }
-      return {
-        id: product.id,
-        x: (product.x / 100) * mapRect.width,
-        y: (product.y / 100) * mapRect.height,
-      };
-    });
+    }
+  }, [products, selectedProduct?.id]);
 
-    setNodePositions(detected);
-  }, [products]);
+  // Track exact container dimensions to guarantee pixel-perfect SVG alignment
+  const updateDimensions = useCallback(() => {
+    if (!mapContainerRef.current) return;
+    const rect = mapContainerRef.current.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      setContainerSize({ width: rect.width, height: rect.height });
+    }
+  }, []);
 
   useEffect(() => {
-    const frameId = requestAnimationFrame(() => {
-      updateNodePositions();
-    });
-    const timer1 = setTimeout(updateNodePositions, 50);
-    const timer2 = setTimeout(updateNodePositions, 300);
+    const frameId = requestAnimationFrame(updateDimensions);
+    const timer1 = setTimeout(updateDimensions, 60);
+    const timer2 = setTimeout(updateDimensions, 300);
 
     const resizeObserver = new ResizeObserver(() => {
-      updateNodePositions();
+      updateDimensions();
     });
 
     if (mapContainerRef.current) {
       resizeObserver.observe(mapContainerRef.current);
     }
 
-    window.addEventListener('resize', updateNodePositions);
+    window.addEventListener('resize', updateDimensions);
 
     return () => {
       cancelAnimationFrame(frameId);
       clearTimeout(timer1);
       clearTimeout(timer2);
       resizeObserver.disconnect();
-      window.removeEventListener('resize', updateNodePositions);
+      window.removeEventListener('resize', updateDimensions);
     };
-  }, [updateNodePositions, viewMode]);
+  }, [updateDimensions, viewMode]);
 
   const handleProductSubmitSuccess = (productId: string) => {
     const updated = saveSubmittedFeedbackForUser(userEmail, productId);
     setSubmittedIds(updated);
     setActiveModalProduct(null);
 
-    const allDone = products.every((p) => updated.includes(p.id));
+    const allDone = products.length > 0 && products.every((p) => updated.includes(p.id));
     if (allDone) {
       setTimeout(() => setShowBadgeModal(true), 700);
     }
@@ -128,94 +161,118 @@ export default function LabMapView({ labId }: LabMapViewProps) {
   const completedCount = products.filter((p) => submittedIds.includes(p.id)).length;
   const totalCount = products.length;
 
+  // Exact mathematically aligned pixel positions for each node
+  const nodePixelPositions = useMemo(() => {
+    if (containerSize.width === 0 || containerSize.height === 0) return [];
+    return products.map((p) => ({
+      id: p.id,
+      x: (p.x / 100) * containerSize.width,
+      y: (p.y / 100) * containerSize.height,
+    }));
+  }, [products, containerSize]);
+
+  // Smooth natural curved spline (Catmull-Rom to Cubic Bezier) through exact node centers
   const routePaths = useMemo(() => {
-    if (nodePositions.length < 2) {
+    if (nodePixelPositions.length < 2) {
       return {
         plannedPath: '',
         completedPath: '',
         plannedMidpoints: [] as { x: number; y: number }[],
         completedMidpoints: [] as { x: number; y: number }[],
-        points: nodePositions,
+        points: nodePixelPositions,
       };
     }
 
-    const sectorSeed = labId === '2' || labId === 'b' ? 1 : labId === '3' || labId === 'c' ? 2 : 0;
+    const n = nodePixelPositions.length;
+    const tension = 0.52;
 
-    // Helper to generate smooth winding nautical S-curves between waypoints (curved, organic, zero sharp corners)
-    const generateCurvedVoyagePath = (pointsList: { x: number; y: number }[]) => {
-      if (pointsList.length < 2) return { pathD: '', midpoints: [] as { x: number; y: number }[] };
-
-      let d = `M ${pointsList[0].x.toFixed(1)} ${pointsList[0].y.toFixed(1)}`;
-      const midpoints: { x: number; y: number }[] = [];
-
-      for (let i = 0; i < pointsList.length - 1; i++) {
-        const p1 = pointsList[i];
-        const p2 = pointsList[i + 1];
-        const dx = p2.x - p1.x;
-        const dy = p2.y - p1.y;
-        const dist = Math.hypot(dx, dy);
-
-        if (dist === 0) continue;
-
-        const nx = -dy / dist;
-        const ny = dx / dist;
-
-        // Smooth wave amplitude (alternating direction per leg with sector-specific harmonic seed)
-        const sign = (i + sectorSeed) % 2 === 0 ? 1 : -1;
-        const amp = Math.min(28, Math.max(16, dist * 0.20)) * sign;
-
-        // Inflection midpoint between p1 and p2
-        const midX = p1.x + dx * 0.5;
-        const midY = p1.y + dy * 0.5;
-        midpoints.push({ x: midX, y: midY });
-
-        // First smooth S-curve lobe (p1 -> mid)
-        const cp1x = p1.x + dx * 0.16 + nx * amp * 1.15;
-        const cp1y = p1.y + dy * 0.16 + ny * amp * 1.15;
-        const cp2x = p1.x + dx * 0.34 + nx * amp * 1.15;
-        const cp2y = p1.y + dy * 0.34 + ny * amp * 1.15;
-
-        // Second smooth S-curve lobe (mid -> p2)
-        const cp3x = p1.x + dx * 0.66 - nx * amp * 1.15;
-        const cp3y = p1.y + dy * 0.66 - ny * amp * 1.15;
-        const cp4x = p1.x + dx * 0.84 - nx * amp * 1.15;
-        const cp4y = p1.y + dy * 0.84 - ny * amp * 1.15;
-
-        d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${midX.toFixed(1)} ${midY.toFixed(1)}`;
-        d += ` C ${cp3x.toFixed(1)} ${cp3y.toFixed(1)}, ${cp4x.toFixed(1)} ${cp4y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    // Calculate boundary & internal tangent vectors for smooth continuous curvature
+    const tangents = nodePixelPositions.map((p, i) => {
+      if (i === 0) {
+        return {
+          x: (nodePixelPositions[1].x - p.x) * tension,
+          y: (nodePixelPositions[1].y - p.y) * tension,
+        };
       }
+      if (i === n - 1) {
+        return {
+          x: (p.x - nodePixelPositions[n - 2].x) * tension,
+          y: (p.y - nodePixelPositions[n - 2].y) * tension,
+        };
+      }
+      return {
+        x: ((nodePixelPositions[i + 1].x - nodePixelPositions[i - 1].x) / 2) * tension,
+        y: ((nodePixelPositions[i + 1].y - nodePixelPositions[i - 1].y) / 2) * tension,
+      };
+    });
 
-      return { pathD: d, midpoints };
-    };
+    let plannedPath = `M ${nodePixelPositions[0].x.toFixed(1)} ${nodePixelPositions[0].y.toFixed(1)}`;
+    const plannedMidpoints: { x: number; y: number }[] = [];
+    const completedSegments: string[] = [];
+    const completedMidpoints: { x: number; y: number }[] = [];
 
-    // 1. Planned Full Route in smooth curved nautical S-bends
-    const { pathD: plannedD, midpoints: plannedMidpoints } = generateCurvedVoyagePath(nodePositions);
+    for (let i = 0; i < n - 1; i++) {
+      const p1 = nodePixelPositions[i];
+      const p2 = nodePixelPositions[i + 1];
+      const t1 = tangents[i];
+      const t2 = tangents[i + 1];
 
-    // 2. Completed / Surveyed Illuminated Golden Trail
-    const completedPositions = nodePositions.filter((p) => submittedIds.includes(p.id));
-    const { pathD: completedD, midpoints: completedMidpoints } =
-      completedPositions.length >= 2
-        ? generateCurvedVoyagePath(completedPositions)
-        : { pathD: '', midpoints: [] };
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const segLen = Math.hypot(dx, dy) || 1;
+
+      // Normal perpendicular unit vector for organic oceanic wave bow
+      const nx = -dy / segLen;
+      const ny = dx / segLen;
+
+      // Alternating wave direction to create natural S-curves and cove loops
+      const waveSign = i % 2 === 0 ? 1 : -1;
+      const bowDisplacement = Math.min(segLen * 0.16, 26) * waveSign;
+
+      const cp1 = {
+        x: p1.x + t1.x + nx * bowDisplacement,
+        y: p1.y + t1.y + ny * bowDisplacement,
+      };
+      const cp2 = {
+        x: p2.x - t2.x + nx * bowDisplacement,
+        y: p2.y - t2.y + ny * bowDisplacement,
+      };
+
+      const segD = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} C ${cp1.x.toFixed(1)} ${cp1.y.toFixed(1)}, ${cp2.x.toFixed(1)} ${cp2.y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+      plannedPath += ` C ${cp1.x.toFixed(1)} ${cp1.y.toFixed(1)}, ${cp2.x.toFixed(1)} ${cp2.y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+
+      // Exact mathematical midpoint along cubic bezier curve at t = 0.5
+      const midX = 0.125 * p1.x + 0.375 * cp1.x + 0.375 * cp2.x + 0.125 * p2.x;
+      const midY = 0.125 * p1.y + 0.375 * cp1.y + 0.375 * cp2.y + 0.125 * p2.y;
+      const mid = { x: midX, y: midY };
+
+      plannedMidpoints.push(mid);
+
+      // If both adjacent waypoints are submitted, survey/complete this segment
+      if (submittedIds.includes(p1.id) && submittedIds.includes(p2.id)) {
+        completedSegments.push(segD);
+        completedMidpoints.push(mid);
+      }
+    }
 
     return {
-      plannedPath: plannedD,
-      completedPath: completedD,
+      plannedPath,
+      completedPath: completedSegments.join(' '),
       plannedMidpoints,
       completedMidpoints,
-      points: nodePositions,
+      points: nodePixelPositions,
     };
-  }, [nodePositions, submittedIds]);
+  }, [nodePixelPositions, submittedIds]);
 
   const handleShareLinkedIn = () => {
-    const shareText = `I completed ${labConfig.title} and charted all 5 naval checkpoints in my Field Journal!`;
+    const shareText = `I completed ${labConfig?.title || 'Expedition'} and charted all ${totalCount} naval checkpoints in my Field Journal!`;
     window.open(
       `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText)}`,
       '_blank'
     );
   };
 
-  const selectedIndex = products.findIndex((p) => p.id === selectedProduct.id);
+  const selectedIndex = products.findIndex((p) => p.id === selectedProduct?.id);
 
   return (
     <div className="relative w-full h-[100dvh] bg-[#080503] text-[#2c1a0e] flex flex-col justify-between overflow-hidden select-none font-serif">
@@ -235,15 +292,15 @@ export default function LabMapView({ labId }: LabMapViewProps) {
 
           <div className="min-w-0">
             <span className="block text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-[0.25em] text-[#9c7846] font-mono truncate">
-              JOURNAL // {labConfig.name}
+              JOURNAL // {labConfig?.name || 'FIELD RECON'}
             </span>
             <h1 className="text-xs sm:text-base font-bold text-[#f2dfbe] truncate font-['Cinzel',_serif] tracking-wider">
-              {labConfig.title}
+              {labConfig?.title || 'Expedition Sector'}
             </h1>
           </div>
         </div>
 
-        {/* View Switcher & Relics */}
+        {/* View Switcher & Relics Counter */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div className="flex p-0.5 rounded bg-[#0d0704] border border-[#52351e]">
             <button
@@ -290,7 +347,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
           <div className="relative w-full h-full flex flex-col lg:flex-row items-center justify-between max-w-[1040px] aspect-[1024/615] max-h-[86vh] rounded-xl border-4 border-[#241308] shadow-[0_25px_65px_rgba(0,0,0,0.98)] overflow-hidden">
             {/* Desktop Full Open Book Spread Background */}
             <div
-              style={{ backgroundImage: `url('${labConfig.mapImage || '/assets/images/journal-spread-lab1.jpg'}')` }}
+              style={{ backgroundImage: `url('${mapBgImage}')` }}
               className="hidden lg:block absolute inset-0 w-full h-full bg-[length:100%_100%] bg-center bg-no-repeat pointer-events-none z-0"
             />
 
@@ -299,14 +356,14 @@ export default function LabMapView({ labId }: LabMapViewProps) {
               <div
                 ref={mapContainerRef}
                 style={{
-                  backgroundImage: `url('${labConfig.mapImage || '/assets/images/journal-spread-lab1.jpg'}')`,
+                  backgroundImage: `url('${mapBgImage}')`,
                   backgroundSize: '200% 100%',
                   backgroundPosition: 'left center',
                   backgroundRepeat: 'no-repeat',
                 }}
                 className="relative h-full aspect-[8/9] max-w-full max-h-full rounded-xl lg:rounded-none border-2 sm:border-4 lg:border-none border-[#241308] shadow-[0_12px_36px_rgba(0,0,0,0.95)] lg:shadow-none overflow-hidden lg:bg-none"
               >
-                {/* Luminous Inked Golden Route (Dynamic SVG based on exact detected node locations) */}
+                {/* Luminous Inked Golden Route (Pixel-perfect SVG aligned directly with node centers) */}
                 {containerSize.width > 0 && containerSize.height > 0 && routePaths.plannedPath && (
                   <svg
                     viewBox={`0 0 ${containerSize.width} ${containerSize.height}`}
@@ -325,17 +382,36 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       </filter>
                     </defs>
 
-                    {/* 1. Deep Iron-Gall / Thematic Ink Dashed Zig-Zag Path */}
+                    {/* 1. Planned Nautical Chart Route: Thematic Ink & Dashed Spline */}
                     <path
                       d={routePaths.plannedPath}
                       fill="none"
-                      stroke={labConfig.inkColor || '#140803'}
-                      strokeWidth="3.2"
-                      strokeDasharray="6 6"
+                      stroke={inkColor}
+                      strokeWidth="5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      opacity={0.92}
+                      opacity={0.7}
                       filter="url(#inkShadow)"
+                    />
+                    <path
+                      d={routePaths.plannedPath}
+                      fill="none"
+                      stroke={glowColor}
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={0.75}
+                      filter="url(#gold-ink-bleed)"
+                    />
+                    <path
+                      d={routePaths.plannedPath}
+                      fill="none"
+                      stroke="#fffbe8"
+                      strokeWidth="2.2"
+                      strokeDasharray="6 5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={0.95}
                     />
 
                     {/* 2. Completed / Surveyed Illuminated Thematic Trail */}
@@ -344,19 +420,19 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                         <path
                           d={routePaths.completedPath}
                           fill="none"
-                          stroke={labConfig.glowColor || '#ffd700'}
-                          strokeWidth="5.5"
+                          stroke={glowColor}
+                          strokeWidth="7"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          opacity={0.65}
+                          opacity={0.9}
                           filter="url(#gold-ink-bleed)"
                         />
                         <path
                           d={routePaths.completedPath}
                           fill="none"
-                          stroke={labConfig.coreGlow || '#fff4cc'}
-                          strokeWidth="2.4"
-                          strokeDasharray="6 5"
+                          stroke={coreGlow}
+                          strokeWidth="2.6"
+                          strokeDasharray="7 4"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           className="transition-all duration-700 ease-out"
@@ -364,7 +440,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       </>
                     )}
 
-                    {/* 4. Concentric Waypoint Rings centered on each measured node */}
+                    {/* 3. Concentric Waypoint Rings centered on each measured node */}
                     {routePaths.points.map((pt) => {
                       const isDone = submittedIds.includes(pt.id);
                       return (
@@ -374,7 +450,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                             cy={pt.y}
                             r={isDone ? 22 : 18}
                             fill="none"
-                            stroke={isDone ? (labConfig.glowColor || '#ffd700') : '#8c6d23'}
+                            stroke={isDone ? glowColor : '#8c6d23'}
                             strokeWidth={isDone ? '1.5' : '1'}
                             strokeDasharray={isDone ? 'none' : '3 3'}
                             opacity={isDone ? 0.95 : 0.45}
@@ -385,7 +461,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                               cy={pt.y}
                               r={26}
                               fill="none"
-                              stroke={labConfig.coreGlow || '#f5e19f'}
+                              stroke={coreGlow}
                               strokeWidth="0.8"
                               strokeDasharray="2 4"
                               opacity={0.6}
@@ -395,10 +471,9 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                       );
                     })}
 
-                    {/* 5. Midpoint Nautical Rhumb Stars */}
+                    {/* 4. Midpoint Nautical Rhumb Stars */}
                     {routePaths.plannedMidpoints.map((mid, idx) => (
                       <g key={`star-${idx}`} transform={`translate(${mid.x}, ${mid.y})`}>
-                        {/* 4-point compass diamond */}
                         <path
                           d="M 0 -6 L 1.8 -1.8 L 6 0 L 1.8 1.8 L 0 6 L -1.8 1.8 L -6 0 L -1.8 -1.8 Z"
                           fill="#fff6d1"
@@ -411,165 +486,157 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                   </svg>
                 )}
 
-                {/* Interactive Checkpoint Pins (Rich Cartographic Map Design) */}
+                {/* Interactive Checkpoint Pins (Precisely centered at product.x%, product.y%) */}
                 {products.map((product, idx) => {
                   const isSubmitted = submittedIds.includes(product.id);
                   const isCurrent = selectedProduct?.id === product.id;
+                  const labelTag = `WP-${String(idx + 1).padStart(2, '0')}`;
 
                   const submittedPinStyle =
-                    labConfig.themeType === 'jungle'
+                    themeType === 'jungle'
                       ? 'bg-gradient-to-b from-[#bbf7d0] via-[#22c55e] to-[#14532d] border-2 border-[#dcfce7] text-[#052e16] shadow-[0_0_14px_rgba(34,197,94,0.85)] ring-1 ring-[#22c55e]'
-                      : labConfig.themeType === 'frost'
+                      : themeType === 'frost'
                         ? 'bg-gradient-to-b from-[#bae6fd] via-[#0284c7] to-[#0c4a6e] border-2 border-[#e0f2fe] text-[#082f49] shadow-[0_0_14px_rgba(56,189,248,0.85)] ring-1 ring-[#38bdf8]'
-                        : labConfig.themeType === 'volcano'
+                        : themeType === 'volcano'
                           ? 'bg-gradient-to-b from-[#fed7aa] via-[#ea580c] to-[#7c2d12] border-2 border-[#ffedd5] text-[#431407] shadow-[0_0_14px_rgba(249,115,22,0.85)] ring-1 ring-[#ea580c]'
                           : 'bg-gradient-to-b from-[#fef08a] via-[#eab308] to-[#854d0e] border-2 border-[#fffbeb] text-[#1c1917] shadow-[0_0_14px_rgba(234,179,8,0.8)] ring-1 ring-[#eab308]';
 
                   return (
-                    <button
+                    <div
                       key={product.id}
-                      ref={(el) => {
-                        nodeRefs.current[product.id] = el;
-                      }}
-                      onClick={() => setSelectedProduct(product)}
                       style={{ left: `${product.x}%`, top: `${product.y}%` }}
-                      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20 focus:outline-none touch-manipulation cursor-pointer group"
+                      className="absolute z-20 pointer-events-auto"
                     >
-                      {/* Outer Rotating Celestial Ring on Selected Waypoint */}
-                      {isCurrent && (
-                        <span className="absolute -top-1 w-9 h-9 sm:w-11 sm:h-11 rounded-full border border-dashed border-[#d4af37] animate-[spin_10s_linear_infinite] pointer-events-none" />
-                      )}
-
-                      {/* Main Cartographic Compass Medallion */}
-                      <div
-                        className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-115 ${
-                          isSubmitted
-                            ? submittedPinStyle
-                            : isCurrent
-                              ? 'bg-gradient-to-b from-[#fef08a] via-[#d4af37] to-[#78350f] border-2 border-[#fff3cc] text-[#1a0e05] scale-110 shadow-[0_0_16px_rgba(212,175,55,0.9)] ring-2 ring-[#fde047]'
-                              : 'bg-gradient-to-b from-[#2b1708] via-[#1a0f05] to-[#0d0702] border-2 border-[#8c6d23] text-[#d4af37] shadow-[0_4px_10px_rgba(0,0,0,0.85)]'
-                        }`}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProduct(product)}
+                        className="relative flex flex-col items-center -translate-x-1/2 -translate-y-[14px] sm:-translate-y-[16px] focus:outline-none touch-manipulation cursor-pointer group"
                       >
-                        {/* Subtle 4-axis compass notch markers */}
-                        <div className="absolute -top-0.5 w-1 h-0.5 bg-[#8c6d23] rounded-full pointer-events-none" />
-                        <div className="absolute -bottom-0.5 w-1 h-0.5 bg-[#8c6d23] rounded-full pointer-events-none" />
-                        <div className="absolute -left-0.5 w-0.5 h-1 bg-[#8c6d23] rounded-full pointer-events-none" />
-                        <div className="absolute -right-0.5 w-0.5 h-1 bg-[#8c6d23] rounded-full pointer-events-none" />
+                        {/* Outer Rotating Celestial Ring on Selected Waypoint */}
+                        {isCurrent && (
+                          <span className="absolute -top-1 w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-dashed border-[#d4af37] animate-[spin_10s_linear_infinite] pointer-events-none" />
+                        )}
 
-                        {/* Stamped Roman Numeral or Cleared Star */}
-                        <span className="font-serif font-black text-[11px] sm:text-xs leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
-                          {isSubmitted ? '✦' : ['I', 'II', 'III', 'IV', 'V'][idx] || idx + 1}
+                        {/* Main Cartographic Compass Medallion */}
+                        <div
+                          className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-115 ${
+                            isSubmitted
+                              ? submittedPinStyle
+                              : isCurrent
+                                ? 'bg-gradient-to-b from-[#fef08a] via-[#d4af37] to-[#78350f] border-2 border-[#fff3cc] text-[#1a0e05] scale-110 shadow-[0_0_16px_rgba(212,175,55,0.9)] ring-2 ring-[#fde047]'
+                                : 'bg-gradient-to-b from-[#2b1708] via-[#1a0f05] to-[#0d0702] border-2 border-[#8c6d23] text-[#d4af37] shadow-[0_4px_10px_rgba(0,0,0,0.85)]'
+                          }`}
+                        >
+                          {/* Subtle 4-axis compass notch markers */}
+                          <div className="absolute -top-0.5 w-1 h-0.5 bg-[#8c6d23] rounded-full pointer-events-none" />
+                          <div className="absolute -bottom-0.5 w-1 h-0.5 bg-[#8c6d23] rounded-full pointer-events-none" />
+                          <div className="absolute -left-0.5 w-0.5 h-1 bg-[#8c6d23] rounded-full pointer-events-none" />
+                          <div className="absolute -right-0.5 w-0.5 h-1 bg-[#8c6d23] rounded-full pointer-events-none" />
+
+                          {/* Stamped Roman Numeral or Cleared Star */}
+                          <span className="font-serif font-black text-[11px] sm:text-xs leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
+                            {isSubmitted ? '✦' : ROMAN_NUMERALS[idx] || idx + 1}
+                          </span>
+                        </div>
+
+                        {/* Needle Tip Pointing to Exact Coordinates */}
+                        <div
+                          className={`w-0 h-0 border-l-[4px] border-r-[4px] border-l-transparent border-r-transparent border-t-[5px] -mt-0.5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)] ${
+                            isSubmitted
+                              ? themeType === 'jungle'
+                                ? 'border-t-[#22c55e]'
+                                : themeType === 'frost'
+                                  ? 'border-t-[#0284c7]'
+                                  : themeType === 'volcano'
+                                    ? 'border-t-[#ea580c]'
+                                    : 'border-t-[#eab308]'
+                              : isCurrent
+                                ? 'border-t-[#d4af37]'
+                                : 'border-t-[#8c6d23]'
+                          }`}
+                        />
+
+                        {/* Small Waypoint Tag */}
+                        <span className="mt-0.5 px-1.5 py-0.2 rounded bg-[#120a06]/95 border border-[#8c6d23]/40 text-[7.5px] sm:text-[8.5px] font-mono font-bold text-[#e8d5b5] shadow-xs whitespace-nowrap pointer-events-none">
+                          {labelTag}
                         </span>
-                      </div>
-
-                      {/* Needle Tip Pointing to Exact Coordinates */}
-                      <div
-                        className={`w-0 h-0 border-l-[4px] border-r-[4px] border-l-transparent border-r-transparent border-t-[5px] -mt-0.5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)] ${
-                          isSubmitted
-                            ? labConfig.themeType === 'jungle'
-                              ? 'border-t-[#22c55e]'
-                              : labConfig.themeType === 'frost'
-                                ? 'border-t-[#0284c7]'
-                                : labConfig.themeType === 'volcano'
-                                  ? 'border-t-[#ea580c]'
-                                  : 'border-t-[#eab308]'
-                            : isCurrent
-                              ? 'border-t-[#d4af37]'
-                              : 'border-t-[#8c6d23]'
-                        }`}
-                      />
-
-                      {/* Small Waypoint Tag */}
-                      <span className="mt-0.5 px-1 py-0.2 rounded bg-[#120a06]/95 border border-[#8c6d23]/40 text-[7.5px] sm:text-[8.5px] font-mono font-bold text-[#e8d5b5] shadow-xs pointer-events-none">
-                        WP-0{idx + 1}
-                      </span>
-                    </button>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
             </div>
 
             {/* ================= MOBILE ONLY: Dossier Scrap ================= */}
-            <div className="lg:hidden w-full shrink-0 z-30 pointer-events-auto px-3 pb-2">
+            <div className="lg:hidden w-full shrink-0 z-30 pointer-events-auto px-2 pt-1 pb-1">
               <div
                 style={{
                   backgroundImage: `url('/assets/images/expedition_status_bg.png')`,
-                  aspectRatio: '520 / 310',
+                  aspectRatio: '520 / 285',
                 }}
-                className="relative w-full max-w-[460px] mx-auto bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_14px_32px_rgba(0,0,0,0.95)] select-none"
+                className="relative w-full max-w-[390px] sm:max-w-[420px] mx-auto bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_12px_28px_rgba(0,0,0,0.95)] select-none"
               >
-                {/* Antique Close Button */}
-                <button
-                  onClick={() => setViewMode('list')}
-                  className="absolute top-[8%] right-[5.5%] w-7 h-7 rounded-full flex items-center justify-center focus:outline-none touch-manipulation cursor-pointer z-40 transition-all duration-150 active:scale-95 group shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
-                >
-                  <div className="absolute inset-0 rounded-full bg-[#2F1F11] border-2 border-[#5c3e21] shadow-[inset_0_1px_3px_rgba(0,0,0,0.8),_0_2px_4px_rgba(0,0,0,0.6)] group-hover:bg-[#432A18]" />
-                  <span className="relative text-xs font-bold font-serif text-[#a17c4f] drop-shadow-[0_1px_0_rgba(0,0,0,0.3)]">
-                    ✕
-                  </span>
-                </button>
-
-                {/* Printable Parchment Area (Clean safe zone lifting button well above bottom leather edge) */}
-                <div className="absolute inset-0 pt-[16%] pb-[13%] px-[10%] flex flex-col justify-between text-[#2b1704]">
+                {/* Printable Parchment Area: comfortably positioned below Drake's ring */}
+                <div className="absolute inset-0 pt-[19%] pb-[9%] px-[7%] sm:px-[8%] flex flex-col justify-between text-[#2b1704]">
                   {/* Badge Row */}
-                  <div className="flex items-center justify-between border-b border-[#8b6943]/35 pb-1 pr-6">
+                  <div className="flex items-center justify-between border-b border-[#8b6943]/30 pb-0.5">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={15} color="#7a5214" />
-                      <span className="text-[9px] font-extrabold uppercase font-mono tracking-widest text-[#7a5214] truncate">
-                        WAYPOINT 0{selectedIndex + 1} • SIC PARVIS MAGNA
+                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={13} color="#7a5214" />
+                      <span className="text-[8px] sm:text-[9px] font-extrabold uppercase font-mono tracking-wider text-[#7a5214] truncate">
+                        WAYPOINT {String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, '0')} • SIC PARVIS MAGNA
                       </span>
                     </div>
                     <span
-                      className={`text-[8px] font-mono font-bold px-2 py-0.5 rounded shrink-0 shadow-xs ${
-                        submittedIds.includes(selectedProduct.id)
+                      className={`text-[7.5px] sm:text-[8px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 shadow-xs ${
+                        selectedProduct && submittedIds.includes(selectedProduct.id)
                           ? 'bg-[#8b261d]/15 text-[#8b261d] border border-[#8b261d]/40'
                           : 'bg-[#7a5214]/10 text-[#7a5214] border border-[#7a5214]/30'
                       }`}
                     >
-                      {submittedIds.includes(selectedProduct.id) ? 'LOGGED ✦' : 'PENDING'}
+                      {selectedProduct && submittedIds.includes(selectedProduct.id) ? 'LOGGED ✦' : 'PENDING'}
                     </span>
                   </div>
 
                   {/* Big Prominent Title & Handwritten Description */}
-                  <div className="py-1 my-auto">
-                    <h3 className="text-base sm:text-lg font-bold text-[#1c0f05] leading-tight font-['EB_Garamond',_serif] tracking-tight line-clamp-1 drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
-                      {selectedProduct.name}
+                  <div className="py-0.5 my-auto">
+                    <h3 className="text-sm sm:text-base font-bold text-[#1c0f05] leading-tight font-['EB_Garamond',_serif] tracking-tight truncate drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+                      {selectedProduct?.name || 'Waypoint'}
                     </h3>
-                    <p className="text-xs sm:text-[13px] text-[#4a2810] italic leading-snug line-clamp-2 mt-1 font-[family-name:var(--font-handwriting)] font-semibold">
-                      &quot;{selectedProduct.description}&quot;
+                    <p className="text-[11px] sm:text-xs text-[#4a2810] italic leading-snug line-clamp-2 mt-0.5 font-[family-name:var(--font-handwriting)] font-semibold">
+                      &quot;{selectedProduct?.description || 'Select coordinate to inspect'}&quot;
                     </p>
                   </div>
 
-                  {/* CTA Button Lifted Up Above Leather Bottom Rim */}
-                  <div className="pt-1">
+                  {/* CTA Button */}
+                  <div className="pt-0.5">
                     <button
-                      onClick={() => setActiveModalProduct(selectedProduct)}
+                      onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
                       style={{
                         clipPath:
-                          'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+                          'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
                       }}
-                      className="w-full py-2 sm:py-2.5 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10.5px] sm:text-xs uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-2 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
+                      className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10px] sm:text-[11px] uppercase tracking-widest shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
                     >
-                      <span>{submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
+                      <span>{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
                       <span className="text-xs">➔</span>
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Developer Quick Controls */}
-              <div className="flex items-center justify-between max-w-[460px] mx-auto px-4 pt-1.5 pb-1">
+              {/* Quick Simulator Controls */}
+              <div className="flex items-center justify-between max-w-[390px] sm:max-w-[420px] mx-auto px-3 pt-1 pb-0.5">
                 <button
                   type="button"
-                  onClick={() => handleSimulateCompletion(selectedProduct.id)}
-                  className="text-[8.5px] font-mono font-bold text-[#d4af37]/90 hover:text-[#d4af37] hover:underline cursor-pointer"
+                  onClick={() => selectedProduct && handleSimulateCompletion(selectedProduct.id)}
+                  className="text-[8px] sm:text-[8.5px] font-mono font-bold text-[#d4af37]/90 hover:text-[#d4af37] hover:underline cursor-pointer"
                 >
-                  [ SIMULATE: {submittedIds.includes(selectedProduct.id) ? 'UNMARK' : 'COMPLETE'} ]
+                  [ SIMULATE: {selectedProduct && submittedIds.includes(selectedProduct.id) ? 'UNMARK' : 'COMPLETE'} ]
                 </button>
                 <button
                   type="button"
                   onClick={handleResetProgress}
-                  className="text-[8.5px] font-mono text-[#a88a58]/80 hover:text-[#a88a58] hover:underline cursor-pointer"
+                  className="text-[8px] sm:text-[8.5px] font-mono text-[#a88a58]/80 hover:text-[#a88a58] hover:underline cursor-pointer"
                 >
                   [ RESET ALL ]
                 </button>
@@ -577,12 +644,12 @@ export default function LabMapView({ labId }: LabMapViewProps) {
             </div>
 
             {/* ================= DESKTOP ONLY: Right Page Field Ledger ================= */}
-            <div className="hidden lg:flex relative w-1/2 h-full z-10 pt-7 pb-6 pl-12 pr-8 sm:pt-8 sm:pb-7 sm:pl-14 sm:pr-10 flex-col justify-between overflow-y-auto">
+            <div className="hidden lg:flex relative w-1/2 h-full z-10 pt-7 pb-6 pl-12 pr-10 sm:pt-8 sm:pb-7 sm:pl-14 sm:pr-12 flex-col justify-between overflow-y-auto">
               {/* Top Header Section */}
               <div className="flex items-start justify-between border-b-2 border-[#8b6943]/35 pb-2">
                 <div>
                   <span className="block text-[9.5px] font-mono font-bold uppercase tracking-[0.25em] text-[#7a481c]">
-                    EXPEDITION DOSSIER // {labConfig.name.toUpperCase()}
+                    EXPEDITION DOSSIER // {labConfig?.name?.toUpperCase() || 'FIELD RECON'}
                   </span>
                   <h2 className="text-xl sm:text-2xl font-bold text-[#241308] font-['EB_Garamond',_serif] tracking-tight leading-tight mt-0.5">
                     Field Reconnaissance & Log
@@ -590,12 +657,12 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                 </div>
                 <span
                   className={`text-[9.5px] font-mono font-bold px-2.5 py-1 rounded border shadow-sm ${
-                    submittedIds.includes(selectedProduct.id)
+                    selectedProduct && submittedIds.includes(selectedProduct.id)
                       ? 'bg-[#8b261d]/15 text-[#8b261d] border-[#8b261d]/40 -rotate-2'
                       : 'bg-[#7a5214]/10 text-[#7a5214] border-[#7a5214]/30'
                   }`}
                 >
-                  {submittedIds.includes(selectedProduct.id) ? '✦ SURVEY CLEARED' : 'UNSURVEYED COORD'}
+                  {selectedProduct && submittedIds.includes(selectedProduct.id) ? '✦ SURVEY CLEARED' : 'UNSURVEYED COORD'}
                 </span>
               </div>
 
@@ -607,7 +674,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                     <div className="flex items-center gap-2">
                       <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={18} color="#7a481c" />
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#7a481c]">
-                        WAYPOINT 0{selectedIndex + 1} • LAT: {selectedProduct.y}°N · LNG: {selectedProduct.x}°W
+                        WAYPOINT 0{selectedIndex + 1} • LAT: {selectedProduct?.y}°N · LNG: {selectedProduct?.x}°W
                       </span>
                     </div>
                     <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-[#8c6f4b]">
@@ -617,18 +684,18 @@ export default function LabMapView({ labId }: LabMapViewProps) {
 
                   {/* Waypoint Title */}
                   <h3 className="text-lg sm:text-xl font-bold text-[#241308] font-['EB_Garamond',_serif] leading-tight">
-                    {selectedProduct.name}
+                    {selectedProduct?.name}
                   </h3>
 
                   {/* Field Notes Handwriting Quote */}
                   <div className="mt-2.5 pl-3 border-l-2 border-[#7a481c]/50">
                     <p className="text-sm text-[#3d200e] font-[family-name:var(--font-handwriting)] font-semibold italic leading-relaxed">
-                      &quot;{selectedProduct.description}&quot;
+                      &quot;{selectedProduct?.description}&quot;
                     </p>
                   </div>
                 </div>
 
-                {/* Celestial Coordinate Index (5 Waypoint Selector Buttons) */}
+                {/* Celestial Coordinate Index (Waypoint Selector Buttons) */}
                 <div className="mt-3 sm:mt-4">
                   <span className="block text-[9.5px] font-mono font-bold uppercase tracking-[0.2em] text-[#652B19] mb-1.5">
                     CELESTIAL COORDINATE INDEX
@@ -636,7 +703,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                   <div className="grid grid-cols-5 gap-2">
                     {products.map((p, i) => {
                       const isDone = submittedIds.includes(p.id);
-                      const isSel = selectedProduct.id === p.id;
+                      const isSel = selectedProduct?.id === p.id;
                       return (
                         <button
                           key={p.id}
@@ -663,24 +730,24 @@ export default function LabMapView({ labId }: LabMapViewProps) {
               <div className="pt-2 border-t border-[#8b6943]/25 flex flex-col gap-2">
                 <button
                   type="button"
-                  onClick={() => setActiveModalProduct(selectedProduct)}
+                  onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
                   style={{
                     clipPath:
                       'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
                   }}
                   className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2 font-['Cinzel',_serif] cursor-pointer border-t border-[#fff3cc]/50"
                 >
-                  <span>{submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
+                  <span>{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
                   <span className="text-xs">➔</span>
                 </button>
 
                 <div className="flex items-center justify-between px-1 text-[8.5px] font-mono">
                   <button
                     type="button"
-                    onClick={() => handleSimulateCompletion(selectedProduct.id)}
+                    onClick={() => selectedProduct && handleSimulateCompletion(selectedProduct.id)}
                     className="font-bold text-[#7a481c] hover:text-[#241308] hover:underline cursor-pointer"
                   >
-                    [ SIMULATE: {submittedIds.includes(selectedProduct.id) ? 'UNMARK' : 'COMPLETE NODE'} ]
+                    [ SIMULATE: {selectedProduct && submittedIds.includes(selectedProduct.id) ? 'UNMARK' : 'COMPLETE NODE'} ]
                   </button>
 
                   <button
@@ -716,7 +783,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                           : 'bg-[#2B1B11] text-[#D4AF37] border border-[#8A6839]'
                       }`}
                     >
-                      {isDone ? '✦' : ['I', 'II', 'III', 'IV', 'V'][idx] || idx + 1}
+                      {isDone ? '✦' : ROMAN_NUMERALS[idx] || idx + 1}
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-[#F5E6CC] truncate font-['Cinzel',_serif]">{product.name}</div>
@@ -763,7 +830,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
                 Chapter Completed
               </span>
               <h2 className="text-xl sm:text-2xl font-bold text-[#f5e6cc] font-['Cinzel',_serif] drop-shadow mb-3">
-                {labConfig.title} Discovered!
+                {labConfig?.title || 'Expedition'} Discovered!
               </h2>
 
               <div className="relative w-28 h-28 rounded-full bg-[#2a170d] border-2 border-[#d4af37] flex items-center justify-center my-2 shadow-inner">
@@ -776,7 +843,7 @@ export default function LabMapView({ labId }: LabMapViewProps) {
               </div>
 
               <p className="text-xs text-[#c5a880] italic leading-relaxed my-3 max-w-xs font-serif">
-                &quot;All 5 celestial coordinates aligned and charted in the journal. Discovery Medal unlocked.&quot;
+                &quot;All {totalCount} celestial coordinates aligned and charted in the journal. Discovery Medal unlocked.&quot;
               </p>
 
               <div className="w-full flex flex-col gap-2.5 mt-2">

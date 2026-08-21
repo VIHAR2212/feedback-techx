@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
+import { useLabs } from '@/context/LabsContext';
 import { expeditionLabs } from '@/lib/expeditionData';
 import ImageWithFallback from './ImageWithFallback';
 import { motion } from 'framer-motion';
@@ -10,6 +11,7 @@ import { motion } from 'framer-motion';
 export default function FinalCertificate() {
   const router = useRouter();
   const { user } = useUser();
+  useLabs(); // re-render when admin edits labs (data flows via expeditionLabs cache)
   const [fused, setFused] = useState(false);
 
   useEffect(() => {

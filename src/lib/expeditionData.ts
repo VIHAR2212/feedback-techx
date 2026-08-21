@@ -1,3 +1,5 @@
+import { getCachedLab } from './expeditionStore';
+
 export interface CheckpointNode {
   id: string;
   name: string;
@@ -19,12 +21,12 @@ export interface ExpeditionLab {
   fragmentId?: string;
   fragmentName?: string;
   fragmentImage?: string;
-  mapImage: string;
-  themeType: 'jungle' | 'frost' | 'volcano';
-  inkColor: string;
-  glowColor: string;
-  coreGlow: string;
-  badgeClass: string;
+  mapImage?: string;
+  themeType?: 'jungle' | 'frost' | 'volcano';
+  inkColor?: string;
+  glowColor?: string;
+  coreGlow?: string;
+  badgeClass?: string;
   checkpoints: CheckpointNode[];
 }
 
@@ -48,8 +50,8 @@ export interface LabDiscoveryProgress {
   doneCount: number;
 }
 
-// 1. Primary Base Labs (Strictly 3 Sectors with Distinct Maps & Environments)
-const baseExpeditionLabs: Record<string, ExpeditionLab> = {
+// 1. Primary Base Labs (Strictly 3 Sectors with Distinct Environmental Spread Maps)
+export const baseExpeditionLabs: Record<string, ExpeditionLab> = {
   '1': {
     id: '1',
     labId: '1',
@@ -57,16 +59,16 @@ const baseExpeditionLabs: Record<string, ExpeditionLab> = {
     chapterNumber: 'Chapter I',
     name: 'Sector 01',
     title: 'LAB NO. 1',
-    subtitle: 'Uncover lost technological blueprints, wireless relays, and ancient jungle canopy ruins.',
+    subtitle: 'Uncover ancient temple ruins, forgotten jungle canopies, and lost stone beacons.',
     badgeTitle: 'Portolan Route Mastered',
     fragmentId: '1',
     fragmentName: 'Avery Pirate Seal',
     fragmentImage: '/assets/images/avery-pirate-coin.png',
     mapImage: '/assets/images/journal-spread-lab1.jpg',
     themeType: 'jungle',
-    inkColor: '#192b16',
-    glowColor: '#22c55e',
-    coreGlow: '#dcfce7',
+    inkColor: '#1b381e',
+    glowColor: '#10b981',
+    coreGlow: '#d1fae5',
     badgeClass: 'bg-[#14532d]/20 text-[#166534] border-[#166534]/40',
     checkpoints: [
       {
@@ -248,10 +250,12 @@ const labAliases: Record<string, string> = {
 // 3. Proxy Wrapper: Keeps Object.values(expeditionLabs) to 3 items while resolving aliases
 export const expeditionLabs: Record<string, ExpeditionLab> = new Proxy(baseExpeditionLabs, {
   get(target, prop: string) {
+    if (typeof prop !== 'string') return undefined;
+    const resolvedKey = labAliases[prop] || prop;
+    const fromCache = getCachedLab(resolvedKey);
+    if (fromCache) return fromCache;
     if (prop in target) return target[prop];
-    if (typeof prop === 'string' && prop in labAliases) {
-      return target[labAliases[prop]];
-    }
+    if (resolvedKey in target) return target[resolvedKey];
     return undefined;
   },
   ownKeys() {

@@ -5,6 +5,7 @@ import { UserProvider } from '@/context/UserContext';
 import { AchievementProvider } from '@/context/AchievementContext';
 import { CompletionProvider } from '@/context/CompletionContext';
 import { AdminProvider } from '@/context/AdminContext';
+import { LabsProvider } from '@/context/LabsContext';
 import AchievementManager from '@/components/AchievementManager';
 import CompletionChecker from '@/components/CompletionChecker';
 import "./globals.css";
@@ -128,15 +129,17 @@ export default function RootLayout({
     >
       <body className="bg-[#050302] text-[#2c1a0e] antialiased selection:bg-[#d4af37]/30 selection:text-[#1a0e05]">
         <AdminProvider>
-          <AchievementProvider>
-            <UserProvider>
-              <CompletionProvider>
-                {children}
-                <CompletionChecker />
-              </CompletionProvider>
-            </UserProvider>
-            <AchievementManager />
-          </AchievementProvider>
+          <LabsProvider>
+            <AchievementProvider>
+              <UserProvider>
+                <CompletionProvider>
+                  {children}
+                  <CompletionChecker />
+                </CompletionProvider>
+              </UserProvider>
+              <AchievementManager />
+            </AchievementProvider>
+          </LabsProvider>
         </AdminProvider>
       </body>
     </html>

@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { useUser } from './UserContext';
+import { useLabs } from './LabsContext';
 import { isLabCompleted as checkLabDone } from '@/lib/expeditionData';
 
 interface CompletionContextType {
@@ -18,6 +19,7 @@ const CompletionContext = createContext<CompletionContextType | undefined>(undef
 export function CompletionProvider({ children }: { children: ReactNode }) {
   const [isCompleted, setIsCompleted] = useState(false);
   const { user } = useUser();
+  useLabs(); // re-evaluate completion when admin edits labs
 
   const checkCompletion = useCallback(() => {
     if (!user?.email) return false;

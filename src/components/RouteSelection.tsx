@@ -3,9 +3,11 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
+import { useLabs } from '@/context/LabsContext';
 import {
   expeditionLabs,
   getLabDiscoveryProgress,
+  getSubmittedFeedbackForUser,
   ExpeditionLab,
 } from '@/lib/expeditionData';
 import ExpeditionStatusHeader from './ExpeditionStatusHeader';
@@ -15,6 +17,7 @@ export default function RouteSelection() {
   const router = useRouter();
   const { user } = useUser();
   const userEmail = user?.email || 'explorer@field.recon';
+  useLabs(); // re-render dynamically when admin edits labs
 
   // Strictly 3 primary sectors
   const labList: ExpeditionLab[] = [
@@ -23,35 +26,32 @@ export default function RouteSelection() {
     expeditionLabs['3'],
   ].filter(Boolean);
 
-  // Compute completed sectors for the header
+  // Compute completed sectors and checkpoints for the header
+  const submittedIds = getSubmittedFeedbackForUser(userEmail);
+  const totalCheckpoints = labList.reduce((acc, lab) => acc + (lab.checkpoints?.length || 0), 0);
+  const completedCheckpoints = labList.reduce((acc, lab) => {
+    return acc + (lab.checkpoints?.filter((cp) => submittedIds.includes(cp.id)).length || 0);
+  }, 0);
+
   const completedSectorsCount = labList.filter((lab) => {
     const progress = getLabDiscoveryProgress(lab.id, userEmail);
     return progress.isCompleted;
   }).length;
 
-  // Compute overall checkpoint counts and percentage across all 3 labs
-  const totalCheckpoints = labList.reduce((acc, lab) => acc + lab.checkpoints.length, 0); // 15
-  const completedCheckpoints = labList.reduce((acc, lab) => {
-    const progress = getLabDiscoveryProgress(lab.id, userEmail);
-    return acc + progress.completed;
-  }, 0);
   const overallPercentage =
     totalCheckpoints > 0 ? Math.round((completedCheckpoints / totalCheckpoints) * 100) : 0;
 
   return (
-    <div className="relative min-h-[100dvh] w-full text-[#2c1a0e] flex flex-col items-center justify-start py-6 px-3.5 sm:px-6 overflow-x-hidden select-none">
+    <div className="relative min-h-[100dvh] w-full text-[#2c1a0e] flex flex-col items-center justify-start py-6 px-3 sm:px-6 overflow-x-hidden font-['Georgia'] select-none">
       {/* Original Parchment Map Background */}
       <div
         style={{ backgroundImage: `url('/assets/images/expedition_map_bg.jpg')` }}
         className="fixed inset-0 w-full h-full bg-cover bg-center pointer-events-none z-0"
       />
 
-      {/* Dark Vignette Overlay */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,0,0,0.1)_0%,_rgba(0,0,0,0.85)_100%)] pointer-events-none z-0" />
-
       {/* Content Wrapper */}
       <div className="relative z-10 w-full max-w-[480px] mx-auto flex flex-col items-center gap-5">
-        {/* Expedition Status Header Plaque with Overall Rating Progress Bar */}
+        {/* Expedition Status Header Plaque with Overall Progress Gauge */}
         <ExpeditionStatusHeader
           completedCount={completedSectorsCount}
           totalCount={labList.length}
@@ -69,11 +69,11 @@ export default function RouteSelection() {
               progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
             const environmentTag =
-              lab.themeType === 'jungle'
-                ? '🌿 JUNGLE CANOPY // RUINS'
-                : lab.themeType === 'frost'
-                  ? '❄️ GLACIAL FJORD // ICE'
-                  : '🌋 VOLCANIC CALDERA // MAGMA';
+              lab.themeType === 'frost'
+                ? '❄️ GLACIAL FJORD // ICE'
+                : lab.themeType === 'volcano'
+                  ? '🌋 VOLCANIC CALDERA // MAGMA'
+                  : '🌿 JUNGLE CANOPY // RUINS';
 
             return (
               <motion.div
@@ -84,7 +84,7 @@ export default function RouteSelection() {
                 className="relative w-full drop-shadow-[0_12px_28px_rgba(0,0,0,0.88)] cursor-pointer group"
                 onClick={() => router.push(`/labs/${lab.id}`)}
               >
-                {/* Torn Parchment Dossier Plaque with Generous Inset Padding */}
+                {/* Torn Parchment Dossier Plaque with Inset Safe Zone */}
                 <div
                   style={{
                     backgroundImage: `url('/assets/images/torn-card-bg.png')`,

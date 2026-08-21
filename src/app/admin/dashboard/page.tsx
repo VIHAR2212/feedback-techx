@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/context/AdminContext';
 import AdminRouteGuard from '@/components/uncharted/AdminRouteGuard';
@@ -23,11 +24,13 @@ export default function AdminDashboardPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
 
+  // The old dashboard is now part of /admin (Overview section) — bounce
+  // anyone landing here straight to the consolidated admin page.
   useEffect(() => {
-    fetchDashboardStats();
-  }, []);
+    router.replace('/admin');
+  }, [router]);
 
-  const fetchDashboardStats = async () => {
+  const fetchDashboardStats = useCallback(async () => {
     try {
       const statsResponse = await fetch('/api/feedback/stats');
       const statsData = await statsResponse.json();
@@ -47,7 +50,11 @@ export default function AdminDashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [fetchDashboardStats]);
 
   const handleLogout = () => {
     logout();
@@ -63,12 +70,20 @@ export default function AdminDashboardPage() {
               Uncharted Expedition · Admin
             </p>
             <h1 className="mt-1 text-2xl font-semibold">Dashboard</h1>
-            <button
-              onClick={handleLogout}
-              className="mt-3 rounded border border-foreground/30 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
-            >
-              Logout
-            </button>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <Link
+                href="/admin"
+                className="rounded border border-foreground/30 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+              >
+                Manage Labs
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="rounded border border-foreground/30 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+              >
+                Logout
+              </button>
+            </div>
           </header>
 
           {isLoading ? (
