@@ -11,6 +11,8 @@ import {
   Download,
   RefreshCw,
   Search,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 
 export interface LeaderboardEntry {
@@ -61,7 +63,12 @@ export default function UnchartedSignboardLeaderboard({
   error = '',
   isAdmin = false,
   onRefresh,
-}: UnchartedSignboardLeaderboardProps) {
+  isMuted = false,
+  onToggleMute,
+}: UnchartedSignboardLeaderboardProps & {
+  isMuted?: boolean;
+  onToggleMute?: () => void;
+}) {
   const { user, logout } = useUser();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'users' | 'products'>('users');
@@ -149,83 +156,25 @@ export default function UnchartedSignboardLeaderboard({
     }
   };
 
-  // Fixed action buttons rendered directly to body so no parent transform affects them
+  // Fixed audio toggle icon button rendered directly to body
   const actionButtonsPortal = mounted
     ? createPortal(
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] flex items-center gap-1.5 sm:gap-2 pointer-events-auto bg-[#1a0e07]/90 backdrop-blur-md px-3 py-2 rounded-xl border border-[#6d4323] shadow-[0_12px_35px_rgba(0,0,0,0.9),inset_0_1px_4px_rgba(255,255,255,0.15)]">
-          {/* Back Button */}
-          <button
-            onClick={() => window.history.back()}
-            className="inline-flex items-center gap-1 rounded border border-[#6d4323] bg-[#2d180c] px-2.5 py-1 text-[9px] sm:text-xs font-cinzel font-bold text-[#fef3c7] shadow-md hover:border-amber-500 hover:bg-[#3d2110] active:scale-95 transition-all cursor-pointer"
-          >
-            <ArrowLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
-            <span>Back</span>
-          </button>
-
-          {/* Home Button */}
-          <button
-            onClick={() => (window.location.href = '/')}
-            className="inline-flex items-center gap-1 rounded border border-[#6d4323] bg-[#2d180c] px-2.5 py-1 text-[9px] sm:text-xs font-cinzel font-bold text-[#fef3c7] shadow-md hover:border-amber-500 hover:bg-[#3d2110] active:scale-95 transition-all cursor-pointer"
-          >
-            <Home className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
-            <span>Home</span>
-          </button>
-
-          {/* Explorers / Discoveries Mode Switcher */}
-          <div className="inline-flex rounded border border-[#6d4323] bg-[#120803] p-0.5 shadow-md">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] pointer-events-auto">
+          {onToggleMute && (
             <button
-              onClick={() => setViewMode('users')}
-              className={`rounded px-2.5 py-1 text-[8.5px] sm:text-[11px] font-cinzel font-bold transition-all cursor-pointer ${
-                viewMode === 'users'
-                  ? 'bg-[#8c5932] text-amber-100'
-                  : 'text-amber-300/70 hover:text-amber-100'
+              onClick={onToggleMute}
+              title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+              className={`flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border shadow-[0_8px_25px_rgba(0,0,0,0.85)] active:scale-90 transition-all cursor-pointer ${
+                isMuted
+                  ? 'border-amber-500/80 bg-[#2d180c]/90 text-amber-400 animate-pulse'
+                  : 'border-emerald-600/80 bg-[#120803]/90 text-emerald-400 hover:border-emerald-400'
               }`}
             >
-              Explorers
-            </button>
-            <button
-              onClick={() => setViewMode('products')}
-              className={`rounded px-2.5 py-1 text-[8.5px] sm:text-[11px] font-cinzel font-bold transition-all cursor-pointer ${
-                viewMode === 'products'
-                  ? 'bg-[#8c5932] text-amber-100'
-                  : 'text-amber-300/70 hover:text-amber-100'
-              }`}
-            >
-              Discoveries
-            </button>
-          </div>
-
-          {/* Admin CSV Export Button */}
-          {isAdmin && (
-            <button
-              onClick={handleExportCSV}
-              title="Export CSV"
-              className="inline-flex items-center gap-1 rounded border border-[#6d4323] bg-[#2d180c] px-2.5 py-1 text-[9px] sm:text-xs font-cinzel font-bold text-amber-200 shadow-md hover:border-emerald-500 hover:bg-emerald-950/60 active:scale-95 transition-all cursor-pointer"
-            >
-              <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-400" />
-              <span>CSV</span>
-            </button>
-          )}
-
-          {/* Refresh Button */}
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              title="Refresh Leaderboard"
-              className="inline-flex items-center justify-center rounded border border-[#6d4323] bg-[#2d180c] p-1.5 text-amber-300 shadow-md hover:border-amber-400 hover:bg-[#3d2110] active:scale-95 transition-all cursor-pointer"
-            >
-              <RefreshCw className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            </button>
-          )}
-
-          {/* Logout Button (if logged in) */}
-          {user && (
-            <button
-              onClick={logout}
-              className="inline-flex items-center gap-1 rounded border border-[#6d4323] bg-[#2d180c] px-2.5 py-1 text-[9px] sm:text-xs font-cinzel text-amber-200 shadow-md hover:border-red-600 hover:bg-red-950/60 active:scale-95 transition-all cursor-pointer"
-            >
-              <LogOut className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-red-400" />
-              <span>Logout</span>
+              {isMuted ? (
+                <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />
+              ) : (
+                <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
+              )}
             </button>
           )}
         </div>,
@@ -264,7 +213,7 @@ export default function UnchartedSignboardLeaderboard({
                 fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif",
                 color: '#EFBF04',
               }}
-              className="relative z-10 font-uncharted font-black text-xl sm:text-2xl md:text-3xl lg:text-[36px] xl:text-[42px] uppercase tracking-[0.22em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_0_14px_rgba(239,191,4,0.45)] transform -rotate-0.5 leading-none select-none px-4 pt-0.5"
+              className="relative z-10 font-uncharted font-black text-lg sm:text-xl md:text-2xl lg:text-[32px] xl:text-[37px] uppercase tracking-[0.22em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_0_14px_rgba(239,191,4,0.45)] transform -rotate-0.5 leading-none select-none px-4 pt-0.5"
             >
               LEADERBOARD
             </h1>

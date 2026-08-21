@@ -12,6 +12,7 @@ export default function AdminLeaderboardPage() {
   const [productStats, setProductStats] = useState<ProductStatsEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isMuted, setIsMuted] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -25,16 +26,63 @@ export default function AdminLeaderboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Ensure autoplay works across all browsers
+  // Ensure video loads, autoplays, and unmutes upon user click/interaction
   useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.volume = 0.85;
+
+    // Start playback immediately
+    const startPlay = async () => {
+      try {
+        video.muted = false;
+        await video.play();
+        setIsMuted(false);
+      } catch (err) {
+        console.warn('Initial unmuted play attempt blocked by browser policy:', err);
+        video.muted = true;
+        setIsMuted(true);
+        video.play().catch(console.warn);
+      }
+    };
+    startPlay();
+
+    // Enable audio upon first click anywhere on screen
+    const enableAudio = () => {
+      if (videoRef.current) {
+        videoRef.current.muted = false;
+        videoRef.current.volume = 0.85;
+        videoRef.current.play().catch(console.warn);
+        setIsMuted(false);
+      }
+      ['click', 'keydown', 'touchstart', 'pointerdown'].forEach((evt) =>
+        window.removeEventListener(evt, enableAudio)
+      );
+    };
+
+    ['click', 'keydown', 'touchstart', 'pointerdown'].forEach((evt) =>
+      window.addEventListener(evt, enableAudio, { once: true, passive: true })
+    );
+
+    return () => {
+      ['click', 'keydown', 'touchstart', 'pointerdown'].forEach((evt) =>
+        window.removeEventListener(evt, enableAudio)
+      );
+    };
+  }, []);
+
+  const toggleMute = () => {
     if (videoRef.current) {
-      videoRef.current.defaultMuted = true;
-      videoRef.current.muted = true;
-      videoRef.current.play().catch((err) => {
-        console.warn('Admin leaderboard background video autoplay prevented:', err);
-      });
+      const nextMuted = !videoRef.current.muted;
+      videoRef.current.muted = nextMuted;
+      videoRef.current.volume = 0.85;
+      if (!nextMuted) {
+        videoRef.current.play().catch(console.warn);
+      }
+      setIsMuted(nextMuted);
     }
-  }, [videoError]);
+  };
 
   const fetchLeaderboard = async () => {
     try {
@@ -75,12 +123,12 @@ export default function AdminLeaderboardPage() {
   return (
     <AdminRouteGuard>
       <main className="relative h-screen min-h-screen w-full overflow-hidden bg-black text-foreground flex flex-col justify-center items-center">
-        {/* Looping muted background video */}
+        {/* Looping background video */}
         <video
           ref={videoRef}
           autoPlay
           loop
-          muted
+          muted={false}
           playsInline
           preload="auto"
           className="pointer-events-none fixed inset-0 h-full w-full object-contain md:object-cover z-0"
@@ -97,6 +145,8 @@ export default function AdminLeaderboardPage() {
             isLoading={isLoading}
             error={error}
             isAdmin={true}
+            isMuted={isMuted}
+            onToggleMute={toggleMute}
             onRefresh={() => {
               fetchLeaderboard();
               fetchProductStats();
