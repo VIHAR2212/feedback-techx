@@ -74,9 +74,13 @@ export default function PublicLeaderboardPage() {
   };
 
   return (
-    <main className="relative min-h-screen w-full overflow-x-hidden px-2 sm:px-4 py-4 sm:py-8 text-foreground flex flex-col justify-start">
-      {/* Fallback solid background in case video fails or loads slowly */}
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[#0d0704]" />
+    <main className="relative h-screen min-h-screen w-full overflow-hidden text-foreground flex flex-col justify-end items-center">
+      {/* Fallback scenic image behind video */}
+      <img
+        src="/assets/images/leaderboard_scenic_bg.jpg"
+        alt="Expedition Background"
+        className="pointer-events-none fixed inset-0 h-full w-full object-cover z-0"
+      />
 
       {/* Looping muted background video */}
       {!videoError && (
@@ -91,8 +95,7 @@ export default function PublicLeaderboardPage() {
             console.error('Failed to load /videos/leaderboard-bg.mp4');
             setVideoError(true);
           }}
-          className="pointer-events-none fixed inset-0 h-full w-full object-cover"
-          style={{ zIndex: 0 }}
+          className="pointer-events-none fixed inset-0 h-full w-full object-cover z-0"
         >
           <source src="/videos/leaderboard-bg.mp4" type="video/mp4" />
         </video>
@@ -100,12 +103,11 @@ export default function PublicLeaderboardPage() {
 
       {/* Subtle overlay (warm cinematic tint) */}
       <div
-        className="pointer-events-none fixed inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/60"
-        style={{ zIndex: 1 }}
+        className="pointer-events-none fixed inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/45 z-[1]"
       />
 
-      {/* Main Uncharted Signboard Content */}
-      <div className="relative z-10 w-full">
+      {/* Main Uncharted Signboard Content Grounded at Bottom */}
+      <div className="relative z-10 w-full h-full flex flex-col justify-end items-center pb-0">
         <UnchartedSignboardLeaderboard
           leaderboard={leaderboard}
           productStats={productStats}
