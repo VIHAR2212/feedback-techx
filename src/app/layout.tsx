@@ -100,6 +100,22 @@ const marcellus = Marcellus({
 export const metadata: Metadata = {
   title: "TechX Expedition // Field Recon",
   description: "Feedback collection platform for TechX research labs.",
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  manifest: '/site.webmanifest',
+  appleWebApp: {
+    title: 'TechX Expedition',
+  },
 };
 
 export default function RootLayout({
