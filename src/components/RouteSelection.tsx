@@ -1,12 +1,11 @@
 'use client';
 
-import React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useLabs } from '@/context/LabsContext';
 import {
   expeditionLabs,
-  getLabDiscoveryProgress,
   getSubmittedFeedbackForUser,
   ExpeditionLab,
 } from '@/lib/expeditionData';
@@ -26,17 +25,35 @@ export default function RouteSelection() {
     expeditionLabs['3'],
   ].filter(Boolean);
 
+  // localStorage is read in an effect (not during render) so the server
+  // render and first client paint agree — no hydration mismatch.
+  const [submittedIds, setSubmittedIds] = useState<string[]>([]);
+  useEffect(() => {
+    setSubmittedIds(getSubmittedFeedbackForUser(userEmail));
+  }, [userEmail]);
+
+  const perLabProgress = useMemo(() => {
+    const map: Record<string, { completed: number; total: number; percentage: number; isCompleted: boolean }> = {};
+    for (const lab of labList) {
+      const cps = lab.checkpoints || [];
+      const completed = cps.filter((cp) => submittedIds.includes(cp.id)).length;
+      map[lab.id] = {
+        completed,
+        total: cps.length,
+        percentage: cps.length > 0 ? Math.round((completed / cps.length) * 100) : 0,
+        isCompleted: cps.length > 0 && completed === cps.length,
+      };
+    }
+    return map;
+  }, [labList, submittedIds]);
+
   // Compute completed sectors and checkpoints for the header
-  const submittedIds = getSubmittedFeedbackForUser(userEmail);
   const totalCheckpoints = labList.reduce((acc, lab) => acc + (lab.checkpoints?.length || 0), 0);
   const completedCheckpoints = labList.reduce((acc, lab) => {
-    return acc + (lab.checkpoints?.filter((cp) => submittedIds.includes(cp.id)).length || 0);
+    return acc + (perLabProgress[lab.id]?.completed || 0);
   }, 0);
 
-  const completedSectorsCount = labList.filter((lab) => {
-    const progress = getLabDiscoveryProgress(lab.id, userEmail);
-    return progress.isCompleted;
-  }).length;
+  const completedSectorsCount = labList.filter((lab) => perLabProgress[lab.id]?.isCompleted).length;
 
   const overallPercentage =
     totalCheckpoints > 0 ? Math.round((completedCheckpoints / totalCheckpoints) * 100) : 0;
@@ -63,10 +80,14 @@ export default function RouteSelection() {
         {/* 3 Sector Expedition Cards */}
         <div className="w-full flex flex-col gap-4">
           {labList.map((lab, index) => {
-            const progress = getLabDiscoveryProgress(lab.id, userEmail);
+            const progress = perLabProgress[lab.id] || {
+              completed: 0,
+              total: 0,
+              percentage: 0,
+              isCompleted: false,
+            };
             const isCompleted = progress.isCompleted;
-            const sectorPercent =
-              progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+            const sectorPercent = progress.percentage;
 
             const environmentTag =
               lab.themeType === 'frost'

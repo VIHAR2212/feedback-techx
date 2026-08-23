@@ -56,15 +56,6 @@ export interface ExpeditionUser {
   isCompleted?: boolean;
 }
 
-export interface Admin {
-  _id?: string;
-  username: string;
-  password: string;
-  lastLogin?: Date;
-  permissions: string[];
-  createdAt: Date;
-}
-
 export interface Clue {
   id: string;
   title: string;
@@ -86,14 +77,4 @@ export interface CertificateShard {
   earnedAt: string; // ISO timestamp
   // A short flavor line printed on the shard card.
   inscription: string;
-}
-
-export interface FinalCertificate {
-  expeditionName: string;
-  explorerName: string;
-  explorerEmail: string;
-  explorerDepartment: string;
-  issuedAt: string;
-  // The three shard inscriptions combined.
-  shardInscriptions: string[];
 }

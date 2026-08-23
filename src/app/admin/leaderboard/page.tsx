@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import AdminRouteGuard from '@/components/uncharted/AdminRouteGuard';
 import UnchartedSignboardLeaderboard, {
   LeaderboardEntry,
@@ -13,8 +13,44 @@ export default function AdminLeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isMuted, setIsMuted] = useState(false);
-  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Declared before the effects below consume them (react-hooks/immutability).
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/leaderboard');
+      if (!response.ok) throw new Error('Failed to fetch leaderboard');
+      const data = await response.json();
+      const formatted = data.map((entry: LeaderboardEntry & { completedProducts?: string[] }, index: number) => ({
+        name: entry.name || '—',
+        email: entry.email,
+        department: entry.department,
+        totalFeedback: entry.completedProducts?.length || entry.totalFeedback || 0,
+        averageRating: entry.averageRating || 0,
+        isCompleted: entry.isCompleted || false,
+        shards: entry.shards || [],
+        rank: index + 1,
+      }));
+      setLeaderboard(formatted);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching leaderboard:', err);
+      setError('Failed to load rankings');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchProductStats = useCallback(async () => {
+    try {
+      const response = await fetch('/api/product-stats');
+      if (!response.ok) throw new Error('Failed to fetch product stats');
+      const data = await response.json();
+      setProductStats(data);
+    } catch (err) {
+      console.error('Error fetching product stats:', err);
+    }
+  }, []);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -24,7 +60,7 @@ export default function AdminLeaderboardPage() {
       fetchProductStats();
     }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchLeaderboard, fetchProductStats]);
 
   // Ensure video loads, autoplays, and unmutes upon user click/interaction
   useEffect(() => {
@@ -81,42 +117,6 @@ export default function AdminLeaderboardPage() {
         videoRef.current.play().catch(console.warn);
       }
       setIsMuted(nextMuted);
-    }
-  };
-
-  const fetchLeaderboard = async () => {
-    try {
-      const response = await fetch('/api/admin/leaderboard');
-      if (!response.ok) throw new Error('Failed to fetch leaderboard');
-      const data = await response.json();
-      const formatted = data.map((entry: any, index: number) => ({
-        name: entry.name || '—',
-        email: entry.email,
-        department: entry.department,
-        totalFeedback: entry.completedProducts?.length || entry.totalFeedback || 0,
-        averageRating: entry.averageRating || 0,
-        isCompleted: entry.isCompleted || false,
-        shards: entry.shards || [],
-        rank: index + 1,
-      }));
-      setLeaderboard(formatted);
-      setError('');
-    } catch (err) {
-      console.error('Error fetching leaderboard:', err);
-      setError('Failed to load rankings');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchProductStats = async () => {
-    try {
-      const response = await fetch('/api/admin/product-stats');
-      if (!response.ok) throw new Error('Failed to fetch product stats');
-      const data = await response.json();
-      setProductStats(data);
-    } catch (err) {
-      console.error('Error fetching product stats:', err);
     }
   };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useCompletion } from '@/context/CompletionContext';
@@ -11,6 +11,15 @@ export default function CompletionChecker() {
   const { isCompleted } = useCompletion();
   const router = useRouter();
   const pathname = usePathname();
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cancel any pending redirect when navigating/unmounting so we never
+  // hijack navigation after the component is gone.
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user?.email) return;
@@ -24,12 +33,10 @@ export default function CompletionChecker() {
     const checkCompletion = () => {
       const labKeys = Object.keys(expeditionLabs);
       const allDone = labKeys.length > 0 && labKeys.every((labId) => isLabCompleted(labId, user.email));
-      
+
       if (allDone && !isCompleted) {
         localStorage.setItem(`completion_${user.email}`, 'true');
-        localStorage.setItem('completion_state', 'true');
-        
-        setTimeout(() => {
+        redirectTimerRef.current = setTimeout(() => {
           router.push('/finish');
         }, 1000);
       }
@@ -41,7 +48,7 @@ export default function CompletionChecker() {
     };
 
     window.addEventListener('feedbackSubmitted', handleFeedbackSubmitted);
-    
+
     return () => {
       window.removeEventListener('feedbackSubmitted', handleFeedbackSubmitted);
     };
@@ -49,4 +56,3 @@ export default function CompletionChecker() {
 
   return null;
 }
-

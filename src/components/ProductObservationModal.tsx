@@ -1,14 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckpointNode } from '@/lib/expeditionData';
+
+export interface ObservationPayload {
+  rating: number;
+  comment: string;
+}
 
 interface ProductObservationModalProps {
   product: CheckpointNode;
   isSubmitted: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (payload: ObservationPayload) => void;
 }
 
 export default function ProductObservationModal({
@@ -21,15 +26,23 @@ export default function ProductObservationModal({
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [feedback, setFeedback] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear the fake-submit timer if the modal unmounts mid-flight.
+  useEffect(() => {
+    return () => {
+      if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    submitTimerRef.current = setTimeout(() => {
       setIsSubmitting(false);
-      onSuccess();
+      onSuccess({ rating, comment: feedback.trim() });
     }, 400);
   };
 

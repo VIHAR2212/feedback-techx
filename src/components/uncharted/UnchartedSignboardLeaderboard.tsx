@@ -2,15 +2,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
+import { csvCell } from '@/lib/utils';
 import {
-  ArrowLeft,
-  Home,
-  LogOut,
   Download,
   RefreshCw,
   Search,
+  Users,
   Volume2,
   VolumeX,
 } from 'lucide-react';
@@ -69,8 +67,7 @@ export default function UnchartedSignboardLeaderboard({
   isMuted?: boolean;
   onToggleMute?: () => void;
 }) {
-  const { user, logout } = useUser();
-  const router = useRouter();
+  const { user } = useUser();
   const [viewMode, setViewMode] = useState<'users' | 'products'>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -120,46 +117,79 @@ export default function UnchartedSignboardLeaderboard({
       const headers = ['Rank', 'Explorer Name', 'Email', 'Department', 'Discoveries', 'Shards', 'Score'];
       const rows = leaderboard.map((e, idx) => [
         e.rank || idx + 1,
-        `"${e.name || ''}"`,
-        `"${e.email || ''}"`,
-        `"${e.department || ''}"`,
+        e.name || '',
+        e.email || '',
+        e.department || '',
         e.totalFeedback,
         `${e.shards?.length || 0}/3`,
-        `"${getScore(e, idx)}"`,
+        getScore(e, idx),
       ]);
-      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-      const encodedUri = encodeURI(csvContent);
+      const csvContent = [headers, ...rows].map((r) => r.map(csvCell).join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.setAttribute('href', encodedUri);
+      link.setAttribute('href', url);
       link.setAttribute('download', `uncharted_leaderboard_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } else {
       const headers = ['Rank', 'Product Name', 'Checkpoint/Lab', 'Total Ratings', 'Average Rating', 'Comments'];
       const rows = productStats.map((p, idx) => [
         idx + 1,
-        `"${p.productName}"`,
-        `"${p.labName}"`,
+        p.productName,
+        p.labName,
         p.totalRatings,
         p.averageRating.toFixed(2),
         p.totalComments,
       ]);
-      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-      const encodedUri = encodeURI(csvContent);
+      const csvContent = [headers, ...rows].map((r) => r.map(csvCell).join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.setAttribute('href', encodedUri);
+      link.setAttribute('href', url);
       link.setAttribute('download', `uncharted_discoveries_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
   };
 
-  // Fixed audio toggle icon button rendered directly to body
+  // Fixed action icon buttons rendered directly to body (icon-only, remote style)
   const actionButtonsPortal = mounted
     ? createPortal(
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] pointer-events-auto">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] flex items-center gap-2 pointer-events-auto">
+          <button
+            onClick={() => setViewMode(viewMode === 'users' ? 'products' : 'users')}
+            title={viewMode === 'users' ? 'Show Discoveries' : 'Show Explorers'}
+            className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-[#6d4323]/80 bg-[#120803]/90 text-amber-300 shadow-[0_8px_25px_rgba(0,0,0,0.85)] hover:border-amber-400 active:scale-90 transition-all cursor-pointer"
+          >
+            {viewMode === 'users' ? (
+              <Search className="h-4 w-4 sm:h-5 sm:w-5" />
+            ) : (
+              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+            )}
+          </button>
+          {isAdmin && (
+            <button
+              onClick={handleExportCSV}
+              title="Export CSV"
+              className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-emerald-600/80 bg-[#120803]/90 text-emerald-400 shadow-[0_8px_25px_rgba(0,0,0,0.85)] hover:border-emerald-400 active:scale-90 transition-all cursor-pointer"
+            >
+              <Download className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
+          )}
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              title="Refresh Leaderboard"
+              className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-amber-500/80 bg-[#2d180c]/90 text-amber-300 shadow-[0_8px_25px_rgba(0,0,0,0.85)] hover:border-amber-400 active:scale-90 transition-all cursor-pointer"
+            >
+              <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
+          )}
           {onToggleMute && (
             <button
               onClick={onToggleMute}
@@ -229,6 +259,20 @@ export default function UnchartedSignboardLeaderboard({
               height: '65.0%',
             }}
           >
+            {/* Fetch error banner — surfaces silent failures instead of showing an empty board */}
+            {error && leaderboard.length === 0 && (
+              <div className="mb-1 rounded bg-black/60 px-2 py-1 text-center font-cinzel text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-red-300">
+                {error}
+              </div>
+            )}
+
+            {/* Loading state */}
+            {isLoading && !error && (
+              <div className="mb-1 rounded bg-black/40 px-2 py-1 text-center font-cinzel text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-[#C0C0C0]/80">
+                Charting rankings…
+              </div>
+            )}
+
             {/* Header Row in 3 Equal / Balanced Columns */}
             <div className="grid grid-cols-[110px_1fr_160px] sm:grid-cols-[140px_1fr_190px] md:grid-cols-[160px_1fr_210px] items-center border-b border-[#a87f58]/60 px-4 sm:px-6 py-0.5 font-cinzel font-black uppercase tracking-widest shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#C0C0C0' }}>
               {/* Left Column: RANK (Shifted more to the right) */}

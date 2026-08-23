@@ -1,10 +1,9 @@
-// Lossy-compresses large static images in public/ IN PLACE (same filenames,
+﻿// Lossy-compresses large static images in public/ IN PLACE (same filenames,
 // so zero code changes). Skipped: .gif (sharp cannot encode GIF), and files
 // under MIN_KB. Originals are recoverable via git (public/ is tracked).
 // Usage: node scripts/optimize-images.mjs [--width 1920] [--min-kb 100]
 import { readdir, stat, rename, unlink } from 'node:fs/promises';
-import { join, extname, dirname } from 'node:path';
-import { existsSync } from 'node:fs';
+import { join, extname } from 'node:path';
 import sharp from 'sharp';
 
 const PUBLIC_DIR = join(process.cwd(), 'public');

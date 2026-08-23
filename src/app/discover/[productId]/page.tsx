@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '@/context/UserContext';
-import { useExpedition } from '@/context/ExpeditionContext';
 import GemstoneRating from '@/components/uncharted/GemstoneRating';
 import { getProductById, LAB_ORDER } from '@/lib/mock-data';
 import { GEMSTONE_TIERS, type GemstoneTier } from '@/lib/models';
@@ -14,34 +13,39 @@ import {
   appendClue,
   loadExpeditionUser,
 } from '@/lib/expedition-storage';
+import type { ExpeditionUser } from '@/lib/models';
 
-// Product discovery + feedback page — replaces /feedback/[tableId].
+// Product discovery + feedback page.
 // Flow:
 //   1. User rates the product with one of 5 gemstones (Rough Stone..Diamond).
 //   2. Optional expedition-notes comment.
-//   3. Submit -> POST /api/feedback (mock store) -> FeedbackResultCard toast.
-//   4. Roll for clue (50% chance) -> clue shown in the toast OR "no clue".
-//   5. Optional treasure-hunt button appears next to the result.
-//   6. Redirect back to the lab page. If that was the last product in the
+//   3. Submit -> POST /api/feedback -> inline result card with clue reveal.
+//   4. Optional treasure-hunt note shown next to the result.
+//   5. Redirect back to the lab page. If that was the last product in the
 //      lab, the lab completion + shard are awarded automatically by
 //      recalculateProgress().
 export default function DiscoverPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoading } = useUser();
-  const { addResult } = useExpedition();
   const productId = params.productId as string;
 
   const [rating, setRating] = useState<GemstoneTier | 0>(0);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<ExpeditionUser | null>(null);
+  const [result, setResult] = useState<{
+    clue: { id: string; title: string; body: string } | null;
+  } | null>(null);
   const isMounted = useRef(true);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
     };
   }, []);
 
@@ -53,6 +57,14 @@ export default function DiscoverPage() {
       router.push('/');
     }
   }, [user, isLoading, router]);
+
+  // Read localStorage progress in an effect (never during render) so the
+  // server render and first client paint agree — no hydration mismatch.
+  useEffect(() => {
+    if (user?.email) {
+      setProgress(loadExpeditionUser(user.email));
+    }
+  }, [user]);
 
   const lookup = getProductById(productId);
   if (!lookup) {
@@ -67,23 +79,19 @@ export default function DiscoverPage() {
   }
   const { product, lab } = lookup;
 
+  const labProductsDone = progress
+    ? lab.products.filter((p) => progress.completedProducts.includes(p.id)).length
+    : 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      alert('User information not found. Please return to the landing page.');
-      return;
-    }
-    if (rating === 0) {
-      alert('A gemstone rating is required!');
-      return;
-    }
+    if (!user || rating === 0) return;
 
     setIsSubmitting(true);
     setError(null);
 
     try {
-      // 1. Persist feedback to the mock backend (or real DB once seniors
-      //    swap services.ts).
+      // 1. Persist feedback to the backend.
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,14 +102,13 @@ export default function DiscoverPage() {
           rating,
           comment,
           tableId: product.id,
-          timestamp: new Date().toISOString(),
         }),
       });
       if (!response.ok) throw new Error('Failed to submit feedback');
 
       // 2. Mirror progress to localStorage + recalc lab/shard state.
       saveCompletedProduct(user.email, product.id);
-      const progress = recalculateProgress(user.email);
+      const newProgress = recalculateProgress(user.email);
 
       // 3. Roll for a clue via the clue API (50% chance server-side).
       const clueRes = await fetch('/api/expedition/clue', {
@@ -117,43 +124,26 @@ export default function DiscoverPage() {
         appendClue(user.email, clueData.clue.id);
       }
 
-      // 4. Toast feedback result card with the embedded reveal.
-      addResult({
-        title: 'Discovery logged',
-        subtitle: `${product.name} (${lab.labName})`,
-        productId: product.id,
-        productName: product.name,
-        rating,
-        reveal: clueData.clue
-          ? {
-              kind: 'clue' as const,
-              clueId: clueData.clue.id,
-              clueTitle: clueData.clue.title,
-              clueBody: clueData.clue.body,
-            }
-          : { kind: 'empty' as const },
-        duration: 0, // sticky until user dismisses
-      });
+      // 4. Show the result inline with the clue reveal (or "no clue").
+      setResult({ clue: clueData.clue });
 
-      // 5. Surface the optional treasure-hunt button (lives in the toast
-      //    itself via ExpeditionManager so it survives the page redirect).
-
-      // 6. Dispatch event so ExpeditionProgress + CompletionChecker update.
+      // 5. Dispatch event so ExpeditionProgress + CompletionChecker update.
       window.dispatchEvent(
         new CustomEvent('feedbackSubmitted', {
-          detail: { completed: progress.isExpeditionComplete },
+          detail: { completed: newProgress.isExpeditionComplete },
         })
       );
 
-      // 7. After a short delay, route back to the lab page (or to /finish
-      //    if this submit completed the whole expedition).
-      setTimeout(() => {
-        if (progress.isExpeditionComplete) {
+      // 6. After a short delay, route back to the lab page (or to /finish
+      //    if this submit completed the whole expedition). The timer is
+      //    cleared on unmount so we never navigate a dead page.
+      redirectTimerRef.current = setTimeout(() => {
+        if (newProgress.isExpeditionComplete) {
           router.push('/finish');
         } else {
           router.push(`/expedition/${lab.labId}`);
         }
-      }, 1200);
+      }, 2500);
     } catch (err) {
       console.error('Submission error:', err);
       setError('Something went wrong while submitting your discovery.');
@@ -165,11 +155,6 @@ export default function DiscoverPage() {
   // Render-time lookup of the gemstone label (for the helper caption).
   const tierLabel =
     rating > 0 ? GEMSTONE_TIERS.find((t) => t.tier === rating)?.name : null;
-
-  const progress = user ? loadExpeditionUser(user.email) : null;
-  const labProductsDone = progress
-    ? lab.products.filter((p) => progress.completedProducts.includes(p.id)).length
-    : 0;
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 text-foreground">
@@ -227,30 +212,56 @@ export default function DiscoverPage() {
         </div>
 
         {error && (
-          <p className="mt-4 rounded border border-dashed border-foreground/40 bg-muted/30 p-2 text-xs">
+          <p className="mt-4 rounded border border-dashed border-red-500/50 bg-red-500/10 p-2 text-xs text-red-400">
             {error}
           </p>
         )}
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
-          <Link
-            href={`/expedition/${lab.labId}`}
-            className="rounded border border-foreground/30 px-3 py-1.5 text-xs hover:bg-muted"
-          >
-            ← Cancel
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting || rating === 0}
-            className="rounded border-2 border-foreground bg-foreground px-4 py-2 text-xs text-background hover:opacity-90 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Logging…' : 'Log discovery'}
-          </button>
-        </div>
+        {!result && (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+            <Link
+              href={`/expedition/${lab.labId}`}
+              className="rounded border border-foreground/30 px-3 py-1.5 text-xs hover:bg-muted"
+            >
+              ← Cancel
+            </Link>
+            <button
+              type="submit"
+              disabled={isSubmitting || rating === 0}
+              className="rounded border-2 border-foreground bg-foreground px-4 py-2 text-xs text-background hover:opacity-90 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Logging…' : 'Log discovery'}
+            </button>
+          </div>
+        )}
       </form>
 
+      {/* Inline discovery-result card (replaces the old global toast) */}
+      {result && (
+        <section className="mt-5 rounded-md border-2 border-foreground bg-foreground/5 p-5" aria-live="polite">
+          <h2 className="text-base font-semibold">✦ Discovery logged</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {product.name} ({lab.labName}) — rated{' '}
+            {GEMSTONE_TIERS.find((t) => t.tier === rating)?.name ?? rating}.
+          </p>
+          {result.clue ? (
+            <div className="mt-4 rounded border border-dashed border-foreground/40 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                Clue found · {result.clue.title}
+              </p>
+              <p className="mt-1 text-sm italic">{result.clue.body}</p>
+            </div>
+          ) : (
+            <p className="mt-4 rounded border border-dashed border-foreground/30 p-3 text-xs text-muted-foreground">
+              No clue this time — keep exploring.
+            </p>
+          )}
+          <p className="mt-4 text-xs text-muted-foreground">Returning to the checkpoint…</p>
+        </section>
+      )}
+
       <p className="mt-6 text-[10px] text-muted-foreground">
-        Lab order: {LAB_ORDER.join(' → ')} · Treasure hunt button lives in the result toast after submit.
+        Lab order: {LAB_ORDER.join(' → ')}
       </p>
     </main>
   );

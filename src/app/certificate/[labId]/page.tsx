@@ -21,6 +21,7 @@ export default function CertificateShardPage() {
   const { user, isLoading } = useUser();
   const labId = params.labId as string;
   const [shard, setShard] = useState<CertificateShard | null>(null);
+  const [unknownLab, setUnknownLab] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -30,7 +31,10 @@ export default function CertificateShardPage() {
     if (!user) return;
 
     const lab = getLabById(labId);
-    if (!lab) return;
+    if (!lab) {
+      setUnknownLab(true);
+      return;
+    }
 
     if (!isLabCompleted(user.email, labId)) {
       // Not earned yet — bounce back to the lab page.
@@ -48,6 +52,20 @@ export default function CertificateShardPage() {
       inscription: getShardInscription(labId),
     });
   }, [user, isLoading, labId, router]);
+
+  if (unknownLab) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10 text-foreground">
+        <p>Unknown checkpoint: {labId}</p>
+        <button
+          onClick={() => router.push('/expedition')}
+          className="mt-3 inline-block rounded border border-foreground/40 px-3 py-1.5 text-xs hover:bg-muted"
+        >
+          ← Back to expedition map
+        </button>
+      </main>
+    );
+  }
 
   if (isLoading || !user || !shard) {
     return (

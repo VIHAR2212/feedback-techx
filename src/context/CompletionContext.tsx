@@ -7,11 +7,7 @@ import { isLabCompleted as checkLabDone } from '@/lib/expeditionData';
 
 interface CompletionContextType {
   isCompleted: boolean;
-  setIsCompleted: (completed: boolean) => void;
-  checkCompletion: () => boolean;
-  isLabCompleted?: (labId: string) => boolean;
-  isLabUnlocked?: (labId: string) => boolean;
-  shards?: string[];
+  shards: string[];
 }
 
 const CompletionContext = createContext<CompletionContextType | undefined>(undefined);
@@ -22,7 +18,7 @@ export function CompletionProvider({ children }: { children: ReactNode }) {
   useLabs(); // re-evaluate completion when admin edits labs
 
   const checkCompletion = useCallback(() => {
-    if (!user?.email) return false;
+    if (!user?.email || typeof window === 'undefined') return false;
     try {
       const userStorageKey = `submittedFeedback_${user.email}`;
       const storedSubmissions = JSON.parse(localStorage.getItem(userStorageKey) || '[]');
@@ -32,13 +28,14 @@ export function CompletionProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // Check completion status when user changes
+  // Check completion status when user changes.
+  // Reads only the per-user key — never a global one, so completion state
+  // can't leak across different accounts on a shared machine.
   useEffect(() => {
     if (user?.email) {
       const storedCompletion = localStorage.getItem(`completion_${user.email}`);
-      const globalCompletion = localStorage.getItem('completion_state');
 
-      if (storedCompletion === 'true' || globalCompletion === 'true') {
+      if (storedCompletion === 'true') {
         setIsCompleted(true);
       } else {
         const completed = checkCompletion();
@@ -70,32 +67,14 @@ export function CompletionProvider({ children }: { children: ReactNode }) {
     };
   }, [user, checkCompletion]);
 
-  const isLabCompleted = useCallback(
-    (labId: string) => {
-      if (!user?.email) return false;
-      return checkLabDone(labId, user.email);
-    },
-    [user]
-  );
-
-  const isLabUnlocked = useCallback(
-    (_labId: string) => {
-      return true; // All labs unlocked in open exploration
-    },
-    []
+  // Shards for the three canonical labs ("a", "c", "d") — the labAliases
+  // map in expeditionData resolves them onto sectors 1/2/3.
+  const shards = ['a', 'c', 'd'].filter((id) =>
+    user?.email ? checkLabDone(id, user.email) : false
   );
 
   return (
-    <CompletionContext.Provider
-      value={{
-        isCompleted,
-        setIsCompleted,
-        checkCompletion,
-        isLabCompleted,
-        isLabUnlocked,
-        shards: ['a', 'c', 'd'].filter((id) => (user?.email ? checkLabDone(id, user.email) : false)),
-      }}
-    >
+    <CompletionContext.Provider value={{ isCompleted, shards }}>
       {children}
     </CompletionContext.Provider>
   );

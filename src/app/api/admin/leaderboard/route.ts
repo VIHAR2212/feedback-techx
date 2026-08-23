@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getLeaderboard } from '@/lib/services';
 
-// GET /api/admin/leaderboard — returns ranked users (with shards,
-// completionDate, isCompleted) for both public rankings and admin pages.
+// GET /api/admin/leaderboard — full ranked-user records including PII
+// (emails, per-product progress). Authenticated admins only: access is
+// enforced server-side by src/proxy.ts.
 export async function GET() {
   try {
     const leaderboard = await getLeaderboard();
