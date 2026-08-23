@@ -6,6 +6,7 @@ import { useUser } from '@/context/UserContext';
 import { useLabs } from '@/context/LabsContext';
 import { expeditionLabs } from '@/lib/expeditionData';
 import ImageWithFallback from './ImageWithFallback';
+import BackButton from './BackButton';
 import { motion } from 'framer-motion';
 
 export default function FinalCertificate() {
@@ -29,6 +30,9 @@ export default function FinalCertificate() {
 
   return (
     <div className="max-w-[540px] mx-auto p-4 pb-[max(2rem,env(safe-area-inset-bottom))] min-h-screen flex flex-col justify-center">
+      <div className="fixed left-3 top-3 z-50">
+        <BackButton to="/labs" label="Labs" />
+      </div>
       {!fused ? (
         /* Fragment Fusion Animation */
         <motion.div

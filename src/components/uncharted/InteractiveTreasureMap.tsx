@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LABS } from '@/lib/mock-data';
 import { loadExpeditionUser } from '@/lib/expedition-storage';
 import { cn } from '@/lib/utils';
+import BackButton from '@/components/BackButton';
 import TreasureHunt from './TreasureHunt';
 
 interface InteractiveTreasureMapProps {
@@ -112,6 +113,7 @@ export default function InteractiveTreasureMap({
       <header className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 z-40 mx-auto max-w-6xl flex items-center justify-between pointer-events-none gap-2">
         {/* Title Badge */}
         <div className="pointer-events-auto flex items-center gap-2 sm:gap-3 rounded-full border border-amber-500/25 bg-[#120a06]/95 px-3 py-1.5 sm:px-4 sm:py-2 shadow-[0_10px_35px_rgba(0,0,0,0.95)] backdrop-blur-md">
+          <BackButton to="/labs" label="Labs" />
           <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-amber-500/15 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.2)] animate-spin-slow">
             <span className="text-sm sm:text-lg">🧭</span>
           </div>

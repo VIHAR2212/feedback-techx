@@ -10,6 +10,7 @@ import {
   ExpeditionLab,
 } from '@/lib/expeditionData';
 import ExpeditionStatusHeader from './ExpeditionStatusHeader';
+import BackButton from './BackButton';
 import { motion } from 'framer-motion';
 
 export default function RouteSelection() {
@@ -68,6 +69,10 @@ export default function RouteSelection() {
 
       {/* Content Wrapper */}
       <div className="relative z-10 w-full max-w-[480px] mx-auto flex flex-col items-center gap-5">
+        <div className="w-full flex justify-start">
+          <BackButton to="/" label="Home" />
+        </div>
+
         {/* Expedition Status Header Plaque with Overall Progress Gauge */}
         <ExpeditionStatusHeader
           completedCount={completedSectorsCount}

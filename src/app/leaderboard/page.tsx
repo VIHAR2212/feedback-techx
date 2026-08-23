@@ -5,6 +5,7 @@ import UnchartedSignboardLeaderboard, {
   LeaderboardEntry,
   ProductStatsEntry,
 } from '@/components/uncharted/UnchartedSignboardLeaderboard';
+import BackButton from '@/components/BackButton';
 
 export default function PublicLeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -77,6 +78,10 @@ export default function PublicLeaderboardPage() {
 
   return (
     <main className="relative h-screen min-h-screen w-full overflow-hidden text-foreground flex flex-col justify-end items-center">
+      <div className="fixed left-3 top-3 z-50">
+        <BackButton to="/labs" label="Labs" />
+      </div>
+
       {/* Fallback scenic image behind video */}
       <img
         src="/assets/images/leaderboard_scenic_bg.jpg"
