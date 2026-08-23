@@ -94,12 +94,12 @@ export default function PublicLeaderboardPage() {
           playsInline
           preload="auto"
           onError={() => {
-            console.error('Failed to load /videos/leaderboard-bg.mp4');
+            console.error('Failed to load /videos/leaderboard-background.mp4');
             setVideoError(true);
           }}
           className="pointer-events-none fixed inset-0 h-full w-full object-cover z-0"
         >
-          <source src="/videos/leaderboard-bg.mp4" type="video/mp4" />
+          <source src="/videos/leaderboard-background.mp4" type="video/mp4" />
         </video>
       )}
 
