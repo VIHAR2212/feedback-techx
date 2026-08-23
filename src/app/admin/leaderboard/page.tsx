@@ -134,7 +134,6 @@ export default function AdminLeaderboardPage() {
           className="pointer-events-none fixed inset-0 h-full w-full object-contain md:object-cover z-0"
         >
           <source src="/videos/leaderboard-background.mp4" type="video/mp4" />
-          <source src="/videos/leaderboard-bg.mp4" type="video/mp4" />
         </video>
 
         {/* Main Uncharted Signboard Content Centered */}
