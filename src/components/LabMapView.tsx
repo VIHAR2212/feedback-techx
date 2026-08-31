@@ -99,7 +99,6 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     }
   );
   const [activeModalProduct, setActiveModalProduct] = useState<CheckpointNode | null>(null);
-  const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
 
   // Dynamic Map Container Size & Node Coordinates
@@ -174,11 +173,6 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     }
     setSubmittedIds(updated);
     setActiveModalProduct(null);
-
-    const allDone = products.length > 0 && products.every((p) => updated.includes(p.id));
-    if (allDone) {
-      setTimeout(() => setShowBadgeModal(true), 700);
-    }
   };
 
   const completedCount = products.filter((p) => submittedIds.includes(p.id)).length;
@@ -643,19 +637,34 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                   </div>
 
                   {/* CTA Button */}
-                  <div className="pt-0.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
-                      style={{
-                        clipPath:
-                          'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
-                      }}
-                      className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
-                    >
-                      <span className="truncate">{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
-                      <span className="text-xs shrink-0">➔</span>
-                    </button>
+                  <div className="pt-0.5 shrink-0 flex flex-col gap-1">
+                    {completedCount === totalCount && totalCount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => router.push('/labs')}
+                        style={{
+                          clipPath:
+                            'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
+                        }}
+                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#22c55e] via-[#16a34a] to-[#15803d] text-white font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#86efac]/60"
+                      >
+                        <span>Continue Expedition</span>
+                        <span className="text-xs shrink-0">➔</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
+                        style={{
+                          clipPath:
+                            'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
+                        }}
+                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
+                      >
+                        <span className="truncate">{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
+                        <span className="text-xs shrink-0">➔</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -745,19 +754,34 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
               </div>
 
               {/* Action Button */}
-              <div className="pt-2 border-t border-[#8b6943]/25">
-                <button
-                  type="button"
-                  onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
-                  style={{
-                    clipPath:
-                      'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
-                  }}
-                  className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2 font-['Cinzel',_serif] cursor-pointer border-t border-[#fff3cc]/50"
-                >
-                  <span>{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
-                  <span className="text-xs">➔</span>
-                </button>
+              <div className="pt-2 border-t border-[#8b6943]/25 flex flex-col gap-2">
+                {completedCount === totalCount && totalCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push('/labs')}
+                    style={{
+                      clipPath:
+                        'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+                    }}
+                    className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-b from-[#22c55e] via-[#16a34a] to-[#15803d] text-white font-bold text-xs uppercase tracking-widest shadow-md hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2 font-['Cinzel',_serif] cursor-pointer border-t border-[#86efac]/60"
+                  >
+                    <span>Continue Expedition</span>
+                    <span className="text-xs">➔</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
+                    style={{
+                      clipPath:
+                        'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+                    }}
+                    className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2 font-['Cinzel',_serif] cursor-pointer border-t border-[#fff3cc]/50"
+                  >
+                    <span>{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
+                    <span className="text-xs">➔</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -816,66 +840,6 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
               )
             }
           />
-        )}
-      </AnimatePresence>
-
-      {/* Shareable Discovery Badge Modal */}
-      <AnimatePresence>
-        {showBadgeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm select-none font-serif">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-sm bg-[#160e0a] border-2 border-[#c49b4d] rounded-xl p-6 shadow-[0_0_40px_rgba(212,175,55,0.4)] flex flex-col items-center text-center overflow-hidden text-[#e8d5b5]"
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(212,175,55,0.15)_0%,_transparent_70%)] pointer-events-none" />
-
-              <span className="text-[10px] font-mono uppercase font-bold tracking-[0.3em] text-[#a88a58] mb-1">
-                Chapter Completed
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#f5e6cc] font-['Cinzel',_serif] drop-shadow mb-3">
-                {labConfig?.title || 'Expedition'} Discovered!
-              </h2>
-
-              <div className="relative w-28 h-28 rounded-full bg-[#2a170d] border-2 border-[#d4af37] flex items-center justify-center my-2 shadow-inner">
-                <div className="absolute inset-0 rounded-full bg-amber-400/10 animate-ping pointer-events-none" />
-                <img
-                  src="/assets/images/avery-pirate-coin.png"
-                  alt="Discovery Medal"
-                  className="w-16 h-16 object-contain drop-shadow-[0_8px_12px_rgba(0,0,0,0.8)]"
-                />
-              </div>
-
-              <p className="text-xs text-[#c5a880] italic leading-relaxed my-3 max-w-xs font-serif">
-                &quot;All {totalCount} celestial coordinates aligned and charted in the journal. Discovery Medal unlocked.&quot;
-              </p>
-
-              <div className="w-full flex flex-col gap-2.5 mt-2">
-                <button
-                  onClick={handleShareLinkedIn}
-                  className="w-full py-2.5 px-4 bg-[#0a66c2] hover:bg-[#084e96] text-white font-mono font-bold text-xs uppercase tracking-wider rounded shadow active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Share on LinkedIn</span>
-                  <span>↗</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowBadgeModal(false);
-                    router.push('/labs');
-                  }}
-                  style={{
-                    clipPath:
-                      'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
-                  }}
-                  className="w-full py-2.5 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#1a0e05] font-mono font-bold text-xs uppercase tracking-widest shadow active:scale-[0.98] transition hover:brightness-110 cursor-pointer"
-                >
-                  Continue Expedition ➔
-                </button>
-              </div>
-            </motion.div>
-          </div>
         )}
       </AnimatePresence>
     </div>
