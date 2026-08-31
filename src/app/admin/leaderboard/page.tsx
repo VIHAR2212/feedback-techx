@@ -16,6 +16,42 @@ export default function AdminLeaderboardPage() {
   const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const fetchLeaderboard = async () => {
+    try {
+      const response = await fetch('/api/admin/leaderboard');
+      if (!response.ok) throw new Error('Failed to fetch leaderboard');
+      const data = await response.json();
+      const formatted = data.map((entry: any, index: number) => ({
+        name: entry.name || '—',
+        email: entry.email,
+        department: entry.department,
+        totalFeedback: entry.completedProducts?.length || entry.totalFeedback || 0,
+        averageRating: entry.averageRating || 0,
+        isCompleted: entry.isCompleted || false,
+        shards: entry.shards || [],
+        rank: index + 1,
+      }));
+      setLeaderboard(formatted);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching leaderboard:', err);
+      setError('Failed to load rankings');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchProductStats = async () => {
+    try {
+      const response = await fetch('/api/admin/product-stats');
+      if (!response.ok) throw new Error('Failed to fetch product stats');
+      const data = await response.json();
+      setProductStats(data);
+    } catch (err) {
+      console.error('Error fetching product stats:', err);
+    }
+  };
+
   useEffect(() => {
     fetchLeaderboard();
     fetchProductStats();
@@ -81,42 +117,6 @@ export default function AdminLeaderboardPage() {
         videoRef.current.play().catch(console.warn);
       }
       setIsMuted(nextMuted);
-    }
-  };
-
-  const fetchLeaderboard = async () => {
-    try {
-      const response = await fetch('/api/admin/leaderboard');
-      if (!response.ok) throw new Error('Failed to fetch leaderboard');
-      const data = await response.json();
-      const formatted = data.map((entry: any, index: number) => ({
-        name: entry.name || '—',
-        email: entry.email,
-        department: entry.department,
-        totalFeedback: entry.completedProducts?.length || entry.totalFeedback || 0,
-        averageRating: entry.averageRating || 0,
-        isCompleted: entry.isCompleted || false,
-        shards: entry.shards || [],
-        rank: index + 1,
-      }));
-      setLeaderboard(formatted);
-      setError('');
-    } catch (err) {
-      console.error('Error fetching leaderboard:', err);
-      setError('Failed to load rankings');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchProductStats = async () => {
-    try {
-      const response = await fetch('/api/admin/product-stats');
-      if (!response.ok) throw new Error('Failed to fetch product stats');
-      const data = await response.json();
-      setProductStats(data);
-    } catch (err) {
-      console.error('Error fetching product stats:', err);
     }
   };
 

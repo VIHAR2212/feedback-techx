@@ -343,3 +343,67 @@ export function CheckpointIcon({
   const SelectedIcon = iconList[index % iconList.length];
   return <SelectedIcon size={size} color={color} className={className} />;
 }
+
+/**
+ * Antique Pirate Treasure Chest Icon
+ */
+export function TreasureChestIcon({ size = 20, color = '#652B19', className = '', style }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}
+    >
+      {/* Chest Base */}
+      <rect x="3" y="9" width="18" height="12" rx="1.5" fill={color} fillOpacity="0.2" strokeWidth="1.6" />
+      {/* Chest Domed Lid */}
+      <path d="M3 9c0-3.5 3.5-6 9-6s9 2.5 9 6" fill={color} fillOpacity="0.3" strokeWidth="1.6" />
+      {/* Horizontal banding */}
+      <line x1="3" y1="9" x2="21" y2="9" strokeWidth="1.8" />
+      <line x1="3" y1="14" x2="21" y2="14" strokeWidth="1.2" strokeDasharray="1.5 2" />
+      {/* Vertical iron reinforcement ribs */}
+      <line x1="7" y1="4.5" x2="7" y2="21" strokeWidth="1.4" />
+      <line x1="17" y1="4.5" x2="17" y2="21" strokeWidth="1.4" />
+      {/* Keyhole Plaque */}
+      <rect x="10.5" y="10" width="3" height="4" rx="0.5" fill="#ffd700" stroke={color} strokeWidth="1.2" />
+      <circle cx="12" cy="11.5" r="0.6" fill={color} />
+      <line x1="12" y1="12" x2="12" y2="13.2" stroke={color} strokeWidth="1" />
+    </svg>
+  );
+}
+
+/**
+ * Antique Padlock Icon
+ */
+export function PadlockIcon({ size = 20, color = '#652B19', className = '', style }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}
+    >
+      {/* Lock Shackle */}
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeWidth="1.8" />
+      {/* Lock Body */}
+      <rect x="4" y="11" width="16" height="11" rx="2" fill={color} fillOpacity="0.25" strokeWidth="1.7" />
+      {/* Keyhole */}
+      <circle cx="12" cy="15.5" r="1.5" fill={color} />
+      <path d="M12 17v2" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
