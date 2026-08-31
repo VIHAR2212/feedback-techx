@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  TreasureChestIcon,
-  PadlockIcon,
   RelicCoinIcon,
   CheckpointIcon,
   AntiqueCompassIcon,
