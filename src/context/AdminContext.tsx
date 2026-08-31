@@ -2,13 +2,15 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 
-// AdminContext is identical to the original Minecraft project. Hardcoded
-// credentials are kept so the skeleton runs out-of-the-box; seniors should
-// swap for NextAuth or a real DB-backed admin table before production.
+// Admin session context.
+//
+// Auth state is owned by the server: credentials are verified by
+// POST /api/admin/login which sets an HTTP-only signed session cookie
+// (guarded further by src/proxy.ts for every /api/admin/* route).
+// Nothing sensitive is persisted in localStorage.
 
 interface Admin {
   username: string;
-  isAuthenticated: boolean;
 }
 
 interface AdminContextType {
@@ -21,72 +23,64 @@ interface AdminContextType {
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
-const ADMIN_CREDENTIALS = {
-  username: 'vcet-nsdc',
-  password: 'AIDS@2025',
-};
-
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Restore the session from the HTTP-only cookie via a server probe.
   useEffect(() => {
-    const checkStoredAdmin = () => {
+    let cancelled = false;
+
+    const checkSession = async () => {
       try {
-        const storedAdmin = localStorage.getItem('admin_session');
-        const sessionTimestamp = localStorage.getItem('admin_session_timestamp');
-
-        if (storedAdmin && sessionTimestamp) {
-          const adminData = JSON.parse(storedAdmin);
-          const timestamp = parseInt(sessionTimestamp);
-          const now = Date.now();
-          const sessionTimeout = 12 * 60 * 60 * 1000; // 12 hours
-
-          if (now - timestamp < sessionTimeout) {
-            setAdmin(adminData);
-          } else {
-            localStorage.removeItem('admin_session');
-            localStorage.removeItem('admin_session_timestamp');
+        const res = await fetch('/api/admin/session', { cache: 'no-store' });
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          if (data.authenticated) {
+            setAdmin({ username: 'admin' });
           }
         }
       } catch (error) {
         console.error('Error restoring admin session:', error);
-        localStorage.removeItem('admin_session');
-        localStorage.removeItem('admin_session_timestamp');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    checkStoredAdmin();
+    checkSession();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      if (
-        username === ADMIN_CREDENTIALS.username &&
-        password === ADMIN_CREDENTIALS.password
-      ) {
-        const adminData = { username, isAuthenticated: true };
-        setAdmin(adminData);
-        localStorage.setItem('admin_session', JSON.stringify(adminData));
-        localStorage.setItem('admin_session_timestamp', Date.now().toString());
-        return true;
-      }
-      return false;
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      setAdmin({ username: data.username || username });
+      return true;
     } catch (error) {
       console.error('Error during admin login:', error);
       return false;
     }
   };
 
-  const logout = () => {
-    setAdmin(null);
-    localStorage.removeItem('admin_session');
-    localStorage.removeItem('admin_session_timestamp');
+  const logout = async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Error during admin logout:', error);
+    } finally {
+      setAdmin(null);
+    }
   };
 
-  const isAdmin = admin?.isAuthenticated === true;
+  const isAdmin = admin !== null;
 
   return (
     <AdminContext.Provider value={{ admin, login, logout, isAdmin, isLoading }}>

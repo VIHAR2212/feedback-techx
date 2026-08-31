@@ -1,29 +1,32 @@
 import { MongoClient, Db } from 'mongodb';
 
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/feedback-portal';
-const options = {};
+// Cache the client promise on globalThis in every environment so hot
+// reloads and serverless cold starts reuse one connection pool instead of
+// opening a new MongoClient each time.
+const globalWithMongo = global as typeof globalThis & {
+  _mongoClientPromise?: Promise<MongoClient>;
+};
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
+function getClientPromise(): Promise<MongoClient> {
+  // Resolve the URI lazily so importing this module never throws at build
+  // time (next build evaluates route modules to collect page data even when
+  // they are dynamically rendered). Requests fail fast at runtime instead.
+  const uri = process.env.MONGODB_URI;
 
-if (process.env.NODE_ENV === 'development') {
-  const globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
+  if (!uri) {
+    throw new Error(
+      'MONGODB_URI is not set. Add it to .env.local (e.g. mongodb://localhost:27017/feedback-portal) or configure it in your hosting provider.'
+    );
+  }
 
   if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect();
+    globalWithMongo._mongoClientPromise = new MongoClient(uri).connect();
   }
-  clientPromise = globalWithMongo._mongoClientPromise;
-} else {
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+
+  return globalWithMongo._mongoClientPromise;
 }
 
-export default clientPromise;
-
 export async function getDatabase(): Promise<Db> {
-  const client = await clientPromise;
+  const client = await getClientPromise();
   return client.db(process.env.DB_NAME || 'feedback-portal');
 }

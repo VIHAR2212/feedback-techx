@@ -16,9 +16,8 @@ const SHARDS_KEY = (email: string) => `shards_${email}`;
 const CLUES_KEY = (email: string) => `discoveredClues_${email}`;
 const TREASURES_KEY = (email: string) => `discoveredTreasures_${email}`;
 const COMPLETION_KEY = (email: string) => `completion_${email}`;
-const COMPLETION_STATE_KEY = 'completion_state';
 
-export function emptyExpedition(email: string): ExpeditionUser {
+function emptyExpedition(email: string): ExpeditionUser {
   return {
     name: '',
     email,
@@ -126,7 +125,6 @@ export function recalculateProgress(email: string): {
   const isExpeditionComplete = shards.length >= LAB_ORDER.length;
   if (isExpeditionComplete) {
     localStorage.setItem(COMPLETION_KEY(email), 'true');
-    localStorage.setItem(COMPLETION_STATE_KEY, 'true');
   }
 
   localStorage.setItem(UNLOCKED_KEY(email), JSON.stringify(unlockedLabs));
@@ -139,13 +137,6 @@ export function appendClue(email: string, clueId: string) {
   const key = CLUES_KEY(email);
   const arr = JSON.parse(localStorage.getItem(key) || '[]') as string[];
   if (!arr.includes(clueId)) arr.push(clueId);
-  localStorage.setItem(key, JSON.stringify(arr));
-}
-
-export function appendTreasure(email: string, treasureId: string) {
-  const key = TREASURES_KEY(email);
-  const arr = JSON.parse(localStorage.getItem(key) || '[]') as string[];
-  if (!arr.includes(treasureId)) arr.push(treasureId);
   localStorage.setItem(key, JSON.stringify(arr));
 }
 
@@ -163,7 +154,7 @@ export function isLabUnlocked(email: string, labId: string): boolean {
   return arr.includes(labId);
 }
 
-export function getShardsCollected(email: string): string[] {
+function getShardsCollected(email: string): string[] {
   return JSON.parse(
     localStorage.getItem(SHARDS_KEY(email)) || '[]'
   ) as string[];
@@ -172,15 +163,4 @@ export function getShardsCollected(email: string): string[] {
 export function isExpeditionComplete(email: string): boolean {
   const shards = getShardsCollected(email);
   return shards.length >= LAB_ORDER.length;
-}
-
-export function resetExpedition(email: string) {
-  localStorage.removeItem(PRODUCTS_KEY(email));
-  localStorage.removeItem(UNLOCKED_KEY(email));
-  localStorage.removeItem(COMPLETED_LABS_KEY(email));
-  localStorage.removeItem(SHARDS_KEY(email));
-  localStorage.removeItem(CLUES_KEY(email));
-  localStorage.removeItem(TREASURES_KEY(email));
-  localStorage.removeItem(COMPLETION_KEY(email));
-  localStorage.removeItem(COMPLETION_STATE_KEY);
 }

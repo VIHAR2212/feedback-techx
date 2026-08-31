@@ -7,16 +7,16 @@ import RouteSelection from '@/components/RouteSelection';
 
 export default function LabsPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isLoading } = useUser();
 
   // Redirect to home if user is not logged in
   useEffect(() => {
-    if (!user) {
+    if (!isLoading && !user) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
-  if (!user) return null;
+  if (isLoading || !user) return null;
 
   return (
     <main>

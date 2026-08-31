@@ -30,26 +30,6 @@ export interface ExpeditionLab {
   checkpoints: CheckpointNode[];
 }
 
-export type ExpeditionLabConfig = ExpeditionLab;
-
-export const comicAssets: Record<string, string> = {
-  sky: '/assets/images/world-map.jpg',
-  plane: '/assets/images/expedition_map_bg.jpg',
-  jump: '/assets/images/sector-01-voyage.png',
-  fall: '/assets/images/journal-spread.png',
-  compass: '/assets/images/avery-pirate-coin.png',
-  mapFragment: '/assets/images/expedition_status_bg.png',
-};
-
-export interface LabDiscoveryProgress {
-  completed: number;
-  total: number;
-  isComplete: boolean;
-  isCompleted: boolean;
-  percentage: number;
-  doneCount: number;
-}
-
 // 1. Primary Base Labs (Strictly 3 Sectors with Distinct Environmental Spread Maps)
 export const baseExpeditionLabs: Record<string, ExpeditionLab> = {
   '1': {
@@ -238,13 +218,15 @@ export const baseExpeditionLabs: Record<string, ExpeditionLab> = {
 };
 
 // 2. Slug & Letter Aliases Mapping
+// Canonical lab IDs come from mock-data.ts: "a" (King's Bay), "c"
+// (Libertalia), "d" (New Devon) — mapped onto sectors 1/2/3.
 const labAliases: Record<string, string> = {
   a: '1',
-  b: '2',
-  c: '3',
-  portolan: '1',
+  c: '2',
+  d: '3',
+  'kings-bay': '1',
   libertalia: '2',
-  'kings-bay': '3',
+  'new-devon': '3',
 };
 
 // 3. Proxy Wrapper: Keeps Object.values(expeditionLabs) to 3 items while resolving aliases
@@ -289,58 +271,9 @@ export function saveSubmittedFeedbackForUser(userEmail: string, checkpointId: st
   return current;
 }
 
-export function clearSubmittedFeedbackForUser(userEmail: string): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(`feedback_submitted_${userEmail}`);
-  localStorage.removeItem(`submittedFeedback_${userEmail}`);
-  window.dispatchEvent(new Event('feedbackSubmitted'));
-}
-
-export function getLabDiscoveryProgress(
-  labKeyOrId: string | undefined,
-  userEmail: string
-): LabDiscoveryProgress {
-  const key = labKeyOrId || '1';
-  const lab = expeditionLabs[key] || baseExpeditionLabs['1'];
-
-  if (!lab || !lab.checkpoints) {
-    return {
-      completed: 0,
-      total: 0,
-      isComplete: false,
-      isCompleted: false,
-      percentage: 0,
-      doneCount: 0,
-    };
-  }
-
-  const submitted = getSubmittedFeedbackForUser(userEmail);
-  const completed = lab.checkpoints.filter((cp) => submitted.includes(cp.id)).length;
-  const total = lab.checkpoints.length;
-  const isComplete = total > 0 && completed === total;
-  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-  return {
-    completed,
-    total,
-    isComplete,
-    isCompleted: isComplete,
-    percentage,
-    doneCount: completed,
-  };
-}
-
 export function isLabCompleted(labId: string, userEmail: string): boolean {
   const lab = expeditionLabs[labId];
   if (!lab || !lab.checkpoints) return false;
   const submitted = getSubmittedFeedbackForUser(userEmail);
   return lab.checkpoints.length > 0 && lab.checkpoints.every((cp) => submitted.includes(cp.id));
-}
-
-export function getCompletedLabCount(userEmail: string): number {
-  const submitted = getSubmittedFeedbackForUser(userEmail);
-  return ['1', '2', '3'].filter((labId) => {
-    const lab = baseExpeditionLabs[labId];
-    return lab && lab.checkpoints.every((cp) => submitted.includes(cp.id));
-  }).length;
 }

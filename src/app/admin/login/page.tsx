@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
               required
               disabled={isLoading}
               className="rounded border border-foreground/30 bg-background px-3 py-2 text-sm focus:border-foreground focus:outline-none"
-              placeholder="vcet-nsdc"
+              placeholder="Username"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs">
@@ -94,9 +94,6 @@ export default function AdminLoginPage() {
             {isLoading ? 'Logging in…' : 'Login'}
           </button>
         </form>
-        <p className="mt-4 text-center text-[10px] text-muted-foreground">
-          Default: <span className="font-mono">vcet-nsdc</span> / <span className="font-mono">AIDS@2025</span>
-        </p>
       </div>
     </main>
   );

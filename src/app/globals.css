@@ -27,8 +27,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-uncharted: var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', var(--font-cinzel-decorative), 'Cinzel Decorative', Georgia, serif;
-  --font-base02: var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif;
+  --font-uncharted: var(--font-base02), 'Base02', 'Base 02', var(--font-cinzel-decorative), 'Cinzel Decorative', Georgia, serif;
+  --font-base02: var(--font-base02), 'Base02', 'Base 02', serif;
   --font-cinzel: var(--font-cinzel), 'Cinzel', serif;
   --font-cinzel-decorative: var(--font-cinzel-decorative), 'Cinzel Decorative', serif;
   --font-marcellus: var(--font-marcellus), 'Marcellus', serif;

@@ -65,10 +65,6 @@ export function getProductById(productId: string): { product: { id: string; name
   return undefined;
 }
 
-export function totalProductCount(): number {
-  return LABS.reduce((sum, lab) => sum + lab.products.length, 0);
-}
-
 // --- Clue pool — shown randomly (or not at all) after a feedback submit ---
 export const CLUE_POOL: Clue[] = [
   {
@@ -84,16 +80,16 @@ export const CLUE_POOL: Clue[] = [
     labId: 'a',
   },
   {
-    id: 'clue-b-1',
+    id: 'clue-c-1',
     title: 'Old Journal Page',
     body: 'Someone scribbled "the third torch from the left is a decoy" — could be useful later.',
-    labId: 'b',
+    labId: 'c',
   },
   {
-    id: 'clue-b-2',
+    id: 'clue-c-2',
     title: 'Strange Compass Reading',
     body: 'The compass needle wobbles here — something metallic is buried nearby.',
-    labId: 'b',
+    labId: 'c',
   },
   {
     id: 'clue-c-1',
@@ -118,22 +114,19 @@ export const TREASURE_POOL: Treasure[] = [
 ];
 
 // --- Certificate shard templates (1 per lab) ---
+// Keys match the canonical lab IDs in LABS above ("a", "c", "d").
 export const SHARD_INSCRIPTIONS: Record<string, string> = {
   a: 'Awarded for clearing the Mountain Pass — first leg of the expedition.',
-  b: 'Awarded for surviving the Lost Temple — second leg of the expedition.',
-  c: 'Awarded for charting the Coastal Ruins — final leg of the expedition.',
+  c: 'Awarded for surviving the Lost Temple — second leg of the expedition.',
+  d: 'Awarded for charting the Coastal Ruins — final leg of the expedition.',
 };
 
 export function getShardInscription(labId: string): string {
   return SHARD_INSCRIPTIONS[labId] ?? 'Expedition checkpoint cleared.';
 }
 
-// --- Admin seed (kept identical to original Minecraft project) ---
-export const ADMIN_SEED = {
-  username: 'vcet-nsdc',
-  password: 'AIDS@2025',
-  permissions: ['leaderboard', 'feedback_view', 'analytics'],
-};
+// --- Admin credentials live in server-side env vars (ADMIN_USERNAME /
+// ADMIN_PASSWORD / ADMIN_PASSWORD_HASH). Never ship them to the client. ---
 
 export const DEPARTMENT_OPTIONS = [
   'AI-DS', 'CSE-DS', 'COMPS', 'EXTC', 'MECH',

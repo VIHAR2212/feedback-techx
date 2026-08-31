@@ -37,13 +37,12 @@ export default function LandingReveal() {
   const currentFrameRef = useRef(0);
   const rafRef = useRef<number>(0);
 
-  const [loaded, setLoaded] = useState(false);
   const [ready, setReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [showCard, setShowCard] = useState(false);
 
   const router = useRouter();
-  const { user, login, isLoading: userLoading } = useUser();
+  const { user, login } = useUser();
 
   const [name, setName] = useState(user?.name || '');
   const [department, setDepartment] = useState(user?.department || '');
@@ -118,14 +117,13 @@ export default function LandingReveal() {
     let readyFired = false;
     let cursor = 0;
 
-    const resolve = (i: number) => {
+    const resolve = () => {
       count++;
       setLoadProgress(Math.round((count / TOTAL_FRAMES) * 100));
       if (!readyFired && count >= READY_FRAME_COUNT) {
         readyFired = true;
         setReady(true);
       }
-      if (count === TOTAL_FRAMES) setLoaded(true);
       pump();
     };
 
@@ -133,12 +131,12 @@ export default function LandingReveal() {
       const img = new window.Image();
       img.decoding = 'async';
       img.fetchPriority = i < READY_FRAME_COUNT ? 'high' : 'low';
-      img.onload = () => resolve(i);
+      img.onload = () => resolve();
       img.onerror = () => {
         if (img.src.endsWith(FRAME_SUFFIX)) {
           img.src = frameSrc(i, FRAME_FALLBACK_SUFFIX);
         } else {
-          resolve(i);
+          resolve();
         }
       };
       img.src = frameSrc(i);

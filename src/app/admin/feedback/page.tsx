@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/context/AdminContext';
 import AdminRouteGuard from '@/components/uncharted/AdminRouteGuard';
 import { GEMSTONE_TIERS } from '@/lib/models';
+import { csvCell } from '@/lib/utils';
 
 interface FeedbackEntry {
   studentName: string;
@@ -28,14 +29,22 @@ export default function AdminFeedbackPage() {
     department: '',
   });
 
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+
+  // Debounce filter changes so typing doesn't fire a request per keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedFilters(filters), 300);
+    return () => clearTimeout(timer);
+  }, [filters]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         const params = new URLSearchParams();
-        if (filters.email) params.append('email', filters.email);
-        if (filters.productId) params.append('productId', filters.productId);
-        if (filters.department) params.append('department', filters.department);
+        if (debouncedFilters.email) params.append('email', debouncedFilters.email);
+        if (debouncedFilters.productId) params.append('productId', debouncedFilters.productId);
+        if (debouncedFilters.department) params.append('department', debouncedFilters.department);
         const response = await fetch(`/api/admin/feedback?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch feedback');
         const data = await response.json();
@@ -49,7 +58,7 @@ export default function AdminFeedbackPage() {
       }
     };
     fetchData();
-  }, [filters.email, filters.productId, filters.department]);
+  }, [debouncedFilters]);
 
   const handleLogout = () => {
     logout();
@@ -75,12 +84,12 @@ export default function AdminFeedbackPage() {
           f.studentDepartment,
           f.tableId,
           gem,
-          f.comment.replace(/,/g, ';'),
+          f.comment,
           f.timestamp,
         ];
       }),
     ]
-      .map((row) => row.join(','))
+      .map((row) => row.map(csvCell).join(','))
       .join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -108,10 +117,10 @@ export default function AdminFeedbackPage() {
                 Export CSV
               </button>
               <button
-                onClick={() => router.push('/admin/dashboard')}
+                onClick={() => router.push('/admin')}
                 className="rounded border border-foreground/30 px-3 py-1.5 hover:bg-muted"
               >
-                Dashboard
+                Manage
               </button>
               <button
                 onClick={() => router.push('/admin/leaderboard')}

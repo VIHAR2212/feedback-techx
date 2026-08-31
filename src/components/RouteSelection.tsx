@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useLabs } from '@/context/LabsContext';
 import {
   expeditionLabs,
-  getLabDiscoveryProgress,
   getSubmittedFeedbackForUser,
   ExpeditionLab,
 } from '@/lib/expeditionData';
 import ExpeditionStatusHeader from './ExpeditionStatusHeader';
+import BackButton from './BackButton';
 import TreasureCard from './TreasureCard';
 import { motion } from 'framer-motion';
 
@@ -41,17 +42,35 @@ export default function RouteSelection() {
     expeditionLabs['3'],
   ].filter(Boolean);
 
+  // localStorage is read in an effect (not during render) so the server
+  // render and first client paint agree — no hydration mismatch.
+  const [submittedIds, setSubmittedIds] = useState<string[]>([]);
+  useEffect(() => {
+    setSubmittedIds(getSubmittedFeedbackForUser(userEmail));
+  }, [userEmail]);
+
+  const perLabProgress = useMemo(() => {
+    const map: Record<string, { completed: number; total: number; percentage: number; isCompleted: boolean }> = {};
+    for (const lab of labList) {
+      const cps = lab.checkpoints || [];
+      const completed = cps.filter((cp) => submittedIds.includes(cp.id)).length;
+      map[lab.id] = {
+        completed,
+        total: cps.length,
+        percentage: cps.length > 0 ? Math.round((completed / cps.length) * 100) : 0,
+        isCompleted: cps.length > 0 && completed === cps.length,
+      };
+    }
+    return map;
+  }, [labList, submittedIds]);
+
   // Compute completed sectors and checkpoints for the header
-  const submittedIds = getSubmittedFeedbackForUser(userEmail);
   const totalCheckpoints = labList.reduce((acc, lab) => acc + (lab.checkpoints?.length || 0), 0);
   const completedCheckpoints = labList.reduce((acc, lab) => {
-    return acc + (lab.checkpoints?.filter((cp) => submittedIds.includes(cp.id)).length || 0);
+    return acc + (perLabProgress[lab.id]?.completed || 0);
   }, 0);
 
-  const completedSectorsCount = labList.filter((lab) => {
-    const progress = getLabDiscoveryProgress(lab.id, userEmail);
-    return progress.isCompleted;
-  }).length;
+  const completedSectorsCount = labList.filter((lab) => perLabProgress[lab.id]?.isCompleted).length;
 
   const overallPercentage =
     totalCheckpoints > 0 ? Math.round((completedCheckpoints / totalCheckpoints) * 100) : 0;
@@ -66,10 +85,7 @@ export default function RouteSelection() {
         setActiveLabId(stored);
       } else {
         const firstIncomplete =
-          labList.find((lab) => {
-            const progress = getLabDiscoveryProgress(lab.id, userEmail);
-            return !progress.isCompleted;
-          })?.id || '1';
+          labList.find((lab) => !perLabProgress[lab.id]?.isCompleted)?.id || '1';
         setActiveLabId(firstIncomplete);
       }
     }
@@ -94,6 +110,10 @@ export default function RouteSelection() {
 
       {/* Content Wrapper */}
       <div className="relative z-10 w-full max-w-[480px] mx-auto flex flex-col items-center gap-5">
+        <div className="w-full flex justify-start">
+          <BackButton to="/" label="Home" />
+        </div>
+
         {/* Expedition Status Header Plaque with Overall Progress Gauge */}
         <ExpeditionStatusHeader
           completedCount={completedSectorsCount}
@@ -106,10 +126,14 @@ export default function RouteSelection() {
         {/* 3 Sector Expedition Cards */}
         <div className="w-full flex flex-col gap-4">
           {labList.map((lab, index) => {
-            const progress = getLabDiscoveryProgress(lab.id, userEmail);
+            const progress = perLabProgress[lab.id] || {
+              completed: 0,
+              total: 0,
+              percentage: 0,
+              isCompleted: false,
+            };
             const isCompleted = progress.isCompleted;
-            const sectorPercent =
-              progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+            const sectorPercent = progress.percentage;
 
             const environmentTag =
               lab.themeType === 'frost'
@@ -134,13 +158,19 @@ export default function RouteSelection() {
                   }}
                   className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center px-10 sm:px-12 py-6 sm:py-7 flex flex-col justify-between min-h-[200px] text-[#241308]"
                 >
-                  {/* Decorative Red Ink Wax Seal for Completed Surveys */}
+                  {/* Centered Large Ink Stamp with Paper Grain Bleed */}
                   {isCompleted && (
-                    <div className="absolute top-1 right-2 w-12 h-12 pointer-events-none opacity-90 z-20">
-                      <div className="w-10 h-10 rounded-full border-2 border-dashed border-[#8b261d] flex items-center justify-center rotate-12 bg-[#8b261d]/15 shadow-sm">
-                        <span className="text-[9px] font-mono font-black text-[#8b261d] uppercase tracking-tighter">
-                          SEALED
-                        </span>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 select-none overflow-visible">
+                      <div className="w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] md:w-[390px] md:h-[390px] -rotate-[12deg] opacity-[0.82] mix-blend-multiply transition-transform">
+                        <Image
+                          src="/assets/images/stamp.png?v=3"
+                          alt="Survey Cleared Stamp"
+                          width={500}
+                          height={500}
+                          unoptimized
+                          priority
+                          className="w-full h-full object-contain"
+                        />
                       </div>
                     </div>
                   )}
@@ -156,13 +186,7 @@ export default function RouteSelection() {
                       </span>
                     </div>
 
-                    {isCompleted ? (
-                      <div className="flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-[#8b261d] bg-[#8b261d]/15 text-[#8b261d] shrink-0">
-                        <span className="text-[8.5px] font-mono font-bold uppercase tracking-wider">
-                          ✦ Cleared
-                        </span>
-                      </div>
-                    ) : (
+                    {!isCompleted && (
                       <div className="px-2 py-0.5 rounded border border-[#7a481c]/40 bg-[#7a481c]/10 text-[#7a481c] shrink-0">
                         <span className="text-[8.5px] font-mono font-bold uppercase tracking-wider">
                           Recon: {progress.completed}/{progress.total}

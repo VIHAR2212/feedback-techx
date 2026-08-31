@@ -8,16 +8,16 @@ import LabMapView from '@/components/LabMapView';
 export default function LabProductsPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isLoading } = useUser();
   const labId = (params.labId as string) || 'a';
 
   useEffect(() => {
-    if (!user) {
+    if (!isLoading && !user) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
-  if (!user) return null;
+  if (isLoading || !user) return null;
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#0d0a08' }}>

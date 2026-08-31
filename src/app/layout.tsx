@@ -1,25 +1,18 @@
 import type { Metadata } from "next";
 import localFont from 'next/font/local';
-import { Inter, Antonio, IM_Fell_English, Courier_Prime, Cinzel, Cinzel_Decorative, Caveat, EB_Garamond, Marcellus, Geist, Geist_Mono } from 'next/font/google';
+import { Antonio, IM_Fell_English, Cinzel, Cinzel_Decorative, Caveat, Marcellus, Geist, Geist_Mono } from 'next/font/google';
 import { UserProvider } from '@/context/UserContext';
-import { AchievementProvider } from '@/context/AchievementContext';
 import { CompletionProvider } from '@/context/CompletionContext';
 import { AdminProvider } from '@/context/AdminContext';
 import { LabsProvider } from '@/context/LabsContext';
-import AchievementManager from '@/components/AchievementManager';
 import CompletionChecker from '@/components/CompletionChecker';
 import "./globals.css";
 
-// 1. Local Uncharted Game Font (Base 02)
+// 1. Local Uncharted Game Font (Base 02) — single instance shared by both
+//    the --font-base02 and --font-uncharted CSS variables.
 const base02 = localFont({
   src: './fonts/Base02.ttf',
   variable: '--font-base02',
-  display: 'swap',
-});
-
-const unchartedFont = localFont({
-  src: './fonts/Base02.ttf',
-  variable: '--font-uncharted',
   display: 'swap',
 });
 
@@ -28,21 +21,6 @@ const caveat = Caveat({
   subsets: ['latin'],
   variable: '--font-handwriting',
   weight: ['400', '600', '700'],
-  display: 'swap',
-});
-
-// 3. Renaissance Cartographer Serif
-const garamond = EB_Garamond({
-  subsets: ['latin'],
-  variable: '--font-garamond',
-  weight: ['400', '600', '700'],
-  display: 'swap',
-});
-
-// 4. UI & Display Fonts
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -68,13 +46,6 @@ const imFell = IM_Fell_English({
   weight: ['400'],
   style: ['italic', 'normal'],
   variable: '--font-uncharted-serif',
-  display: 'swap',
-});
-
-const courierPrime = Courier_Prime({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-courier',
   display: 'swap',
 });
 
@@ -128,16 +99,12 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       className={`
-        ${unchartedFont.variable}
         ${base02.variable}
         ${caveat.variable}
-        ${garamond.variable}
-        ${inter.variable}
         ${geistSans.variable}
         ${geistMono.variable}
         ${antonio.variable}
         ${imFell.variable}
-        ${courierPrime.variable}
         ${cinzel.variable}
         ${cinzelDecorative.variable}
         ${marcellus.variable}
@@ -146,15 +113,12 @@ export default function RootLayout({
       <body className="bg-[#050302] text-[#2c1a0e] antialiased selection:bg-[#d4af37]/30 selection:text-[#1a0e05]">
         <AdminProvider>
           <LabsProvider>
-            <AchievementProvider>
-              <UserProvider>
-                <CompletionProvider>
-                  {children}
-                  <CompletionChecker />
-                </CompletionProvider>
-              </UserProvider>
-              <AchievementManager />
-            </AchievementProvider>
+            <UserProvider>
+              <CompletionProvider>
+                {children}
+                <CompletionChecker />
+              </CompletionProvider>
+            </UserProvider>
           </LabsProvider>
         </AdminProvider>
       </body>

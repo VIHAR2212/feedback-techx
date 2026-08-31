@@ -8,23 +8,14 @@ import {
   expeditionLabs,
   getSubmittedFeedbackForUser,
   saveSubmittedFeedbackForUser,
-  clearSubmittedFeedbackForUser,
   CheckpointNode,
 } from '@/lib/expeditionData';
 import ProductObservationModal from './ProductObservationModal';
 import { AnimatePresence } from 'framer-motion';
 import { CheckpointIcon } from './RusticIcons';
+import rough from 'roughjs/bundled/rough.esm';
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-
-const labAliases: Record<string, string> = {
-  a: '1',
-  b: '2',
-  c: '3',
-  portolan: '1',
-  libertalia: '2',
-  'kings-bay': '3',
-};
 
 const defaultLabMapImages: Record<string, string> = {
   '1': '/assets/images/journal-spread-lab1.jpg',
@@ -44,30 +35,24 @@ const THEME_STYLES: Record<
   ExpeditionTheme,
   {
     unsurveyedStroke: string;
-    unsurveyedTexture: string;
     glowColor: string;
     coreGlow: string;
-    emberFlicker?: boolean;
   }
 > = {
   jungle: {
-    unsurveyedStroke: '#2b180d',
-    unsurveyedTexture: '#1a0f08',
-    glowColor: '#22d98a',
-    coreGlow: '#c9ffe8',
+    unsurveyedStroke: '#000000',
+    glowColor: '#16a34a',
+    coreGlow: '#86efac',
   },
   ice: {
-    unsurveyedStroke: '#1c2b38',
-    unsurveyedTexture: '#0f1a22',
-    glowColor: '#3fc4f0',
-    coreGlow: '#dff6ff',
+    unsurveyedStroke: '#000000',
+    glowColor: '#0284c7',
+    coreGlow: '#7dd3fc',
   },
   volcanic: {
-    unsurveyedStroke: '#3a1408',
-    unsurveyedTexture: '#1f0a04',
-    glowColor: '#ff7a1a',
-    coreGlow: '#ffe1b0',
-    emberFlicker: true,
+    unsurveyedStroke: '#000000',
+    glowColor: '#ea580c',
+    coreGlow: '#fdba74',
   },
 };
 
@@ -87,8 +72,9 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
   const { labs } = useLabs();
   const labConfig = labs[labKey] || labs[labId] || expeditionLabs[labKey] || expeditionLabs[labId] || expeditionLabs['1'];
   const mapBgImage = labConfig?.mapImage || defaultLabMapImages[labId] || defaultLabMapImages[labKey] || '/assets/images/journal-spread-lab1.jpg';
-  const themeType = labConfig?.themeType || (labKey === '2' ? 'frost' : labKey === '3' ? 'volcano' : 'jungle');
-
+  // Typed as string: DB-backed configs may carry variant spellings
+  // ('ice', 'volcanic') that the normalizer below maps onto themes.
+  const themeType: string = labConfig?.themeType || (labKey === '2' ? 'frost' : labKey === '3' ? 'volcano' : 'jungle');
   const normalizedTheme: ExpeditionTheme =
     (themeType as string) === 'frost' || (themeType as string) === 'ice'
       ? 'ice'
@@ -97,8 +83,6 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
         : 'jungle';
 
   const themeStyle = THEME_STYLES[normalizedTheme];
-  const glowColor = themeStyle.glowColor;
-  const coreGlow = themeStyle.coreGlow;
 
   const products: CheckpointNode[] = useMemo(() => labConfig?.checkpoints || [], [labConfig]);
 
@@ -114,7 +98,6 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     }
   );
   const [activeModalProduct, setActiveModalProduct] = useState<CheckpointNode | null>(null);
-  const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
 
   // Dynamic Map Container Size & Node Coordinates
@@ -181,31 +164,22 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     };
   }, [updateDimensions, viewMode]);
 
-  const handleProductSubmitSuccess = (productId: string) => {
+  const handleProductSubmitSuccess = (productId: string, notes?: string) => {
     const updated = saveSubmittedFeedbackForUser(userEmail, productId);
+    // Persist the surveyor's typed observations so they survive reloads
+    // (keyed per user + checkpoint).
+    if (notes) {
+      try {
+        const key = `checkpointNotes_${userEmail}`;
+        const stored = JSON.parse(localStorage.getItem(key) || '{}') as Record<string, string>;
+        stored[productId] = notes;
+        localStorage.setItem(key, JSON.stringify(stored));
+      } catch {
+        // Non-fatal — progress above is already saved.
+      }
+    }
     setSubmittedIds(updated);
     setActiveModalProduct(null);
-
-    const allDone = products.length > 0 && products.every((p) => updated.includes(p.id));
-    if (allDone) {
-      setTimeout(() => setShowBadgeModal(true), 700);
-    }
-  };
-
-  const handleSimulateCompletion = (productId: string) => {
-    if (submittedIds.includes(productId)) {
-      const filtered = submittedIds.filter((id) => id !== productId);
-      localStorage.setItem(`feedback_submitted_${userEmail}`, JSON.stringify(filtered));
-      setSubmittedIds(filtered);
-    } else {
-      handleProductSubmitSuccess(productId);
-    }
-  };
-
-  const handleResetProgress = () => {
-    clearSubmittedFeedbackForUser(userEmail);
-    setSubmittedIds([]);
-    setShowBadgeModal(false);
   };
 
   const completedCount = products.filter((p) => submittedIds.includes(p.id)).length;
@@ -221,18 +195,61 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     }));
   }, [products, containerSize]);
 
-  // Smooth natural Catmull-Rom tangent cubic spline through exact node centers (pure tangents, no wave bow)
+  // Deterministic seed generation from segment ID
+  const hashSegmentId = useCallback((id: string): number => {
+    let h = 2166136261;
+    for (let i = 0; i < id.length; i++) {
+      h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
+    }
+    return (h % 90000) + 1000;
+  }, []);
+
+  // Smooth natural Catmull-Rom tangent cubic spline through exact node centers
   const routePaths = useMemo(() => {
     if (nodePixelPositions.length < 2) {
       return {
         plannedPath: '',
         completedPath: '',
+        segments: [],
         points: nodePixelPositions,
       };
     }
 
     const n = nodePixelPositions.length;
-    const tension = 0.45;
+    const tension = 0.68;
+
+    // Helper: evaluate cubic Bezier at parameter t in [0, 1]
+    const evalBezier = (
+      p1: { x: number; y: number },
+      cp1: { x: number; y: number },
+      cp2: { x: number; y: number },
+      p2: { x: number; y: number },
+      t: number
+    ) => {
+      const u = 1 - t;
+      const tt = t * t;
+      const uu = u * u;
+      const uuu = uu * u;
+      const ttt = tt * t;
+      return {
+        x: uuu * p1.x + 3 * uu * t * cp1.x + 3 * u * tt * cp2.x + ttt * p2.x,
+        y: uuu * p1.y + 3 * uu * t * cp1.y + 3 * u * tt * cp2.y + ttt * p2.y,
+      };
+    };
+
+    // Helper: evaluate cubic Bezier first derivative (tangent vector) at parameter t
+    const evalBezierDerivative = (
+      p1: { x: number; y: number },
+      cp1: { x: number; y: number },
+      cp2: { x: number; y: number },
+      p2: { x: number; y: number },
+      t: number
+    ) => {
+      const u = 1 - t;
+      const dx = 3 * u * u * (cp1.x - p1.x) + 6 * u * t * (cp2.x - cp1.x) + 3 * t * t * (p2.x - cp2.x);
+      const dy = 3 * u * u * (cp1.y - p1.y) + 6 * u * t * (cp2.y - cp1.y) + 3 * t * t * (p2.y - cp2.y);
+      return { dx, dy };
+    };
 
     // Calculate boundary & internal tangent vectors for smooth continuous curvature
     const tangents = nodePixelPositions.map((p, i) => {
@@ -256,6 +273,12 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
 
     let plannedPath = `M ${nodePixelPositions[0].x.toFixed(1)} ${nodePixelPositions[0].y.toFixed(1)}`;
     const completedSegments: string[] = [];
+    const segments: Array<{
+      id: string;
+      d: string;
+      midpoint: { x: number; y: number; rx: number; ry: number; angleDeg: number };
+      isCompleted: boolean;
+    }> = [];
 
     for (let i = 0; i < n - 1; i++) {
       const p1 = nodePixelPositions[i];
@@ -263,21 +286,52 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
       const t1 = tangents[i];
       const t2 = tangents[i + 1];
 
-      // No perpendicular wave — pure tangent-based cubic bezier
+      // Pure tangent-based cubic bezier
       const cp1 = { x: p1.x + t1.x, y: p1.y + t1.y };
       const cp2 = { x: p2.x - t2.x, y: p2.y - t2.y };
 
       const segD = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} C ${cp1.x.toFixed(1)} ${cp1.y.toFixed(1)}, ${cp2.x.toFixed(1)} ${cp2.y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
       plannedPath += ` C ${cp1.x.toFixed(1)} ${cp1.y.toFixed(1)}, ${cp2.x.toFixed(1)} ${cp2.y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
 
-      if (submittedIds.includes(p1.id) && submittedIds.includes(p2.id)) {
+      // Approximate segment length
+      let approxLen = 0;
+      let prevPt: { x: number; y: number } = p1;
+      for (let s = 1; s <= 10; s++) {
+        const curPt = evalBezier(p1, cp1, cp2, p2, s / 10);
+        approxLen += Math.hypot(curPt.x - prevPt.x, curPt.y - prevPt.y);
+        prevPt = curPt;
+      }
+      const segLen = Math.max(approxLen, 30);
+
+      // Midpoint geometry for surveyed glow ellipse
+      const midPt = evalBezier(p1, cp1, cp2, p2, 0.5);
+      const midDeriv = evalBezierDerivative(p1, cp1, cp2, p2, 0.5);
+      const angleDeg = (Math.atan2(midDeriv.dy, midDeriv.dx) * 180) / Math.PI;
+      const midpoint = {
+        x: Number(midPt.x.toFixed(1)),
+        y: Number(midPt.y.toFixed(1)),
+        rx: Number(Math.max(segLen * 0.45, 25).toFixed(1)),
+        ry: 25,
+        angleDeg: Number(angleDeg.toFixed(1)),
+      };
+
+      const isCompleted = submittedIds.includes(p1.id) && submittedIds.includes(p2.id);
+      if (isCompleted) {
         completedSegments.push(segD);
       }
+
+      segments.push({
+        id: `${p1.id}-${p2.id}`,
+        d: segD,
+        midpoint,
+        isCompleted,
+      });
     }
 
     return {
       plannedPath,
       completedPath: completedSegments.join(' '),
+      segments,
       points: nodePixelPositions,
     };
   }, [nodePixelPositions, submittedIds]);
@@ -322,6 +376,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
       roughLayerRef.current!.appendChild(node2);
     });
   }, [routePaths.segments, themeStyle, hashSegmentId]);
+
 
   const selectedIndex = products.findIndex((p) => p.id === selectedProduct?.id);
 
@@ -412,88 +467,30 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                 }}
                 className="relative h-full aspect-[8/9] max-w-full max-h-full rounded-xl lg:rounded-none border-2 sm:border-4 lg:border-none border-[#241308] shadow-[0_12px_36px_rgba(0,0,0,0.95)] lg:shadow-none overflow-hidden lg:bg-none"
               >
-                {/* Luminous Inked Golden Route (Pixel-perfect SVG aligned directly with node centers) */}
-                {containerSize.width > 0 && containerSize.height > 0 && routePaths.plannedPath && (
+                {/* Hand-drawn Inked Golden Route powered by rough.js */}
+                {containerSize.width > 0 && containerSize.height > 0 && routePaths.points.length > 0 && (
                   <svg
                     viewBox={`0 0 ${containerSize.width} ${containerSize.height}`}
                     className="absolute inset-0 w-full h-full pointer-events-none z-10"
                   >
-                    <defs>
-                      {/* Hand-drawn wobble for the unsurveyed trail */}
-                      <filter id="trail-wobble" x="-10%" y="-10%" width="120%" height="120%">
-                        <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="7" result="noise" />
-                        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.5" xChannelSelector="R" yChannelSelector="G" />
-                      </filter>
-
-                      {/* Warm ink bleed for completed segments — reused across themes */}
-                      <filter id="ink-bleed" x="-25%" y="-25%" width="150%" height="150%">
-                        <feGaussianBlur stdDeviation="2.5" result="blur" />
-                        <feMerge>
-                          <feMergeNode in="blur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-
-                      {/* Ember flicker for volcanic theme */}
-                      {themeStyle.emberFlicker && (
-                        <filter id="ember-flicker" x="-25%" y="-25%" width="150%" height="150%">
-                          <feGaussianBlur stdDeviation="1.5" result="blur">
-                            <animate attributeName="stdDeviation" values="1.5;2.4;1.5" dur="1.8s" repeatCount="indefinite" />
-                          </feGaussianBlur>
-                          <feMerge>
-                            <feMergeNode in="blur" />
-                            <feMergeNode in="SourceGraphic" />
-                          </feMerge>
-                        </filter>
-                      )}
-                    </defs>
-
-                    {/* Unsurveyed trail — solid, wobbled, hand-drawn organic jitter */}
-                    <path
-                      d={routePaths.plannedPath}
-                      fill="none"
-                      stroke={themeStyle.unsurveyedTexture}
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.85}
-                      filter="url(#trail-wobble)"
-                    />
-                    <path
-                      d={routePaths.plannedPath}
-                      fill="none"
-                      stroke={themeStyle.unsurveyedStroke}
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={0.9}
-                      filter="url(#trail-wobble)"
-                    />
-
-                    {/* Surveyed / completed — theme glow */}
-                    {routePaths.completedPath && (
-                      <>
-                        <path
-                          d={routePaths.completedPath}
-                          fill="none"
-                          stroke={themeStyle.glowColor}
-                          strokeWidth="7"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          opacity={0.9}
-                          filter={themeStyle.emberFlicker ? 'url(#ember-flicker)' : 'url(#ink-bleed)'}
+                    {/* Surveyed segment glow (flat low-opacity ellipse at midpoint underneath rough strokes) */}
+                    {routePaths.segments
+                      .filter((seg) => seg.isCompleted)
+                      .map((seg) => (
+                        <ellipse
+                          key={`surveyed-glow-${seg.id}`}
+                          cx={seg.midpoint.x}
+                          cy={seg.midpoint.y}
+                          rx={seg.midpoint.rx}
+                          ry={seg.midpoint.ry}
+                          transform={`rotate(${seg.midpoint.angleDeg} ${seg.midpoint.x} ${seg.midpoint.y})`}
+                          fill={themeStyle.glowColor}
+                          opacity={0.15}
                         />
-                        <path
-                          d={routePaths.completedPath}
-                          fill="none"
-                          stroke={themeStyle.coreGlow}
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="transition-all duration-700 ease-out"
-                        />
-                      </>
-                    )}
+                      ))}
+
+                    {/* rough.js sketch layer */}
+                    <g ref={roughLayerRef} />
 
                     {/* Concentric Waypoint Rings centered on each measured node */}
                     {routePaths.points.map((pt) => {
@@ -503,25 +500,13 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                           <circle
                             cx={pt.x}
                             cy={pt.y}
-                            r={isDone ? 22 : 18}
+                            r={isDone ? 20 : 16}
                             fill="none"
                             stroke={isDone ? themeStyle.glowColor : themeStyle.unsurveyedStroke}
                             strokeWidth={isDone ? '1.8' : '1'}
                             strokeDasharray={isDone ? 'none' : '3 3'}
                             opacity={isDone ? 0.95 : 0.6}
                           />
-                          {isDone && (
-                            <circle
-                              cx={pt.x}
-                              cy={pt.y}
-                              r={26}
-                              fill="none"
-                              stroke={themeStyle.coreGlow}
-                              strokeWidth="1"
-                              strokeDasharray="2 4"
-                              opacity={0.8}
-                            />
-                          )}
                         </g>
                       );
                     })}
@@ -647,19 +632,34 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                   </div>
 
                   {/* CTA Button */}
-                  <div className="pt-0.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
-                      style={{
-                        clipPath:
-                          'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
-                      }}
-                      className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
-                    >
-                      <span className="truncate">{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
-                      <span className="text-xs shrink-0">➔</span>
-                    </button>
+                  <div className="pt-0.5 shrink-0 flex flex-col gap-1">
+                    {completedCount === totalCount && totalCount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => router.push('/labs')}
+                        style={{
+                          clipPath:
+                            'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
+                        }}
+                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#22c55e] via-[#16a34a] to-[#15803d] text-white font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#86efac]/60"
+                      >
+                        <span>Continue Expedition</span>
+                        <span className="text-xs shrink-0">➔</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
+                        style={{
+                          clipPath:
+                            'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
+                        }}
+                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
+                      >
+                        <span className="truncate">{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
+                        <span className="text-xs shrink-0">➔</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -747,19 +747,34 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
               </div>
 
               {/* Action Button */}
-              <div className="pt-2 border-t border-[#8b6943]/25">
-                <button
-                  type="button"
-                  onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
-                  style={{
-                    clipPath:
-                      'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
-                  }}
-                  className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2 font-['Cinzel',_serif] cursor-pointer border-t border-[#fff3cc]/50"
-                >
-                  <span>{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
-                  <span className="text-xs">➔</span>
-                </button>
+              <div className="pt-2 border-t border-[#8b6943]/25 flex flex-col gap-2">
+                {completedCount === totalCount && totalCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push('/labs')}
+                    style={{
+                      clipPath:
+                        'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+                    }}
+                    className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-b from-[#22c55e] via-[#16a34a] to-[#15803d] text-white font-bold text-xs uppercase tracking-widest shadow-md hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2 font-['Cinzel',_serif] cursor-pointer border-t border-[#86efac]/60"
+                  >
+                    <span>Continue Expedition</span>
+                    <span className="text-xs">➔</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
+                    style={{
+                      clipPath:
+                        'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+                    }}
+                    className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2 font-['Cinzel',_serif] cursor-pointer border-t border-[#fff3cc]/50"
+                  >
+                    <span>{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
+                    <span className="text-xs">➔</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -810,68 +825,13 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
             product={activeModalProduct}
             isSubmitted={submittedIds.includes(activeModalProduct.id)}
             onClose={() => setActiveModalProduct(null)}
-            onSuccess={() => handleProductSubmitSuccess(activeModalProduct.id)}
+            onSuccess={({ rating, comment }) =>
+              handleProductSubmitSuccess(
+                activeModalProduct.id,
+                comment || (rating > 0 ? `Rated ${rating}/5` : undefined)
+              )
+            }
           />
-        )}
-      </AnimatePresence>
-
-      {/* Shareable Discovery Badge Modal */}
-      <AnimatePresence>
-        {showBadgeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm select-none font-serif">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-sm bg-[#160e0a] border-2 border-[#c49b4d] rounded-xl p-6 shadow-[0_0_40px_rgba(212,175,55,0.4)] flex flex-col items-center text-center overflow-hidden text-[#e8d5b5]"
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(212,175,55,0.15)_0%,_transparent_70%)] pointer-events-none" />
-
-              <span className="text-[10px] font-mono uppercase font-bold tracking-[0.3em] text-[#a88a58] mb-1">
-                Chapter Completed
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#f5e6cc] font-['Cinzel',_serif] drop-shadow mb-3">
-                {labConfig?.title || 'Expedition'} Discovered!
-              </h2>
-
-              <div className="relative w-28 h-28 rounded-full bg-[#2a170d] border-2 border-[#d4af37] flex items-center justify-center my-2 shadow-inner">
-                <div className="absolute inset-0 rounded-full bg-amber-400/10 animate-ping pointer-events-none" />
-                <img
-                  src="/assets/images/avery-pirate-coin.png"
-                  alt="Discovery Medal"
-                  className="w-16 h-16 object-contain drop-shadow-[0_8px_12px_rgba(0,0,0,0.8)]"
-                />
-              </div>
-
-              <p className="text-xs text-[#c5a880] italic leading-relaxed my-3 max-w-xs font-serif">
-                &quot;All {totalCount} celestial coordinates aligned and charted in the journal. Discovery Medal unlocked.&quot;
-              </p>
-
-              <div className="w-full flex flex-col gap-2.5 mt-2">
-                <button
-                  onClick={handleShareLinkedIn}
-                  className="w-full py-2.5 px-4 bg-[#0a66c2] hover:bg-[#084e96] text-white font-mono font-bold text-xs uppercase tracking-wider rounded shadow active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Share on LinkedIn</span>
-                  <span>↗</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowBadgeModal(false);
-                    router.push('/labs');
-                  }}
-                  style={{
-                    clipPath:
-                      'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
-                  }}
-                  className="w-full py-2.5 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#1a0e05] font-mono font-bold text-xs uppercase tracking-widest shadow active:scale-[0.98] transition hover:brightness-110 cursor-pointer"
-                >
-                  Continue Expedition ➔
-                </button>
-              </div>
-            </motion.div>
-          </div>
         )}
       </AnimatePresence>
     </div>

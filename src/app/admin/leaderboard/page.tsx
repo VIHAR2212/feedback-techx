@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import AdminRouteGuard from '@/components/uncharted/AdminRouteGuard';
 import UnchartedSignboardLeaderboard, {
   LeaderboardEntry,
@@ -13,15 +13,15 @@ export default function AdminLeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isMuted, setIsMuted] = useState(false);
-  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const fetchLeaderboard = async () => {
+  // Declared before the effects below consume them (react-hooks/immutability).
+  const fetchLeaderboard = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/leaderboard');
       if (!response.ok) throw new Error('Failed to fetch leaderboard');
       const data = await response.json();
-      const formatted = data.map((entry: any, index: number) => ({
+      const formatted = data.map((entry: LeaderboardEntry & { completedProducts?: string[] }, index: number) => ({
         name: entry.name || '—',
         email: entry.email,
         department: entry.department,
@@ -39,18 +39,18 @@ export default function AdminLeaderboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchProductStats = async () => {
+  const fetchProductStats = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/product-stats');
+      const response = await fetch('/api/product-stats');
       if (!response.ok) throw new Error('Failed to fetch product stats');
       const data = await response.json();
       setProductStats(data);
     } catch (err) {
       console.error('Error fetching product stats:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -60,7 +60,7 @@ export default function AdminLeaderboardPage() {
       fetchProductStats();
     }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchLeaderboard, fetchProductStats]);
 
   // Ensure video loads, autoplays, and unmutes upon user click/interaction
   useEffect(() => {
@@ -134,7 +134,6 @@ export default function AdminLeaderboardPage() {
           className="pointer-events-none fixed inset-0 h-full w-full object-contain md:object-cover z-0"
         >
           <source src="/videos/leaderboard-background.mp4" type="video/mp4" />
-          <source src="/videos/leaderboard-bg.mp4" type="video/mp4" />
         </video>
 
         {/* Main Uncharted Signboard Content Centered */}

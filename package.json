@@ -6,25 +6,19 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "db:push": "prisma db push --accept-data-loss",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset"
+    "lint": "eslint ."
   },
   "dependencies": {
-    "@prisma/client": "^6.11.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.2",
     "lucide-react": "^0.525.0",
     "mongodb": "^7.5.0",
     "next": "^16.1.1",
-    "prisma": "^6.11.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "roughjs": "^4.6.6",
     "sharp": "^0.34.3",
-    "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
