@@ -12,7 +12,7 @@ import {
   CheckpointNode,
 } from '@/lib/expeditionData';
 import ProductObservationModal from './ProductObservationModal';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { CheckpointIcon } from './RusticIcons';
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
@@ -282,13 +282,46 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     };
   }, [nodePixelPositions, submittedIds]);
 
-  const handleShareLinkedIn = () => {
-    const shareText = `I completed ${labConfig?.title || 'Expedition'} and charted all ${totalCount} naval checkpoints in my Field Journal!`;
-    window.open(
-      `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText)}`,
-      '_blank'
-    );
-  };
+  // rough.js hand-drawn sketch layer
+  const roughLayerRef = useRef<SVGGElement>(null);
+
+  useEffect(() => {
+    if (!roughLayerRef.current) return;
+    const svgEl = roughLayerRef.current.ownerSVGElement;
+    if (!svgEl) return;
+    const rc = rough.svg(svgEl);
+
+    // Clear previous render
+    roughLayerRef.current.innerHTML = '';
+
+    routePaths.segments.forEach((seg) => {
+      const color = seg.isCompleted ? themeStyle.glowColor : themeStyle.unsurveyedStroke;
+      const seed = hashSegmentId(seg.id);
+
+      // Pass 1: base ink dashed stroke
+      const node1 = rc.path(seg.d, {
+        roughness: 1.8,
+        bowing: 2.4,
+        stroke: color,
+        strokeWidth: seg.isCompleted ? 3 : 4.5,
+        strokeLineDash: [8, 6],
+        seed: seed,
+      });
+      roughLayerRef.current!.appendChild(node1);
+
+      // Pass 2: second pass, different seed, thinner dashed — creates "redrawn ink" look
+      const node2 = rc.path(seg.d, {
+        roughness: 1.8,
+        bowing: 2.4,
+        stroke: color,
+        strokeWidth: seg.isCompleted ? 1.8 : 2.2,
+        strokeLineDash: [8, 6],
+        seed: seed + 1000,
+      });
+      node2.setAttribute('opacity', '0.65');
+      roughLayerRef.current!.appendChild(node2);
+    });
+  }, [routePaths.segments, themeStyle, hashSegmentId]);
 
   const selectedIndex = products.findIndex((p) => p.id === selectedProduct?.id);
 
