@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useLabs } from '@/context/LabsContext';
@@ -117,13 +118,19 @@ export default function RouteSelection() {
                   }}
                   className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center px-10 sm:px-12 py-6 sm:py-7 flex flex-col justify-between min-h-[200px] text-[#241308]"
                 >
-                  {/* Decorative Red Ink Wax Seal for Completed Surveys */}
+                  {/* Centered Large Ink Stamp with Paper Grain Bleed */}
                   {isCompleted && (
-                    <div className="absolute top-1 right-2 w-12 h-12 pointer-events-none opacity-90 z-20">
-                      <div className="w-10 h-10 rounded-full border-2 border-dashed border-[#8b261d] flex items-center justify-center rotate-12 bg-[#8b261d]/15 shadow-sm">
-                        <span className="text-[9px] font-mono font-black text-[#8b261d] uppercase tracking-tighter">
-                          SEALED
-                        </span>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 select-none overflow-visible">
+                      <div className="w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] md:w-[390px] md:h-[390px] -rotate-[12deg] opacity-[0.82] mix-blend-multiply transition-transform">
+                        <Image
+                          src="/assets/images/stamp.png?v=3"
+                          alt="Survey Cleared Stamp"
+                          width={500}
+                          height={500}
+                          unoptimized
+                          priority
+                          className="w-full h-full object-contain"
+                        />
                       </div>
                     </div>
                   )}
@@ -139,13 +146,7 @@ export default function RouteSelection() {
                       </span>
                     </div>
 
-                    {isCompleted ? (
-                      <div className="flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-[#8b261d] bg-[#8b261d]/15 text-[#8b261d] shrink-0">
-                        <span className="text-[8.5px] font-mono font-bold uppercase tracking-wider">
-                          ✦ Cleared
-                        </span>
-                      </div>
-                    ) : (
+                    {!isCompleted && (
                       <div className="px-2 py-0.5 rounded border border-[#7a481c]/40 bg-[#7a481c]/10 text-[#7a481c] shrink-0">
                         <span className="text-[8.5px] font-mono font-bold uppercase tracking-wider">
                           Recon: {progress.completed}/{progress.total}
