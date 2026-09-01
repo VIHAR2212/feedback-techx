@@ -59,12 +59,12 @@ export default function LandingReveal() {
     offset: ['start start', 'end end'],
   });
 
-  // Fast, silky smooth spring interpolation for high-precision 60fps tracking
+  // Fast, silky smooth spring interpolation tuned to eliminate mobile micro-jitter
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 260,
-    damping: 28,
-    mass: 0.15,
-    restDelta: 0.0001,
+    stiffness: 280,
+    damping: 34,
+    mass: 0.1,
+    restDelta: 0.001,
   });
 
   // Ratchet that resets when the user is back at the very top of the page.
@@ -120,7 +120,7 @@ export default function LandingReveal() {
     const isLowCoreDevice = typeof navigator !== 'undefined' && (navigator.hardwareConcurrency || 4) <= 4;
 
     // Adaptive concurrency: throttle down on slow networks / low cores to avoid freezing the main thread
-    const PRELOAD_CONCURRENCY = isSlowNetwork || isLowCoreDevice ? 3 : 6;
+    const PRELOAD_CONCURRENCY = isSlowNetwork || isLowCoreDevice ? 4 : 8;
     const TARGET_INITIAL_FRAMES = isSlowNetwork ? 5 : 15;
 
     const startTime = Date.now();
@@ -170,7 +170,14 @@ export default function LandingReveal() {
       const img = new window.Image();
       img.decoding = 'async';
       img.fetchPriority = i < TARGET_INITIAL_FRAMES ? 'high' : 'low';
-      img.onload = () => resolve();
+      img.onload = () => {
+        // Pre-decode into GPU memory in background so drawImage never blocks the main thread
+        if ('decode' in img) {
+          img.decode().then(() => resolve()).catch(() => resolve());
+        } else {
+          resolve();
+        }
+      };
       img.onerror = () => {
         if (img.src.endsWith(FRAME_SUFFIX)) {
           img.src = frameSrc(i, FRAME_FALLBACK_SUFFIX);
@@ -200,10 +207,28 @@ export default function LandingReveal() {
 
   const drawFrame = useCallback((index: number) => {
     const canvas = canvasRef.current;
-    const img = framesRef.current[index];
-    if (!canvas || !img || !img.complete || img.naturalWidth === 0) return;
+    if (!canvas) return;
 
-    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+    // Find requested frame or closest loaded frame fallback to prevent blank flashes during fast scrub
+    let img = framesRef.current[index];
+    if (!img || !img.complete || img.naturalWidth === 0) {
+      for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
+        const prev = framesRef.current[index - offset];
+        if (prev && prev.complete && prev.naturalWidth > 0) {
+          img = prev;
+          break;
+        }
+        const next = framesRef.current[index + offset];
+        if (next && next.complete && next.naturalWidth > 0) {
+          img = next;
+          break;
+        }
+      }
+    }
+
+    if (!img || !img.complete || img.naturalWidth === 0) return;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
     const cw = canvas.width;
@@ -215,22 +240,30 @@ export default function LandingReveal() {
     ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   }, []);
 
-  // Drive the canvas frame smoothly from spring progress.
+  // Drive the canvas frame smoothly via a continuous RAF sync loop
   useEffect(() => {
     if (!ready) return;
     drawFrame(0);
 
-    const unsub = smoothProgress.on('change', (v) => {
+    let lastDrawnFrame = -1;
+    let animId: number;
+
+    const render = () => {
+      const v = smoothProgress.get();
       const clamped = Math.max(0, Math.min(1, v));
       const idx = Math.min(Math.floor(clamped * TOTAL_FRAMES), TOTAL_FRAMES - 1);
-      if (idx !== currentFrameRef.current) {
-        currentFrameRef.current = idx;
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = requestAnimationFrame(() => drawFrame(idx));
-      }
-    });
 
-    return () => unsub();
+      if (idx !== lastDrawnFrame) {
+        lastDrawnFrame = idx;
+        currentFrameRef.current = idx;
+        drawFrame(idx);
+      }
+      animId = requestAnimationFrame(render);
+    };
+
+    animId = requestAnimationFrame(render);
+
+    return () => cancelAnimationFrame(animId);
   }, [ready, smoothProgress, drawFrame]);
 
   // Toggle whether the signup card can capture pointer input
@@ -239,20 +272,40 @@ export default function LandingReveal() {
     return () => unsub();
   }, [smoothProgress]);
 
-  // Canvas resize with DPR clamp for low-end GPU optimization
+  // Canvas resize with DPR clamp & address-bar debounce to prevent black frame flashes on mobile
   useEffect(() => {
+    let prevWidth = 0;
+    let prevHeight = 0;
+
     const handleResize = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      // Limit canvas resolution to max 1.5x DPR on high-density displays to prevent lag on budget phones
+
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // Ignore small vertical resizes caused by mobile address bar collapsing/expanding
+      if (prevWidth === w && Math.abs(prevHeight - h) < 160) {
+        return;
+      }
+
+      prevWidth = w;
+      prevHeight = h;
+
+      // Limit canvas resolution to max 1.5x DPR on high-density displays for silky mobile GPU performance
       const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.5);
-      canvas.width = Math.floor(window.innerWidth * dpr);
-      canvas.height = Math.floor(window.innerHeight * dpr);
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
       if (ready) drawFrame(currentFrameRef.current);
     };
+
     handleResize();
     window.addEventListener('resize', handleResize, { passive: true });
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
   }, [ready, drawFrame]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -279,11 +332,11 @@ export default function LandingReveal() {
 
   return (
     <section ref={containerRef} className="relative bg-black" style={{ height: `${SCROLL_HEIGHT_VH}vh` }}>
-      <div className="sticky top-0 h-screen w-full overflow-hidden bg-black">
+      <div className="sticky top-0 h-[100dvh] w-full overflow-hidden bg-black transform-gpu">
         {/* Frame sequence, scrubbed by scroll (hidden until ready to avoid any flash) */}
         <canvas
           ref={canvasRef}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 transform-gpu ${
             ready ? 'opacity-100' : 'opacity-0'
           }`}
         />
