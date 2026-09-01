@@ -7,6 +7,7 @@ interface TechXLogoTextProps {
   size?: 'sm' | 'md' | 'lg' | 'hero';
   showSubtitle?: boolean;
   showBadge?: boolean;
+  showSponsors?: boolean;
   animated?: boolean;
   className?: string;
 }
@@ -15,6 +16,7 @@ export function TechXLogoText({
   size = 'hero',
   showSubtitle = true,
   showBadge = true,
+  showSponsors = size === 'hero',
   animated = true,
   className = '',
 }: TechXLogoTextProps) {
@@ -105,6 +107,44 @@ export function TechXLogoText({
             Explore • Discover • Conquer
           </span>
           <span className="h-px w-8 sm:w-16 bg-gradient-to-r from-amber-600/40 to-transparent" />
+        </motion.div>
+      )}
+
+      {/* Co-Powered By Sponsor Logo Section */}
+      {showSponsors && (
+        <motion.div
+          initial={animated ? { opacity: 0, y: 12 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.25 }}
+          className="relative z-10 mt-3 sm:mt-4 flex flex-col items-center justify-center gap-1.5 sm:gap-2"
+        >
+          <div className="flex items-center gap-2 text-amber-300/80 font-cinzel text-[9px] sm:text-[11px] font-semibold uppercase tracking-[0.28em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+            <span className="h-[1px] w-5 sm:w-10 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+            <span>Co-Powered By</span>
+            <span className="h-[1px] w-5 sm:w-10 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+          </div>
+
+          <div className="flex items-center justify-center gap-4 sm:gap-6 mt-1">
+            {/* Sponsor 1: Career Launcher */}
+            <div className="flex items-center justify-center transition-transform duration-300 hover:scale-105">
+              <div className="bg-white/95 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.6)] flex items-center justify-center">
+                <img
+                  src="/assets/images/career-launcher.png"
+                  alt="Career Launcher"
+                  className="h-5 sm:h-7 md:h-8 w-auto object-contain"
+                />
+              </div>
+            </div>
+
+            {/* Sponsor 2: I-Tech */}
+            <div className="flex items-center justify-center transition-transform duration-300 hover:scale-105">
+              <img
+                src="/assets/images/ndh.png"
+                alt="I-Tech Computer Education"
+                className="h-11 sm:h-14 md:h-16 w-auto object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] filter brightness-105"
+              />
+            </div>
+          </div>
         </motion.div>
       )}
     </div>

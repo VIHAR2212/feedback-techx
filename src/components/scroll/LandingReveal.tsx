@@ -353,14 +353,14 @@ export default function LandingReveal() {
 
         {/* Scroll hint */}
         <motion.div
-          className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-center text-amber-200/80 font-cinzel"
+          className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-center text-white/90 font-cinzel"
           style={{ opacity: scrollHintOpacity }}
         >
           <div className="flex flex-col items-center gap-2">
-            <p className="text-[11px] uppercase tracking-[0.35em] drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+            <p className="text-[11px] uppercase tracking-[0.35em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
               Scroll to venture forth
             </p>
-            <span className="inline-block h-4 w-px bg-gradient-to-b from-amber-400 to-transparent animate-pulse" />
+            <span className="inline-block h-4 w-px bg-gradient-to-b from-white to-transparent animate-pulse" />
           </div>
         </motion.div>
 
