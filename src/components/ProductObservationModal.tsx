@@ -70,11 +70,11 @@ export default function ProductObservationModal({
         </button>
 
         {/* Printable Safe Parchment Content (Centered & Lowered for Balance) */}
-        <div className="absolute inset-0 pt-[23%] pb-[10%] px-[12%] sm:px-[14%] flex flex-col justify-between">
+        <div className="absolute inset-0 pt-[21%] pb-[14%] px-[12%] sm:px-[14%] flex flex-col justify-between overflow-hidden">
           {/* 1. Header (Centered, Prominent, Lowered into Open Parchment) */}
-          <div className="flex flex-col items-center text-center border-b border-[#8b6943]/35 pb-2">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.25em] text-[#7a481c] font-['Cinzel',_serif]">
+          <div className="flex flex-col items-center text-center border-b border-[#8b6943]/35 pb-1.5">
+            <div className="flex items-center justify-center gap-2 mb-0.5">
+              <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.22em] text-[#7a481c] font-['Cinzel',_serif]">
                 RECON DOSSIER // OBSERVATION
               </span>
               {isSubmitted && (
@@ -85,18 +85,18 @@ export default function ProductObservationModal({
             </div>
 
             {/* Big Centered Checkpoint Title */}
-            <h2 className="text-xl sm:text-2xl font-bold text-[#1c0f05] font-['EB_Garamond',_serif] tracking-tight leading-tight drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+            <h2 className="text-lg sm:text-2xl font-bold text-[#1c0f05] font-['EB_Garamond',_serif] tracking-tight leading-tight drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
               {product.name}
             </h2>
 
             {/* Centered Handwritten Field Observation Quote */}
-            <p className="text-sm sm:text-base text-[#4a2810] font-[family-name:var(--font-handwriting)] font-semibold italic leading-relaxed mt-1 px-2">
+            <p className="text-xs sm:text-sm text-[#4a2810] font-[family-name:var(--font-handwriting)] font-semibold italic leading-tight mt-0.5 px-2 line-clamp-2">
               &quot;{product.description}&quot;
             </p>
           </div>
 
           {/* 2. Feedback Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 flex-1 justify-end pt-1">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2 flex-1 justify-end pt-1">
             {/* Avery Pirate Coin Rating */}
             <div>
               <div className="flex items-center justify-between mb-1 px-0.5">
@@ -110,7 +110,7 @@ export default function ProductObservationModal({
               </div>
 
               {/* Recessed Leather Coin Well */}
-              <div className="flex items-center justify-between px-3 py-1.5 rounded bg-[#241308]/10 border border-[#7a481c]/30 shadow-inner">
+              <div className="flex items-center justify-between px-2.5 py-1 rounded bg-[#241308]/10 border border-[#7a481c]/30 shadow-inner">
                 {[1, 2, 3, 4, 5].map((coinIndex) => {
                   const filled = coinIndex <= (hoverRating || rating);
                   return (
@@ -129,7 +129,7 @@ export default function ProductObservationModal({
                       <img
                         src="/assets/images/avery-pirate-coin.png"
                         alt={`Rating Coin ${coinIndex}`}
-                        className={`relative w-8 h-8 sm:w-9 sm:h-9 object-contain transition-all duration-150 ${
+                        className={`relative w-7 h-7 sm:w-8 sm:h-8 object-contain transition-all duration-150 ${
                           filled
                             ? 'opacity-100 drop-shadow-[0_2px_6px_rgba(212,175,55,0.75)] brightness-110 contrast-110 scale-105'
                             : 'opacity-30 grayscale brightness-50 contrast-90 group-hover:opacity-75 group-hover:grayscale-0'
@@ -143,7 +143,7 @@ export default function ProductObservationModal({
 
             {/* Surveyor Observations Textarea */}
             <div>
-              <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] text-[#5c3e21] font-['Cinzel',_serif] mb-1 px-0.5">
+              <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] text-[#5c3e21] font-['Cinzel',_serif] mb-0.5 px-0.5">
                 Surveyor Notes & Impressions
               </label>
 
@@ -152,33 +152,35 @@ export default function ProductObservationModal({
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="Inscribe telemetry findings or impressions..."
-                className="w-full p-2.5 rounded bg-[#f7f0e3]/95 text-[#1f1006] placeholder-[#8c6f4b]/70 text-sm sm:text-base font-[family-name:var(--font-handwriting)] font-semibold focus:outline-none focus:ring-1.5 focus:ring-[#7a481c] resize-none shadow-inner border border-[#7a481c]/40 leading-snug"
+                className="w-full p-2 rounded bg-[#f7f0e3]/95 text-[#1f1006] placeholder-[#8c6f4b]/70 text-xs sm:text-sm font-[family-name:var(--font-handwriting)] font-semibold focus:outline-none focus:ring-1.5 focus:ring-[#7a481c] resize-none shadow-inner border border-[#7a481c]/40 leading-snug"
               />
             </div>
 
-            {/* Action Plaque Button (Positioned Cleanly Above Bottom Leather Rim) */}
-            <button
-              type="submit"
-              disabled={rating === 0 || isSubmitting}
-              style={{
-                clipPath:
-                  'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
-              }}
-              className={`w-full py-2.5 sm:py-3 px-4 font-black text-[11px] sm:text-xs uppercase tracking-widest transition flex items-center justify-center gap-2 font-['Cinzel',_serif] shadow-md touch-manipulation cursor-pointer border-t border-[#fff3cc]/60 ${
-                rating > 0 && !isSubmitting
-                  ? 'bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] hover:brightness-110 active:scale-[0.98]'
-                  : 'bg-[#5c3e21]/40 text-[#241308]/40 cursor-not-allowed border-none'
-              }`}
-            >
-              {isSubmitting ? (
-                <span>Inking Observations...</span>
-              ) : (
-                <>
-                  <span>{isSubmitted ? 'Update Checkpoint Notes' : 'Seal & Submit Observations'}</span>
-                  <span>➔</span>
-                </>
-              )}
-            </button>
+            {/* Action Plaque Button (Positioned Cleanly Inside Parchment Above Bottom Rim) */}
+            <div className="pt-0.5">
+              <button
+                type="submit"
+                disabled={rating === 0 || isSubmitting}
+                style={{
+                  clipPath:
+                    'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+                }}
+                className={`w-full py-2 sm:py-2.5 px-4 font-black text-[10px] sm:text-xs uppercase tracking-widest transition flex items-center justify-center gap-2 font-['Cinzel',_serif] shadow-md touch-manipulation cursor-pointer border-t border-[#fff3cc]/60 ${
+                  rating > 0 && !isSubmitting
+                    ? 'bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] hover:brightness-110 active:scale-[0.98]'
+                    : 'bg-[#5c3e21]/40 text-[#241308]/40 cursor-not-allowed border-none'
+                }`}
+              >
+                {isSubmitting ? (
+                  <span>Inking Observations...</span>
+                ) : (
+                  <>
+                    <span>{isSubmitted ? 'Update Checkpoint Notes' : 'Seal & Submit Observations'}</span>
+                    <span>➔</span>
+                  </>
+                )}
+              </button>
+            </div>
           </form>
         </div>
       </motion.div>

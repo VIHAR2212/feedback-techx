@@ -17,17 +17,11 @@ const FRAME_SUFFIX = '_delay-0.016s.webp';
 const FRAME_FALLBACK_SUFFIX = '_delay-0.016s.jpg';
 // Scroll distance the frame sequence plays out over, in viewport heights.
 const SCROLL_HEIGHT_VH = 400;
-// Number of frames fetched in parallel. Browsers cap connections per host,
-// so firing all 120 at once just queues them and stalls the main thread.
-const PRELOAD_CONCURRENCY = 5;
-// The page becomes interactive once these first frames are ready; the rest
-// stream in the background while the user is already scrolling.
-const READY_FRAME_COUNT = 3;
 
 function frameSrc(i: number, suffix: string = FRAME_SUFFIX) {
   // Internal frame index is 0-based (0..TOTAL_FRAMES-1); filenames on disk
-  // are 1-based (ezgif-frame-001.jpg .. ezgif-frame-120.jpg).
-  return `${FRAME_PREFIX}${String(i + 1).padStart(3, '0')}${suffix}`;
+  // are 1-based (frame_000.webp .. frame_119.webp).
+  return `${FRAME_PREFIX}${String(i).padStart(3, '0')}${suffix}`;
 }
 
 export default function LandingReveal() {
@@ -38,7 +32,7 @@ export default function LandingReveal() {
   const rafRef = useRef<number>(0);
 
   const [ready, setReady] = useState(false);
-  const [loadProgress, setLoadProgress] = useState(0);
+  const [loadProgress, setLoadProgress] = useState(1);
   const [showCard, setShowCard] = useState(false);
 
   const router = useRouter();
@@ -107,30 +101,75 @@ export default function LandingReveal() {
   const cardY = useTransform(smoothProgress, [0.90, 0.98], [30, 0]);
   const scrollHintOpacity = useTransform(smoothProgress, [0, 0.05], [1, 0]);
 
-  // Preload every frame in bounded waves: the first READY_FRAME_COUNT frames
-  // get priority (they unblock the UI), the rest trickle in at
-  // PRELOAD_CONCURRENCY at a time so the browser never queues a 25MB flood
-  // and the main thread isn't choked by concurrent JPEG/WebP decodes.
+  // Low-network & low-tier device resilient preloader with 4s minimum HUD loading screen
   useEffect(() => {
     const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
-    let count = 0;
-    let readyFired = false;
+    let loadedCount = 0;
     let cursor = 0;
+    let timerDone = false;
+    let isTransitioning = false;
 
-    const resolve = () => {
-      count++;
-      setLoadProgress(Math.round((count / TOTAL_FRAMES) * 100));
-      if (!readyFired && count >= READY_FRAME_COUNT) {
-        readyFired = true;
+    // Detect network speed & hardware constraints
+    const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
+    const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
+    const isSlowNetwork =
+      conn?.saveData ||
+      conn?.effectiveType === '2g' ||
+      conn?.effectiveType === 'slow-2g' ||
+      conn?.effectiveType === '3g';
+    const isLowCoreDevice = typeof navigator !== 'undefined' && (navigator.hardwareConcurrency || 4) <= 4;
+
+    // Adaptive concurrency: throttle down on slow networks / low cores to avoid freezing the main thread
+    const PRELOAD_CONCURRENCY = isSlowNetwork || isLowCoreDevice ? 3 : 6;
+    const TARGET_INITIAL_FRAMES = isSlowNetwork ? 5 : 15;
+
+    const startTime = Date.now();
+    const MIN_DURATION = 4000; // 4.0s minimum countdown
+
+    const checkReady = () => {
+      if (isTransitioning) return;
+      // Ready if 4s timer elapsed AND at least initial frames are loaded (or fallback minimum 1 frame on slow network)
+      const hasEnoughFrames = loadedCount >= TARGET_INITIAL_FRAMES || (timerDone && loadedCount >= 1);
+      if (timerDone && hasEnoughFrames) {
+        isTransitioning = true;
+        setLoadProgress(100);
+        setTimeout(() => setReady(true), 200);
+      }
+    };
+
+    // Smooth HUD status ticker across 4 seconds starting immediately from > 0
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(Math.max(1, Math.floor((elapsed / MIN_DURATION) * 100)), 99);
+      setLoadProgress((prev) => Math.max(prev, progress));
+
+      if (elapsed >= MIN_DURATION) {
+        clearInterval(interval);
+        timerDone = true;
+        checkReady();
+      }
+    }, 30);
+
+    // Hard failsafe timer (5.5s): never leave low-network or low-end users stuck on loader
+    const failsafe = setTimeout(() => {
+      timerDone = true;
+      if (!isTransitioning && loadedCount >= 1) {
+        isTransitioning = true;
+        setLoadProgress(100);
         setReady(true);
       }
+    }, 5500);
+
+    const resolve = () => {
+      loadedCount++;
+      checkReady();
       pump();
     };
 
     const loadImage = (i: number) => {
       const img = new window.Image();
       img.decoding = 'async';
-      img.fetchPriority = i < READY_FRAME_COUNT ? 'high' : 'low';
+      img.fetchPriority = i < TARGET_INITIAL_FRAMES ? 'high' : 'low';
       img.onload = () => resolve();
       img.onerror = () => {
         if (img.src.endsWith(FRAME_SUFFIX)) {
@@ -144,7 +183,7 @@ export default function LandingReveal() {
     };
 
     const pump = () => {
-      while (cursor < TOTAL_FRAMES && cursor - count < PRELOAD_CONCURRENCY) {
+      while (cursor < TOTAL_FRAMES && cursor - loadedCount < PRELOAD_CONCURRENCY) {
         loadImage(cursor);
         cursor++;
       }
@@ -152,6 +191,11 @@ export default function LandingReveal() {
 
     pump();
     framesRef.current = images;
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(failsafe);
+    };
   }, []);
 
   const drawFrame = useCallback((index: number) => {
@@ -159,7 +203,7 @@ export default function LandingReveal() {
     const img = framesRef.current[index];
     if (!canvas || !img || !img.complete || img.naturalWidth === 0) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
     if (!ctx) return;
 
     const cw = canvas.width;
@@ -168,7 +212,6 @@ export default function LandingReveal() {
     const dw = img.naturalWidth * scale;
     const dh = img.naturalHeight * scale;
 
-    ctx.clearRect(0, 0, cw, ch);
     ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   }, []);
 
@@ -196,17 +239,19 @@ export default function LandingReveal() {
     return () => unsub();
   }, [smoothProgress]);
 
-  // Canvas resize.
+  // Canvas resize with DPR clamp for low-end GPU optimization
   useEffect(() => {
     const handleResize = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      // Limit canvas resolution to max 1.5x DPR on high-density displays to prevent lag on budget phones
+      const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.5);
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
       if (ready) drawFrame(currentFrameRef.current);
     };
     handleResize();
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
     return () => window.removeEventListener('resize', handleResize);
   }, [ready, drawFrame]);
 
@@ -234,32 +279,68 @@ export default function LandingReveal() {
 
   return (
     <section ref={containerRef} className="relative bg-black" style={{ height: `${SCROLL_HEIGHT_VH}vh` }}>
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* Frame sequence, scrubbed by scroll */}
-        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      <div className="sticky top-0 h-screen w-full overflow-hidden bg-black">
+        {/* Frame sequence, scrubbed by scroll (hidden until ready to avoid any flash) */}
+        <canvas
+          ref={canvasRef}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+            ready ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
 
-        {/* Loading overlay — sits inside the same scroll container so the
-            ref useScroll binds to is stable from the very first render. */}
+        {/* Fullscreen Responsive Video Loading Screen Overlay (z-50 guarantees it stays strictly above all elements) */}
         <div
-          className={`absolute inset-0 z-30 flex flex-col items-center justify-center gap-6 bg-black/95 text-white transition-opacity duration-500 ${
+          className={`fixed inset-0 z-50 bg-[#0a0705] flex items-center justify-center overflow-hidden transition-opacity duration-700 ${
             ready ? 'pointer-events-none opacity-0' : 'opacity-100'
           }`}
         >
-          {/* Rotating compass astrolabe background ring */}
-          <div className="relative flex flex-col items-center justify-center">
-            <div className="absolute -inset-10 rounded-full border border-dashed border-amber-500/20 compass-spin pointer-events-none" />
-            <TechXLogoText size="sm" showSubtitle={false} showBadge={false} animated={false} />
-          </div>
+          {/* Animated Atmospheric Backdrop while video decodes */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/20 via-black to-black pointer-events-none" />
 
-          <div className="h-1.5 w-64 overflow-hidden rounded-full bg-white/10 border border-amber-500/30 p-0.5">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-400 to-amber-300 transition-[width] duration-150 shadow-[0_0_10px_#f59e0b]"
-              style={{ width: `${loadProgress}%` }}
-            />
+          {/* Desktop Video (> 768px) */}
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            disablePictureInPicture
+            disableRemotePlayback
+            className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+            src="/assets/images/loadingdesktop.mp4"
+          />
+
+          {/* Mobile Video (<= 768px) */}
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            disablePictureInPicture
+            disableRemotePlayback
+            className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+            src="/assets/images/loadingmobile.mp4"
+          />
+
+          {/* Ambient scanlines & vignette overlay for immediate cinematic feel */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.4)_51%)] bg-[length:100%_4px] pointer-events-none opacity-40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80 pointer-events-none" />
+
+          {/* Tactical HUD Header / Status Loading Bar Overlay centered directly without outer box */}
+          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none select-none p-4">
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 font-mono text-[11px] sm:text-[13px] font-bold text-white tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
+              <span>LOADING FIELD DOSSIER // STATUS: {loadProgress}%</span>
+              
+              {/* Bracketed solid segment progress bar */}
+              <div className="relative inline-flex items-center border border-white/90 px-0.5 py-[2px] w-32 sm:w-44 h-4 bg-black/50 backdrop-blur-sm">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-400 via-amber-200 to-white transition-[width] duration-75 ease-linear shadow-[0_0_10px_rgba(245,158,11,0.8)]"
+                  style={{ width: `${loadProgress}%` }}
+                />
+              </div>
+            </div>
           </div>
-          <p className="text-xs font-cinzel uppercase tracking-[0.35em] text-amber-200/70">
-            Charting Expedition… {loadProgress}%
-          </p>
         </div>
 
         {/* Centered logo, visible at the very top of the page */}
@@ -272,14 +353,14 @@ export default function LandingReveal() {
 
         {/* Scroll hint */}
         <motion.div
-          className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-center text-amber-200/80 font-cinzel"
+          className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-center text-white/90 font-cinzel"
           style={{ opacity: scrollHintOpacity }}
         >
           <div className="flex flex-col items-center gap-2">
-            <p className="text-[11px] uppercase tracking-[0.35em] drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+            <p className="text-[11px] uppercase tracking-[0.35em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
               Scroll to venture forth
             </p>
-            <span className="inline-block h-4 w-px bg-gradient-to-b from-amber-400 to-transparent animate-pulse" />
+            <span className="inline-block h-4 w-px bg-gradient-to-b from-white to-transparent animate-pulse" />
           </div>
         </motion.div>
 
@@ -423,14 +504,7 @@ export default function LandingReveal() {
                   className="pointer-events-none absolute bottom-4 right-2 z-30 hidden w-20 drop-shadow-md sm:bottom-10 sm:right-0 sm:block sm:w-32"
                 />
 
-                {/* Stone tablet card — the rock texture is a real <Image>
-                    stretched to fill the card via object-fit: fill, not a
-                    CSS background-image. A background-image with
-                    bg-cover crops top/bottom whenever the card's height
-                    (driven by its form content) doesn't match the PNG's
-                    own aspect ratio; object-fit: fill always covers the
-                    full box with zero cropping, and a stone texture has
-                    no straight lines so the slight stretch is invisible. */}
+                {/* Stone tablet card */}
                 <div className="relative z-10 flex w-full flex-col items-center justify-start px-6 pb-12 pt-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] sm:px-16 sm:pb-16 sm:pt-16">
                   <Image
                     src="/tablet/stone-tablet.png"
