@@ -21,7 +21,7 @@ export default function ExpeditionStatusHeader({
     <div className="relative w-full max-w-[480px] mx-auto drop-shadow-[0_14px_32px_rgba(0,0,0,0.92)] select-none">
       <div
         style={{
-          backgroundImage: `url('/assets/images/expedition_status_bg.png')`,
+          backgroundImage: `url('/assets/images/expedition_status_bg.webp')`,
           aspectRatio: '520 / 250',
         }}
         className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center"

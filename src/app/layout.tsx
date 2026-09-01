@@ -11,7 +11,7 @@ import "./globals.css";
 // 1. Local Uncharted Game Font (Base 02) — single instance shared by both
 //    the --font-base02 and --font-uncharted CSS variables.
 const base02 = localFont({
-  src: './fonts/Base02.ttf',
+  src: './fonts/Base02.woff2',
   variable: '--font-base02',
   display: 'swap',
 });

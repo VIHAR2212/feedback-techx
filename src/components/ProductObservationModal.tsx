@@ -53,7 +53,7 @@ export default function ProductObservationModal({
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.94, opacity: 0, y: 18 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        style={{ backgroundImage: `url('/assets/images/review-card.png')` }}
+        style={{ backgroundImage: `url('/assets/images/review-card.webp')` }}
         className="relative w-full max-w-[480px] aspect-[4/5] bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_25px_65px_rgba(0,0,0,0.98)] text-[#241308] flex flex-col justify-between overflow-hidden"
       >
         {/* Antique Brass & Leather Close Button (Inside Card Theme) */}
@@ -127,7 +127,7 @@ export default function ProductObservationModal({
                       )}
 
                       <img
-                        src="/assets/images/avery-pirate-coin.png"
+                        src="/assets/images/avery-pirate-coin.webp"
                         alt={`Rating Coin ${coinIndex}`}
                         className={`relative w-7 h-7 sm:w-8 sm:h-8 object-contain transition-all duration-150 ${
                           filled

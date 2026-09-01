@@ -358,7 +358,7 @@ export default function InteractiveTreasureMap({
                       <div
                         className="relative w-full bg-cover bg-center px-8 py-6 sm:px-10 sm:py-7 text-center"
                         style={{
-                          backgroundImage: "url('/textures/wooden-signboard.png')",
+                          backgroundImage: "url('/textures/wooden-signboard.webp')",
                           backgroundSize: '100% 100%',
                           backgroundRepeat: 'no-repeat',
                         }}
@@ -474,7 +474,7 @@ export default function InteractiveTreasureMap({
                   <div
                     className="relative w-full bg-cover bg-center px-8 py-6 sm:px-10 sm:py-7 text-center"
                     style={{
-                      backgroundImage: "url('/textures/wooden-signboard.png')",
+                      backgroundImage: "url('/textures/wooden-signboard.webp')",
                       backgroundSize: '100% 100%',
                       backgroundRepeat: 'no-repeat',
                     }}
@@ -560,7 +560,7 @@ export default function InteractiveTreasureMap({
               <div
                 className="relative w-full bg-cover bg-center px-6 py-5 text-center rounded-lg overflow-hidden"
                 style={{
-                  backgroundImage: "url('/textures/wooden-signboard.png')",
+                  backgroundImage: "url('/textures/wooden-signboard.webp')",
                   backgroundSize: '100% 100%',
                   backgroundRepeat: 'no-repeat',
                 }}

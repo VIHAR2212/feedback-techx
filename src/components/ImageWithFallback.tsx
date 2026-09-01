@@ -1,13 +1,16 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 
-interface ImageWithFallbackProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+interface ImageWithFallbackProps {
   src: string;
   alt: string;
   fallbackTitle?: string;
   fallbackIcon?: string;
   aspectRatio?: string;
+  className?: string;
+  priority?: boolean;
 }
 
 export default function ImageWithFallback({
@@ -15,41 +18,48 @@ export default function ImageWithFallback({
   alt,
   fallbackTitle,
   fallbackIcon = '✦',
-  aspectRatio,
+  aspectRatio = '16 / 9',
   className = '',
-  style = {},
-  ...props
+  priority = false,
 }: ImageWithFallbackProps) {
   const [error, setError] = useState(false);
 
-  if (error || !src) {
+  if (!src || error) {
     return (
       <div
-        className={`flex flex-col items-center justify-center bg-[#201a15] bg-[radial-gradient(circle,#2b221a_0%,#15110d_100%)] border-2 border-dashed border-[#8b7355] rounded-lg text-uc-gold p-4 text-center font-mono shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] w-full box-border ${className}`}
-        style={{
-          aspectRatio: aspectRatio || '16 / 9',
-          ...style,
-        }}
+        className={`flex flex-col items-center justify-center bg-[#201a15] border-2 border-dashed border-[#8b7355] rounded-lg text-[#e6c875] p-4 text-center ${className}`}
+        style={{ aspectRatio }}
       >
-        <span className="text-3xl mb-2 select-none">{fallbackIcon}</span>
-        <span className="text-sm font-bold tracking-wider text-[#e6c875]">
-          {fallbackTitle || alt || 'ASSET PENDING'}
+        <span className="text-3xl mb-2">
+          {fallbackIcon}
         </span>
-        <span className="text-[11px] text-[#8b7355] mt-1">
-          [{src ? src.split('/').pop() : 'NO PATH'}]
+
+        <span className="text-sm font-bold">
+          {fallbackTitle || alt || 'ASSET PENDING'}
         </span>
       </div>
     );
   }
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      onError={() => setError(true)}
-      className={`w-full h-full object-cover block ${className}`}
-      style={style}
-      {...props}
-    />
+    <div
+      className={`relative overflow-hidden ${className}`}
+      style={{ aspectRatio }}
+    >
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        priority={priority}
+        quality={75}
+        sizes="
+          (max-width: 640px) 100vw,
+          (max-width: 1024px) 80vw,
+          600px
+        "
+        className="object-cover"
+        onError={() => setError(true)}
+      />
+    </div>
   );
 }

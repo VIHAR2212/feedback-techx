@@ -34,6 +34,27 @@ export default function LandingReveal() {
   const [ready, setReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(1);
   const [showCard, setShowCard] = useState(false);
+  const [isLowTier, setIsLowTier] = useState(false);
+
+  // Detect low network bandwidth and low-end hardware constraints
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+    const nav = navigator as any;
+    const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+    const isSlow =
+      conn?.saveData === true ||
+      conn?.effectiveType === '2g' ||
+      conn?.effectiveType === 'slow-2g' ||
+      conn?.effectiveType === '3g' ||
+      (typeof conn?.downlink === 'number' && conn.downlink < 2.0) ||
+      (typeof conn?.rtt === 'number' && conn.rtt > 500);
+    const isLowCore = typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency <= 4;
+    const isLowMem = typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4;
+
+    if (isSlow || isLowCore || isLowMem) {
+      setIsLowTier(true);
+    }
+  }, []);
 
   const router = useRouter();
   const { user, login } = useUser();
@@ -350,31 +371,44 @@ export default function LandingReveal() {
           {/* Animated Atmospheric Backdrop while video decodes */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/20 via-black to-black pointer-events-none" />
 
-          {/* Desktop Video (> 768px) */}
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            disablePictureInPicture
-            disableRemotePlayback
-            className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-            src="/assets/images/loadingdesktop.mp4"
-          />
+          {/* If low-network or low-end device: render simple lightweight poster without heavy MP4 video */}
+          {isLowTier ? (
+            <div
+              className="absolute inset-0 w-full h-full bg-cover bg-center pointer-events-none select-none opacity-85"
+              style={{
+                backgroundImage: `url('${frameSrc(0)}')`,
+                backgroundPosition: 'center',
+              }}
+            />
+          ) : (
+            <>
+              {/* Desktop Video (> 768px) */}
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                disablePictureInPicture
+                disableRemotePlayback
+                className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                src="/assets/images/loadingdesktop.mp4"
+              />
 
-          {/* Mobile Video (<= 768px) */}
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            disablePictureInPicture
-            disableRemotePlayback
-            className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-            src="/assets/images/loadingmobile.mp4"
-          />
+              {/* Mobile Video (<= 768px) */}
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                disablePictureInPicture
+                disableRemotePlayback
+                className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                src="/assets/images/loadingmobile.mp4"
+              />
+            </>
+          )}
 
           {/* Ambient scanlines & vignette overlay for immediate cinematic feel */}
           <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.4)_51%)] bg-[length:100%_4px] pointer-events-none opacity-40" />
@@ -425,7 +459,7 @@ export default function LandingReveal() {
           <div
             className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
             style={{
-              backgroundImage: "url('/textures/parchment-banner.png')",
+              backgroundImage: "url('/textures/parchment-banner.webp')",
               backgroundSize: '100% 100%',
               backgroundRepeat: 'no-repeat',
             }}
@@ -463,7 +497,7 @@ export default function LandingReveal() {
           <div
             className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
             style={{
-              backgroundImage: "url('/textures/parchment-banner.png')",
+              backgroundImage: "url('/textures/parchment-banner.webp')",
               backgroundSize: '100% 100%',
               backgroundRepeat: 'no-repeat',
             }}
@@ -491,7 +525,7 @@ export default function LandingReveal() {
           <div
             className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
             style={{
-              backgroundImage: "url('/textures/parchment-banner.png')",
+              backgroundImage: "url('/textures/parchment-banner.webp')",
               backgroundSize: '100% 100%',
               backgroundRepeat: 'no-repeat',
             }}
@@ -531,9 +565,9 @@ export default function LandingReveal() {
               >
                 {/* Map + compass, pinned to the top-left corner of the tablet */}
                 <div className="pointer-events-none absolute -left-8 top-12 z-20 hidden -rotate-6 flex-col items-start sm:-left-20 sm:top-24 sm:flex">
-                  <Image src="/tablet/map.png" alt="" width={192} height={192} className="w-24 drop-shadow-[0_5px_10px_rgba(0,0,0,0.6)] sm:w-48" />
+                  <Image src="/tablet/map.webp" alt="" width={192} height={192} className="w-24 drop-shadow-[0_5px_10px_rgba(0,0,0,0.6)] sm:w-48" />
                   <Image
-                    src="/tablet/compass.png"
+                    src="/tablet/compass.webp"
                     alt=""
                     width={112}
                     height={112}
@@ -543,14 +577,14 @@ export default function LandingReveal() {
 
                 {/* Photo + coins, pinned to the bottom-right corner */}
                 <Image
-                  src="/tablet/photo.png"
+                  src="/tablet/photo.webp"
                   alt=""
                   width={160}
                   height={160}
                   className="pointer-events-none absolute -right-6 bottom-10 z-20 hidden w-24 rotate-[15deg] drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] sm:-right-4 sm:bottom-24 sm:block sm:w-40"
                 />
                 <Image
-                  src="/tablet/coins.png"
+                  src="/tablet/coins.webp"
                   alt=""
                   width={128}
                   height={128}
@@ -560,7 +594,7 @@ export default function LandingReveal() {
                 {/* Stone tablet card */}
                 <div className="relative z-10 flex w-full flex-col items-center justify-start px-6 pb-12 pt-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] sm:px-16 sm:pb-16 sm:pt-16">
                   <Image
-                    src="/tablet/stone-tablet.png"
+                    src="/tablet/stone-tablet.webp"
                     alt=""
                     fill
                     sizes="(max-width: 768px) 90vw, 700px"
@@ -569,10 +603,10 @@ export default function LandingReveal() {
                   />
                   <div className="relative z-10 mx-auto flex w-full max-w-md flex-col items-center">
                     <Image
-                      src="/tablet/techx-feedback-header.png"
+                      src="/tablet/techx-feedback-header.webp"
                       alt="Welcome to TechX Feedback"
-                      width={1400}
-                      height={751}
+                      width={900}
+                      height={483}
                       priority
                       className="w-full max-w-[85%] drop-shadow-md sm:max-w-[90%] md:max-w-[95%] lg:max-w-full"
                     />
@@ -642,7 +676,7 @@ export default function LandingReveal() {
                           type="submit"
                           disabled={submitting}
                           className="relative h-14 w-48 bg-contain bg-center bg-no-repeat transition-transform duration-300 hover:scale-105 active:scale-95 disabled:opacity-60 sm:h-20 sm:w-64"
-                          style={{ backgroundImage: "url('/tablet/portal-button.png')" }}
+                          style={{ backgroundImage: "url('/tablet/portal-button.webp')" }}
                         >
                           <span className="sr-only">
                             {submitting ? 'Entering…' : 'Enter Portal'}

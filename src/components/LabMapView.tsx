@@ -600,7 +600,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
             <div className="lg:hidden w-full shrink-0 z-30 pointer-events-auto px-2 pt-1 pb-2">
               <div
                 style={{
-                  backgroundImage: `url('/assets/images/expedition_status_bg.png')`,
+                  backgroundImage: `url('/assets/images/expedition_status_bg.webp')`,
                   aspectRatio: '520 / 285',
                 }}
                 className="relative w-full max-w-[390px] sm:max-w-[420px] mx-auto bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_12px_28px_rgba(0,0,0,0.95)] select-none overflow-hidden"
