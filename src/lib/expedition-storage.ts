@@ -140,6 +140,13 @@ export function appendClue(email: string, clueId: string) {
   localStorage.setItem(key, JSON.stringify(arr));
 }
 
+export function appendTreasure(email: string, treasureId: string) {
+  const key = TREASURES_KEY(email);
+  const arr = JSON.parse(localStorage.getItem(key) || '[]') as string[];
+  if (!arr.includes(treasureId)) arr.push(treasureId);
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
 export function isLabCompleted(email: string, labId: string): boolean {
   const arr = JSON.parse(
     localStorage.getItem(COMPLETED_LABS_KEY(email)) || '[]'

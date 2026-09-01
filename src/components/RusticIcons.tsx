@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 
@@ -323,6 +323,30 @@ export function PadlockIcon({ size = 20, color = '#652B19', className = '', styl
       {/* Keyhole */}
       <circle cx="12" cy="15.5" r="1.5" fill={color} />
       <path d="M12 17v2" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+/**
+ * Relic Spanish Doubloon / Gold Coin Icon
+ */
+export function RelicCoinIcon({ size = 20, color = '#652B19', className = '', style }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}
+    >
+      <circle cx="12" cy="12" r="9" strokeWidth="1.8" fill={color} fillOpacity="0.2" />
+      <circle cx="12" cy="12" r="6.5" strokeDasharray="2 2" strokeWidth="1.2" />
+      <path d="M12 7.5v9M9.5 9.5h5a1.5 1.5 0 0 1 0 3h-5a1.5 1.5 0 0 0 0 3h5" strokeWidth="1.5" />
     </svg>
   );
 }

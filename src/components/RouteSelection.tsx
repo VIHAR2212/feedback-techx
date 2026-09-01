@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
@@ -11,8 +11,8 @@ import {
   ExpeditionLab,
 } from '@/lib/expeditionData';
 import ExpeditionStatusHeader from './ExpeditionStatusHeader';
-import BackButton from './BackButton';
 import TreasureCard from './TreasureCard';
+import BackButton from './BackButton';
 import { motion } from 'framer-motion';
 
 export default function RouteSelection() {
@@ -85,11 +85,14 @@ export default function RouteSelection() {
         setActiveLabId(stored);
       } else {
         const firstIncomplete =
-          labList.find((lab) => !perLabProgress[lab.id]?.isCompleted)?.id || '1';
+          labList.find((lab) => {
+            const progress = perLabProgress[lab.id];
+            return !progress?.isCompleted;
+          })?.id || '1';
         setActiveLabId(firstIncomplete);
       }
     }
-  }, [userEmail, feedbackVersion]);
+  }, [userEmail, feedbackVersion, labList, perLabProgress]);
 
   const handleEnterLab = (labId: string) => {
     if (typeof window !== 'undefined') {

@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  RelicCoinIcon,
   CheckpointIcon,
   AntiqueCompassIcon,
   TreasureKeyIcon,
+  RelicCoinIcon,
 } from './RusticIcons';
 import { appendTreasure } from '@/lib/expedition-storage';
 import {
@@ -266,7 +266,7 @@ export default function TreasureCard({
       try {
         const audio = new Audio('/sounds/achievement.mp3');
         audio.volume = 0.6;
-        audio.play().catch(() => {});
+        audio.play().catch(() => { });
       } catch {
         // audio muted
       }
@@ -428,9 +428,8 @@ export default function TreasureCard({
               /* UNLOCKED STATE: ONE CLUE + 4 THEME-MATCHED RUSTIC OPTIONS         */
               /* ----------------------------------------------------------------- */
               <div
-                className={`my-auto py-1 flex flex-col gap-2 ${
-                  isShaking ? 'animate-shake' : ''
-                }`}
+                className={`my-auto py-1 flex flex-col gap-2 ${isShaking ? 'animate-shake' : ''
+                  }`}
               >
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold font-['EB_Garamond',_serif] text-[#1c0f05] tracking-tight leading-snug drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
@@ -445,11 +444,10 @@ export default function TreasureCard({
                 {/* Status Message */}
                 {statusMessage && (
                   <div
-                    className={`py-1 px-2.5 rounded text-[8.5px] sm:text-[9px] font-mono font-bold uppercase tracking-wider text-center ${
-                      gameState === 'won'
-                        ? 'bg-[#15803d]/15 text-[#15803d] border border-[#15803d]/30'
-                        : 'bg-[#8b261d]/15 text-[#8b261d] border border-[#8b261d]/30'
-                    }`}
+                    className={`py-1 px-2.5 rounded text-[8.5px] sm:text-[9px] font-mono font-bold uppercase tracking-wider text-center ${gameState === 'won'
+                      ? 'bg-[#15803d]/15 text-[#15803d] border border-[#15803d]/30'
+                      : 'bg-[#8b261d]/15 text-[#8b261d] border border-[#8b261d]/30'
+                      }`}
                   >
                     {statusMessage}
                   </div>
@@ -473,13 +471,12 @@ export default function TreasureCard({
                           clipPath:
                             'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
                         }}
-                        className={`py-2 px-3 text-left border transition-all duration-200 flex items-center justify-between gap-2 shadow-sm ${
-                          isCorrectSelected
-                            ? 'bg-[#15803d]/20 border-[#15803d] text-[#14532d] font-bold shadow-[0_0_8px_rgba(21,128,61,0.3)]'
-                            : isWrong
-                              ? 'bg-[#8b261d]/15 border-[#8b261d]/60 text-[#8b261d] line-through opacity-70 cursor-not-allowed'
-                              : 'bg-gradient-to-b from-[#241308]/5 via-[#241308]/10 to-[#241308]/15 hover:from-[#7a481c]/15 hover:to-[#7a481c]/25 border-[#7a481c]/40 text-[#241308] active:scale-[0.98] cursor-pointer'
-                        }`}
+                        className={`py-2 px-3 text-left border transition-all duration-200 flex items-center justify-between gap-2 shadow-sm ${isCorrectSelected
+                          ? 'bg-[#15803d]/20 border-[#15803d] text-[#14532d] font-bold shadow-[0_0_8px_rgba(21,128,61,0.3)]'
+                          : isWrong
+                            ? 'bg-[#8b261d]/15 border-[#8b261d]/60 text-[#8b261d] line-through opacity-70 cursor-not-allowed'
+                            : 'bg-gradient-to-b from-[#241308]/5 via-[#241308]/10 to-[#241308]/15 hover:from-[#7a481c]/15 hover:to-[#7a481c]/25 border-[#7a481c]/40 text-[#241308] active:scale-[0.98] cursor-pointer'
+                          }`}
                       >
                         <div className="min-w-0 flex items-center gap-2">
                           <div className="w-5 h-5 rounded-full border border-[#8c6d23]/50 bg-[#24140a]/15 flex items-center justify-center shrink-0">

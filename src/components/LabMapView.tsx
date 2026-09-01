@@ -13,7 +13,7 @@ import {
 import ProductObservationModal from './ProductObservationModal';
 import { AnimatePresence } from 'framer-motion';
 import { CheckpointIcon } from './RusticIcons';
-import rough from 'roughjs/bundled/rough.esm';
+import rough from 'roughjs';
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
@@ -75,10 +75,11 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
   // Typed as string: DB-backed configs may carry variant spellings
   // ('ice', 'volcanic') that the normalizer below maps onto themes.
   const themeType: string = labConfig?.themeType || (labKey === '2' ? 'frost' : labKey === '3' ? 'volcano' : 'jungle');
+  
   const normalizedTheme: ExpeditionTheme =
-    (themeType as string) === 'frost' || (themeType as string) === 'ice'
+    themeType === 'frost' || themeType === 'ice'
       ? 'ice'
-      : (themeType as string) === 'volcano' || (themeType as string) === 'volcanic'
+      : themeType === 'volcano' || themeType === 'volcanic'
         ? 'volcanic'
         : 'jungle';
 
@@ -103,14 +104,6 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
   // Dynamic Map Container Size & Node Coordinates
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && labKey) {
-      try {
-        localStorage.setItem('last_active_expedition_lab', labKey);
-      } catch {}
-    }
-  }, [labKey]);
 
   useEffect(() => {
     if (userEmail) {
@@ -377,7 +370,6 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     });
   }, [routePaths.segments, themeStyle, hashSegmentId]);
 
-
   const selectedIndex = products.findIndex((p) => p.id === selectedProduct?.id);
 
   return (
@@ -411,19 +403,21 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
           <div className="flex p-0.5 rounded bg-[#0d0704] border border-[#52351e]">
             <button
               onClick={() => setViewMode('map')}
-              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${viewMode === 'map'
-                ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
-                : 'text-[#8c6f4b] hover:text-[#c49b4d]'
-                }`}
+              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${
+                viewMode === 'map'
+                  ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
+                  : 'text-[#8c6f4b] hover:text-[#c49b4d]'
+              }`}
             >
               Journal
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${viewMode === 'list'
-                ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
-                : 'text-[#8c6f4b] hover:text-[#c49b4d]'
-                }`}
+              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
+                  : 'text-[#8c6f4b] hover:text-[#c49b4d]'
+              }`}
             >
               List
             </button>
@@ -546,12 +540,13 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
 
                         {/* Main Cartographic Compass Medallion */}
                         <div
-                          className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-115 ${isSubmitted
-                            ? submittedPinStyle
-                            : isCurrent
-                              ? 'bg-gradient-to-b from-[#fef08a] via-[#d4af37] to-[#78350f] border-2 border-[#fff3cc] text-[#1a0e05] scale-110 shadow-[0_0_16px_rgba(212,175,55,0.9)] ring-2 ring-[#fde047]'
-                              : 'bg-gradient-to-b from-[#2b1708] via-[#1a0f05] to-[#0d0702] border-2 border-[#8c6d23] text-[#d4af37] shadow-[0_4px_10px_rgba(0,0,0,0.85)]'
-                            }`}
+                          className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-115 ${
+                            isSubmitted
+                              ? submittedPinStyle
+                              : isCurrent
+                                ? 'bg-gradient-to-b from-[#fef08a] via-[#d4af37] to-[#78350f] border-2 border-[#fff3cc] text-[#1a0e05] scale-110 shadow-[0_0_16px_rgba(212,175,55,0.9)] ring-2 ring-[#fde047]'
+                                : 'bg-gradient-to-b from-[#2b1708] via-[#1a0f05] to-[#0d0702] border-2 border-[#8c6d23] text-[#d4af37] shadow-[0_4px_10px_rgba(0,0,0,0.85)]'
+                          }`}
                         >
                           {/* Subtle 4-axis compass notch markers */}
                           <div className="absolute -top-0.5 w-1 h-0.5 bg-[#8c6d23] rounded-full pointer-events-none" />
@@ -567,18 +562,19 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
 
                         {/* Needle Tip Pointing to Exact Coordinates */}
                         <div
-                          className={`w-0 h-0 border-l-[4px] border-r-[4px] border-l-transparent border-r-transparent border-t-[5px] -mt-0.5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)] ${isSubmitted
-                            ? themeType === 'jungle'
-                              ? 'border-t-[#22c55e]'
-                              : themeType === 'frost'
-                                ? 'border-t-[#0284c7]'
-                                : themeType === 'volcano'
-                                  ? 'border-t-[#ea580c]'
-                                  : 'border-t-[#eab308]'
-                            : isCurrent
-                              ? 'border-t-[#d4af37]'
-                              : 'border-t-[#8c6d23]'
-                            }`}
+                          className={`w-0 h-0 border-l-[4px] border-r-[4px] border-l-transparent border-r-transparent border-t-[5px] -mt-0.5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)] ${
+                            isSubmitted
+                              ? themeType === 'jungle'
+                                ? 'border-t-[#22c55e]'
+                                : themeType === 'frost'
+                                  ? 'border-t-[#0284c7]'
+                                  : themeType === 'volcano'
+                                    ? 'border-t-[#ea580c]'
+                                    : 'border-t-[#eab308]'
+                              : isCurrent
+                                ? 'border-t-[#d4af37]'
+                                : 'border-t-[#8c6d23]'
+                          }`}
                         />
 
                         {/* Small Waypoint Tag */}
@@ -612,10 +608,11 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                       </span>
                     </div>
                     <span
-                      className={`text-[7.5px] sm:text-[8px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 shadow-xs ${selectedProduct && submittedIds.includes(selectedProduct.id)
-                        ? 'bg-[#8b261d]/15 text-[#8b261d] border border-[#8b261d]/40'
-                        : 'bg-[#7a5214]/10 text-[#7a5214] border border-[#7a5214]/30'
-                        }`}
+                      className={`text-[7.5px] sm:text-[8px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 shadow-xs ${
+                        selectedProduct && submittedIds.includes(selectedProduct.id)
+                          ? 'bg-[#8b261d]/15 text-[#8b261d] border border-[#8b261d]/40'
+                          : 'bg-[#7a5214]/10 text-[#7a5214] border border-[#7a5214]/30'
+                      }`}
                     >
                       {selectedProduct && submittedIds.includes(selectedProduct.id) ? 'LOGGED ✦' : 'PENDING'}
                     </span>
@@ -678,10 +675,11 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                   </h2>
                 </div>
                 <span
-                  className={`text-[9.5px] font-mono font-bold px-2.5 py-1 rounded border shadow-sm ${selectedProduct && submittedIds.includes(selectedProduct.id)
-                    ? 'bg-[#8b261d]/15 text-[#8b261d] border-[#8b261d]/40 -rotate-2'
-                    : 'bg-[#7a5214]/10 text-[#7a5214] border-[#7a5214]/30'
-                    }`}
+                  className={`text-[9.5px] font-mono font-bold px-2.5 py-1 rounded border shadow-sm ${
+                    selectedProduct && submittedIds.includes(selectedProduct.id)
+                      ? 'bg-[#8b261d]/15 text-[#8b261d] border-[#8b261d]/40 -rotate-2'
+                      : 'bg-[#7a5214]/10 text-[#7a5214] border-[#7a5214]/30'
+                  }`}
                 >
                   {selectedProduct && submittedIds.includes(selectedProduct.id) ? '✦ SURVEY CLEARED' : 'UNSURVEYED COORD'}
                 </span>
@@ -730,10 +728,11 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                           key={p.id}
                           type="button"
                           onClick={() => setSelectedProduct(p)}
-                          className={`py-2 px-1 rounded-md border flex flex-col items-center justify-between gap-1 transition-all cursor-pointer ${isSel
-                            ? 'bg-[#d4af37]/35 border-[#7a5214] ring-2 ring-[#d4af37]/80 shadow-md scale-[1.03]'
-                            : 'bg-[#2b180d]/[0.03] border-[#8b6943]/30 hover:bg-[#2b180d]/[0.07] hover:border-[#7a5214]/50'
-                            }`}
+                          className={`py-2 px-1 rounded-md border flex flex-col items-center justify-between gap-1 transition-all cursor-pointer ${
+                            isSel
+                              ? 'bg-[#d4af37]/35 border-[#7a5214] ring-2 ring-[#d4af37]/80 shadow-md scale-[1.03]'
+                              : 'bg-[#2b180d]/[0.03] border-[#8b6943]/30 hover:bg-[#2b180d]/[0.07] hover:border-[#7a5214]/50'
+                          }`}
                         >
                           <CheckpointIcon index={i} size={16} color={isSel ? '#241308' : isDone ? '#8b261d' : '#7a5214'} />
                           <span className="text-[9.5px] font-mono font-bold text-[#241308] tracking-tight">
@@ -794,10 +793,11 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center font-serif font-bold text-xs shrink-0 ${isDone
-                        ? 'bg-gradient-to-b from-[#f3e5ab] via-[#d4af37] to-[#7a5214] text-[#1a0e05] border border-[#f3e5ab]'
-                        : 'bg-[#2B1B11] text-[#D4AF37] border border-[#8A6839]'
-                        }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-serif font-bold text-xs shrink-0 ${
+                        isDone
+                          ? 'bg-gradient-to-b from-[#f3e5ab] via-[#d4af37] to-[#7a5214] text-[#1a0e05] border border-[#f3e5ab]'
+                          : 'bg-[#2B1B11] text-[#D4AF37] border border-[#8A6839]'
+                      }`}
                     >
                       {isDone ? '✦' : ROMAN_NUMERALS[idx] || idx + 1}
                     </div>
