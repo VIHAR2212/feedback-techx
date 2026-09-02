@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
@@ -11,6 +11,7 @@ import {
   ExpeditionLab,
 } from '@/lib/expeditionData';
 import ExpeditionStatusHeader from './ExpeditionStatusHeader';
+import TreasureCard from './TreasureCard';
 import BackButton from './BackButton';
 import { motion } from 'framer-motion';
 
@@ -19,6 +20,20 @@ export default function RouteSelection() {
   const { user } = useUser();
   const userEmail = user?.email || 'explorer@field.recon';
   useLabs(); // re-render dynamically when admin edits labs
+  const [feedbackVersion, setFeedbackVersion] = useState(0);
+
+  // Listen for feedback submissions across tabs or components
+  useEffect(() => {
+    const handleFeedbackUpdate = () => {
+      setFeedbackVersion((v) => v + 1);
+    };
+    window.addEventListener('feedbackSubmitted', handleFeedbackUpdate);
+    window.addEventListener('storage', handleFeedbackUpdate);
+    return () => {
+      window.removeEventListener('feedbackSubmitted', handleFeedbackUpdate);
+      window.removeEventListener('storage', handleFeedbackUpdate);
+    };
+  }, []);
 
   // Strictly 3 primary sectors
   const labList: ExpeditionLab[] = [
@@ -59,6 +74,34 @@ export default function RouteSelection() {
 
   const overallPercentage =
     totalCheckpoints > 0 ? Math.round((completedCheckpoints / totalCheckpoints) * 100) : 0;
+
+
+  const [activeLabId, setActiveLabId] = useState<string>('1');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('last_active_expedition_lab');
+      if (stored) {
+        setActiveLabId(stored);
+      } else {
+        const firstIncomplete =
+          labList.find((lab) => {
+            const progress = perLabProgress[lab.id];
+            return !progress?.isCompleted;
+          })?.id || '1';
+        setActiveLabId(firstIncomplete);
+      }
+    }
+  }, [userEmail, feedbackVersion, labList, perLabProgress]);
+
+  const handleEnterLab = (labId: string) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('last_active_expedition_lab', labId);
+      } catch {}
+    }
+    router.push(`/labs/${labId}`);
+  };
 
   return (
     <div className="relative min-h-[100dvh] w-full text-[#2c1a0e] flex flex-col items-center justify-start pt-6 pb-28 sm:pb-32 px-3 sm:px-6 overflow-x-hidden font-['Georgia'] select-none">
@@ -106,7 +149,7 @@ export default function RouteSelection() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: index * 0.1 }}
                 className="relative w-full drop-shadow-[0_12px_28px_rgba(0,0,0,0.88)] cursor-pointer group"
-                onClick={() => router.push(`/labs/${lab.id}`)}
+                onClick={() => handleEnterLab(lab.id)}
               >
                 {/* Torn Parchment Dossier Plaque with Inset Safe Zone */}
                 <div
@@ -182,7 +225,7 @@ export default function RouteSelection() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/labs/${lab.id}`);
+                          handleEnterLab(lab.id);
                         }}
                         style={{
                           clipPath:
@@ -200,7 +243,7 @@ export default function RouteSelection() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/labs/${lab.id}`);
+                          handleEnterLab(lab.id);
                         }}
                         style={{
                           clipPath:
@@ -217,6 +260,14 @@ export default function RouteSelection() {
               </motion.div>
             );
           })}
+
+          {/* Unlockable 7-Project Milestone Treasure Card */}
+          <TreasureCard
+            completedCount={completedCheckpoints}
+            targetCount={7}
+            userEmail={userEmail}
+            currentLabId={activeLabId}
+          />
         </div>
       </div>
     </div>
