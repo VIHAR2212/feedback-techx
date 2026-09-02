@@ -100,14 +100,30 @@ export default function ExpeditionBottomDock() {
         {/* Header row with Antique Labels */}
         <div className="flex items-center justify-between text-[9.5px] sm:text-[11px] font-mono font-extrabold uppercase tracking-widest text-[#fef08a] mb-1.5 px-0.5">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <div className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative shrink-0 transition-transform duration-150 ${isImpacting ? 'scale-125' : ''}`}>
-              <Image
-                src="/assets/images/avery-pirate-coin.webp"
-                alt="Pirate Coin"
-                fill
-                sizes="16px"
-                className="object-contain drop-shadow-[0_0_4px_#eab308]"
-              />
+            {/* Glowing Golden Nautical Compass Star */}
+            <div className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative shrink-0 flex items-center justify-center transition-transform duration-200 ${isImpacting ? 'scale-140 rotate-45' : ''}`}>
+              <svg
+                viewBox="0 0 24 24"
+                className="w-full h-full drop-shadow-[0_0_6px_rgba(253,224,71,0.9)]"
+                fill="none"
+              >
+                <path
+                  d="M12 0L14.7 8.3L23 11L14.7 13.7L12 22L9.3 13.7L1 11L9.3 8.3L12 0Z"
+                  fill="url(#goldNauticalStarGrad)"
+                />
+                <path
+                  d="M12 3.5L13.8 8.8L19 11L13.8 13.2L12 18.5L10.2 13.2L5 11L10.2 8.8L12 3.5Z"
+                  fill="#ffffff"
+                  fillOpacity="0.85"
+                />
+                <defs>
+                  <linearGradient id="goldNauticalStarGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#fff08a" />
+                    <stop offset="0.5" stopColor="#eab308" />
+                    <stop offset="1" stopColor="#a16207" />
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
             <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] truncate">
               Overall Logged: {completedCheckpoints}/{totalCheckpoints}
