@@ -34,26 +34,21 @@ export default function LandingReveal() {
   const [ready, setReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(1);
   const [showCard, setShowCard] = useState(false);
-  const [isLowTier, setIsLowTier] = useState(false);
 
-  // Detect low network bandwidth and low-end hardware constraints
+  const desktopVideoRef = useRef<HTMLVideoElement>(null);
+  const mobileVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Guarantee video playback triggers immediately
   useEffect(() => {
-    if (typeof navigator === 'undefined') return;
-    const nav = navigator as any;
-    const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
-    const isSlow =
-      conn?.saveData === true ||
-      conn?.effectiveType === '2g' ||
-      conn?.effectiveType === 'slow-2g' ||
-      conn?.effectiveType === '3g' ||
-      (typeof conn?.downlink === 'number' && conn.downlink < 2.0) ||
-      (typeof conn?.rtt === 'number' && conn.rtt > 500);
-    const isLowCore = typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency <= 4;
-    const isLowMem = typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4;
-
-    if (isSlow || isLowCore || isLowMem) {
-      setIsLowTier(true);
-    }
+    const playSafe = (el: HTMLVideoElement | null) => {
+      if (el) {
+        el.muted = true;
+        el.defaultMuted = true;
+        el.play().catch(() => {});
+      }
+    };
+    playSafe(desktopVideoRef.current);
+    playSafe(mobileVideoRef.current);
   }, []);
 
   const router = useRouter();
@@ -371,44 +366,35 @@ export default function LandingReveal() {
           {/* Animated Atmospheric Backdrop while video decodes */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/20 via-black to-black pointer-events-none" />
 
-          {/* If low-network or low-end device: render simple lightweight poster without heavy MP4 video */}
-          {isLowTier ? (
-            <div
-              className="absolute inset-0 w-full h-full bg-cover bg-center pointer-events-none select-none opacity-85"
-              style={{
-                backgroundImage: `url('${frameSrc(0)}')`,
-                backgroundPosition: 'center',
-              }}
-            />
-          ) : (
-            <>
-              {/* Desktop Video (> 768px) */}
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
-                disablePictureInPicture
-                disableRemotePlayback
-                className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-                src="/assets/images/loadingdesktop.mp4"
-              />
+          {/* Desktop Video (> 768px) */}
+          <video
+            ref={desktopVideoRef}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            disablePictureInPicture
+            disableRemotePlayback
+            className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          >
+            <source src="/assets/images/loadingdesktop.mp4" type="video/mp4" />
+          </video>
 
-              {/* Mobile Video (<= 768px) */}
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
-                disablePictureInPicture
-                disableRemotePlayback
-                className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-                src="/assets/images/loadingmobile.mp4"
-              />
-            </>
-          )}
+          {/* Mobile Video (<= 768px) */}
+          <video
+            ref={mobileVideoRef}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            disablePictureInPicture
+            disableRemotePlayback
+            className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          >
+            <source src="/assets/images/loadingmobile.mp4" type="video/mp4" />
+          </video>
 
           {/* Ambient scanlines & vignette overlay for immediate cinematic feel */}
           <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.4)_51%)] bg-[length:100%_4px] pointer-events-none opacity-40" />
