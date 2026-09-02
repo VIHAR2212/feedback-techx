@@ -28,6 +28,9 @@ export default function ProductObservationModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const coinRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+
   // Clear the fake-submit timer if the modal unmounts mid-flight.
   useEffect(() => {
     return () => {
@@ -39,11 +42,40 @@ export default function ProductObservationModal({
     e.preventDefault();
     if (rating === 0) return;
 
+    // 1. Calculate origin from the exact selected rating coin (e.g. 4th coin for rating 4)
+    let startX = typeof window !== 'undefined' ? window.innerWidth / 2 : 200;
+    let startY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300;
+
+    const selectedRatingCoinEl = coinRefs.current[rating - 1];
+    if (selectedRatingCoinEl) {
+      const rect = selectedRatingCoinEl.getBoundingClientRect();
+      startX = rect.left + rect.width / 2;
+      startY = rect.top + rect.height / 2;
+    } else if (submitButtonRef.current) {
+      const rect = submitButtonRef.current.getBoundingClientRect();
+      startX = rect.left + rect.width / 2;
+      startY = rect.top + rect.height / 2;
+    }
+
+    // 2. Trigger the train-path coin animation starting from that exact rating coin
+    const coinCount = Math.max(1, Math.min(5, rating || 4));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('flyExpeditionCoins', {
+          detail: {
+            count: coinCount,
+            startX,
+            startY,
+          },
+        })
+      );
+    }
+
     setIsSubmitting(true);
     submitTimerRef.current = setTimeout(() => {
       setIsSubmitting(false);
       onSuccess({ rating, comment: feedback.trim() });
-    }, 400);
+    }, 180);
   };
 
   return (
@@ -53,7 +85,7 @@ export default function ProductObservationModal({
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.94, opacity: 0, y: 18 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        style={{ backgroundImage: `url('/assets/images/review-card.png')` }}
+        style={{ backgroundImage: `url('/assets/images/review-card.webp')` }}
         className="relative w-full max-w-[480px] aspect-[4/5] bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_25px_65px_rgba(0,0,0,0.98)] text-[#241308] flex flex-col justify-between overflow-hidden"
       >
         {/* Antique Brass & Leather Close Button (Inside Card Theme) */}
@@ -116,6 +148,9 @@ export default function ProductObservationModal({
                   return (
                     <button
                       key={coinIndex}
+                      ref={(el) => {
+                        coinRefs.current[coinIndex - 1] = el;
+                      }}
                       type="button"
                       onClick={() => setRating(coinIndex)}
                       onMouseEnter={() => setHoverRating(coinIndex)}
@@ -127,7 +162,7 @@ export default function ProductObservationModal({
                       )}
 
                       <img
-                        src="/assets/images/avery-pirate-coin.png"
+                        src="/assets/images/avery-pirate-coin.webp"
                         alt={`Rating Coin ${coinIndex}`}
                         className={`relative w-7 h-7 sm:w-8 sm:h-8 object-contain transition-all duration-150 ${
                           filled
@@ -159,6 +194,7 @@ export default function ProductObservationModal({
             {/* Action Plaque Button (Positioned Cleanly Inside Parchment Above Bottom Rim) */}
             <div className="pt-0.5">
               <button
+                ref={submitButtonRef}
                 type="submit"
                 disabled={rating === 0 || isSubmitting}
                 style={{

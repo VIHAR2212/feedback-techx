@@ -114,7 +114,7 @@ export default function PublicLeaderboardPage() {
       />
 
       {/* Main Uncharted Signboard Content Grounded at Bottom */}
-      <div className="relative z-10 w-full h-full flex flex-col justify-end items-center pb-0">
+      <div className="relative z-10 w-full h-full flex flex-col justify-end items-center pb-12 sm:pb-14">
         <UnchartedSignboardLeaderboard
           leaderboard={leaderboard}
           productStats={productStats}

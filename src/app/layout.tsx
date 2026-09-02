@@ -6,12 +6,14 @@ import { CompletionProvider } from '@/context/CompletionContext';
 import { AdminProvider } from '@/context/AdminContext';
 import { LabsProvider } from '@/context/LabsContext';
 import CompletionChecker from '@/components/CompletionChecker';
+import ExpeditionBottomDock from '@/components/ExpeditionBottomDock';
+import FlyingCoinsOverlay from '@/components/FlyingCoinsOverlay';
 import "./globals.css";
 
 // 1. Local Uncharted Game Font (Base 02) — single instance shared by both
 //    the --font-base02 and --font-uncharted CSS variables.
 const base02 = localFont({
-  src: './fonts/Base02.ttf',
+  src: './fonts/Base02.woff2',
   variable: '--font-base02',
   display: 'swap',
 });
@@ -117,6 +119,8 @@ export default function RootLayout({
               <CompletionProvider>
                 {children}
                 <CompletionChecker />
+                <ExpeditionBottomDock />
+                <FlyingCoinsOverlay />
               </CompletionProvider>
             </UserProvider>
           </LabsProvider>

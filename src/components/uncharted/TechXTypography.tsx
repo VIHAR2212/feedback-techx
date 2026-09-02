@@ -129,7 +129,7 @@ export function TechXLogoText({
             <div className="flex items-center justify-center transition-transform duration-300 hover:scale-105">
               <div className="bg-white/95 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,0.6)] flex items-center justify-center">
                 <img
-                  src="/assets/images/career-launcher.png"
+                  src="/assets/images/career-launcher.webp"
                   alt="Career Launcher"
                   className="h-5 sm:h-7 md:h-8 w-auto object-contain"
                 />
@@ -139,7 +139,7 @@ export function TechXLogoText({
             {/* Sponsor 2: I-Tech */}
             <div className="flex items-center justify-center transition-transform duration-300 hover:scale-105">
               <img
-                src="/assets/images/ndh.png"
+                src="/assets/images/ndh.webp"
                 alt="I-Tech Computer Education"
                 className="h-11 sm:h-14 md:h-16 w-auto object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)] filter brightness-105"
               />

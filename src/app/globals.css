@@ -1,26 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@font-face {
-  font-family: 'Base02';
-  src: url('/fonts/Base02.ttf') format('truetype'),
-       url('/assets/fonts/Base 02.ttf') format('truetype'),
-       url('/assets/fonts/base-02.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Base 02';
-  src: url('/assets/fonts/Base 02.ttf') format('truetype'),
-       url('/assets/fonts/base-02.ttf') format('truetype'),
-       url('/fonts/Base02.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 @theme inline {
   --background: #1a1a1a;  /* Charcoal Dark Black */
   --color-background: var(--background);

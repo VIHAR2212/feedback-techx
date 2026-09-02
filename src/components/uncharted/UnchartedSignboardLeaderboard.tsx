@@ -231,7 +231,7 @@ export default function UnchartedSignboardLeaderboard({
           >
             {/* Wooden plank background texture behind title */}
             <img
-              src="/textures/leaderboard-title-plank.png"
+              src="/textures/leaderboard-title-plank.webp"
               alt=""
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-contain pointer-events-none drop-shadow-[0_8px_16px_rgba(0,0,0,0.85)] select-none"

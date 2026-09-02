@@ -320,7 +320,7 @@ export default function TreasureCard({
           {/* ========================================================================= */}
           <div
             style={{
-              backgroundImage: `url('/assets/images/torn-card-bg.png')`,
+              backgroundImage: `url('/assets/images/torn-card-bg.webp')`,
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
             }}
@@ -530,7 +530,7 @@ export default function TreasureCard({
           {/* ========================================================================= */}
           <div
             style={{
-              backgroundImage: `url('/assets/images/torn-card-bg.png')`,
+              backgroundImage: `url('/assets/images/torn-card-bg.webp')`,
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',

@@ -104,7 +104,7 @@ export default function RouteSelection() {
   };
 
   return (
-    <div className="relative min-h-[100dvh] w-full text-[#2c1a0e] flex flex-col items-center justify-start py-6 px-3 sm:px-6 overflow-x-hidden font-['Georgia'] select-none">
+    <div className="relative min-h-[100dvh] w-full text-[#2c1a0e] flex flex-col items-center justify-start pt-6 pb-28 sm:pb-32 px-3 sm:px-6 overflow-x-hidden font-['Georgia'] select-none">
       {/* Original Parchment Map Background */}
       <div
         style={{ backgroundImage: `url('/assets/images/expedition_map_bg.jpg')` }}
@@ -117,13 +117,10 @@ export default function RouteSelection() {
           <BackButton to="/" label="Home" />
         </div>
 
-        {/* Expedition Status Header Plaque with Overall Progress Gauge */}
+        {/* Expedition Status Header Plaque */}
         <ExpeditionStatusHeader
           completedCount={completedSectorsCount}
           totalCount={labList.length}
-          completedCheckpoints={completedCheckpoints}
-          totalCheckpoints={totalCheckpoints}
-          overallPercentage={overallPercentage}
         />
 
         {/* 3 Sector Expedition Cards */}
@@ -157,7 +154,7 @@ export default function RouteSelection() {
                 {/* Torn Parchment Dossier Plaque with Inset Safe Zone */}
                 <div
                   style={{
-                    backgroundImage: `url('/assets/images/torn-card-bg.png')`,
+                    backgroundImage: `url('/assets/images/torn-card-bg.webp')`,
                   }}
                   className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center px-10 sm:px-12 py-6 sm:py-7 flex flex-col justify-between min-h-[200px] text-[#241308]"
                 >
@@ -166,11 +163,10 @@ export default function RouteSelection() {
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 select-none overflow-visible">
                       <div className="w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] md:w-[390px] md:h-[390px] -rotate-[12deg] opacity-[0.82] mix-blend-multiply transition-transform">
                         <Image
-                          src="/assets/images/stamp.png?v=3"
+                          src="/assets/images/stamp.webp"
                           alt="Survey Cleared Stamp"
                           width={500}
                           height={500}
-                          unoptimized
                           priority
                           className="w-full h-full object-contain"
                         />

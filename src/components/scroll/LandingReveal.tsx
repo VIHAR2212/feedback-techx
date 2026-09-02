@@ -35,6 +35,22 @@ export default function LandingReveal() {
   const [loadProgress, setLoadProgress] = useState(1);
   const [showCard, setShowCard] = useState(false);
 
+  const desktopVideoRef = useRef<HTMLVideoElement>(null);
+  const mobileVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Guarantee video playback triggers immediately
+  useEffect(() => {
+    const playSafe = (el: HTMLVideoElement | null) => {
+      if (el) {
+        el.muted = true;
+        el.defaultMuted = true;
+        el.play().catch(() => {});
+      }
+    };
+    playSafe(desktopVideoRef.current);
+    playSafe(mobileVideoRef.current);
+  }, []);
+
   const router = useRouter();
   const { user, login } = useUser();
 
@@ -59,12 +75,12 @@ export default function LandingReveal() {
     offset: ['start start', 'end end'],
   });
 
-  // Fast, silky smooth spring interpolation for high-precision 60fps tracking
+  // Fast, silky smooth spring interpolation tuned to eliminate mobile micro-jitter
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 260,
-    damping: 28,
-    mass: 0.15,
-    restDelta: 0.0001,
+    stiffness: 280,
+    damping: 34,
+    mass: 0.1,
+    restDelta: 0.001,
   });
 
   // Ratchet that resets when the user is back at the very top of the page.
@@ -120,7 +136,7 @@ export default function LandingReveal() {
     const isLowCoreDevice = typeof navigator !== 'undefined' && (navigator.hardwareConcurrency || 4) <= 4;
 
     // Adaptive concurrency: throttle down on slow networks / low cores to avoid freezing the main thread
-    const PRELOAD_CONCURRENCY = isSlowNetwork || isLowCoreDevice ? 3 : 6;
+    const PRELOAD_CONCURRENCY = isSlowNetwork || isLowCoreDevice ? 4 : 8;
     const TARGET_INITIAL_FRAMES = isSlowNetwork ? 5 : 15;
 
     const startTime = Date.now();
@@ -170,7 +186,14 @@ export default function LandingReveal() {
       const img = new window.Image();
       img.decoding = 'async';
       img.fetchPriority = i < TARGET_INITIAL_FRAMES ? 'high' : 'low';
-      img.onload = () => resolve();
+      img.onload = () => {
+        // Pre-decode into GPU memory in background so drawImage never blocks the main thread
+        if ('decode' in img) {
+          img.decode().then(() => resolve()).catch(() => resolve());
+        } else {
+          resolve();
+        }
+      };
       img.onerror = () => {
         if (img.src.endsWith(FRAME_SUFFIX)) {
           img.src = frameSrc(i, FRAME_FALLBACK_SUFFIX);
@@ -200,10 +223,28 @@ export default function LandingReveal() {
 
   const drawFrame = useCallback((index: number) => {
     const canvas = canvasRef.current;
-    const img = framesRef.current[index];
-    if (!canvas || !img || !img.complete || img.naturalWidth === 0) return;
+    if (!canvas) return;
 
-    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+    // Find requested frame or closest loaded frame fallback to prevent blank flashes during fast scrub
+    let img = framesRef.current[index];
+    if (!img || !img.complete || img.naturalWidth === 0) {
+      for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
+        const prev = framesRef.current[index - offset];
+        if (prev && prev.complete && prev.naturalWidth > 0) {
+          img = prev;
+          break;
+        }
+        const next = framesRef.current[index + offset];
+        if (next && next.complete && next.naturalWidth > 0) {
+          img = next;
+          break;
+        }
+      }
+    }
+
+    if (!img || !img.complete || img.naturalWidth === 0) return;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
     const cw = canvas.width;
@@ -215,22 +256,30 @@ export default function LandingReveal() {
     ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   }, []);
 
-  // Drive the canvas frame smoothly from spring progress.
+  // Drive the canvas frame smoothly via a continuous RAF sync loop
   useEffect(() => {
     if (!ready) return;
     drawFrame(0);
 
-    const unsub = smoothProgress.on('change', (v) => {
+    let lastDrawnFrame = -1;
+    let animId: number;
+
+    const render = () => {
+      const v = smoothProgress.get();
       const clamped = Math.max(0, Math.min(1, v));
       const idx = Math.min(Math.floor(clamped * TOTAL_FRAMES), TOTAL_FRAMES - 1);
-      if (idx !== currentFrameRef.current) {
-        currentFrameRef.current = idx;
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = requestAnimationFrame(() => drawFrame(idx));
-      }
-    });
 
-    return () => unsub();
+      if (idx !== lastDrawnFrame) {
+        lastDrawnFrame = idx;
+        currentFrameRef.current = idx;
+        drawFrame(idx);
+      }
+      animId = requestAnimationFrame(render);
+    };
+
+    animId = requestAnimationFrame(render);
+
+    return () => cancelAnimationFrame(animId);
   }, [ready, smoothProgress, drawFrame]);
 
   // Toggle whether the signup card can capture pointer input
@@ -239,20 +288,40 @@ export default function LandingReveal() {
     return () => unsub();
   }, [smoothProgress]);
 
-  // Canvas resize with DPR clamp for low-end GPU optimization
+  // Canvas resize with DPR clamp & address-bar debounce to prevent black frame flashes on mobile
   useEffect(() => {
+    let prevWidth = 0;
+    let prevHeight = 0;
+
     const handleResize = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      // Limit canvas resolution to max 1.5x DPR on high-density displays to prevent lag on budget phones
+
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // Ignore small vertical resizes caused by mobile address bar collapsing/expanding
+      if (prevWidth === w && Math.abs(prevHeight - h) < 160) {
+        return;
+      }
+
+      prevWidth = w;
+      prevHeight = h;
+
+      // Limit canvas resolution to max 1.5x DPR on high-density displays for silky mobile GPU performance
       const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 1.5);
-      canvas.width = Math.floor(window.innerWidth * dpr);
-      canvas.height = Math.floor(window.innerHeight * dpr);
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
       if (ready) drawFrame(currentFrameRef.current);
     };
+
     handleResize();
     window.addEventListener('resize', handleResize, { passive: true });
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
   }, [ready, drawFrame]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -279,11 +348,11 @@ export default function LandingReveal() {
 
   return (
     <section ref={containerRef} className="relative bg-black" style={{ height: `${SCROLL_HEIGHT_VH}vh` }}>
-      <div className="sticky top-0 h-screen w-full overflow-hidden bg-black">
+      <div className="sticky top-0 h-[100dvh] w-full overflow-hidden bg-black transform-gpu">
         {/* Frame sequence, scrubbed by scroll (hidden until ready to avoid any flash) */}
         <canvas
           ref={canvasRef}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 transform-gpu ${
             ready ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -299,6 +368,7 @@ export default function LandingReveal() {
 
           {/* Desktop Video (> 768px) */}
           <video
+            ref={desktopVideoRef}
             autoPlay
             muted
             loop
@@ -307,11 +377,13 @@ export default function LandingReveal() {
             disablePictureInPicture
             disableRemotePlayback
             className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-            src="/assets/images/loadingdesktop.mp4"
-          />
+          >
+            <source src="/assets/images/loadingdesktop.mp4" type="video/mp4" />
+          </video>
 
           {/* Mobile Video (<= 768px) */}
           <video
+            ref={mobileVideoRef}
             autoPlay
             muted
             loop
@@ -320,8 +392,9 @@ export default function LandingReveal() {
             disablePictureInPicture
             disableRemotePlayback
             className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-            src="/assets/images/loadingmobile.mp4"
-          />
+          >
+            <source src="/assets/images/loadingmobile.mp4" type="video/mp4" />
+          </video>
 
           {/* Ambient scanlines & vignette overlay for immediate cinematic feel */}
           <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.4)_51%)] bg-[length:100%_4px] pointer-events-none opacity-40" />
@@ -372,7 +445,7 @@ export default function LandingReveal() {
           <div
             className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
             style={{
-              backgroundImage: "url('/textures/parchment-banner.png')",
+              backgroundImage: "url('/textures/parchment-banner.webp')",
               backgroundSize: '100% 100%',
               backgroundRepeat: 'no-repeat',
             }}
@@ -410,7 +483,7 @@ export default function LandingReveal() {
           <div
             className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
             style={{
-              backgroundImage: "url('/textures/parchment-banner.png')",
+              backgroundImage: "url('/textures/parchment-banner.webp')",
               backgroundSize: '100% 100%',
               backgroundRepeat: 'no-repeat',
             }}
@@ -438,7 +511,7 @@ export default function LandingReveal() {
           <div
             className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
             style={{
-              backgroundImage: "url('/textures/parchment-banner.png')",
+              backgroundImage: "url('/textures/parchment-banner.webp')",
               backgroundSize: '100% 100%',
               backgroundRepeat: 'no-repeat',
             }}
@@ -478,9 +551,9 @@ export default function LandingReveal() {
               >
                 {/* Map + compass, pinned to the top-left corner of the tablet */}
                 <div className="pointer-events-none absolute -left-8 top-12 z-20 hidden -rotate-6 flex-col items-start sm:-left-20 sm:top-24 sm:flex">
-                  <Image src="/tablet/map.png" alt="" width={192} height={192} className="w-24 drop-shadow-[0_5px_10px_rgba(0,0,0,0.6)] sm:w-48" />
+                  <Image src="/tablet/map.webp" alt="" width={192} height={192} className="w-24 drop-shadow-[0_5px_10px_rgba(0,0,0,0.6)] sm:w-48" />
                   <Image
-                    src="/tablet/compass.png"
+                    src="/tablet/compass.webp"
                     alt=""
                     width={112}
                     height={112}
@@ -490,14 +563,14 @@ export default function LandingReveal() {
 
                 {/* Photo + coins, pinned to the bottom-right corner */}
                 <Image
-                  src="/tablet/photo.png"
+                  src="/tablet/photo.webp"
                   alt=""
                   width={160}
                   height={160}
                   className="pointer-events-none absolute -right-6 bottom-10 z-20 hidden w-24 rotate-[15deg] drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] sm:-right-4 sm:bottom-24 sm:block sm:w-40"
                 />
                 <Image
-                  src="/tablet/coins.png"
+                  src="/tablet/coins.webp"
                   alt=""
                   width={128}
                   height={128}
@@ -507,7 +580,7 @@ export default function LandingReveal() {
                 {/* Stone tablet card */}
                 <div className="relative z-10 flex w-full flex-col items-center justify-start px-6 pb-12 pt-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] sm:px-16 sm:pb-16 sm:pt-16">
                   <Image
-                    src="/tablet/stone-tablet.png"
+                    src="/tablet/stone-tablet.webp"
                     alt=""
                     fill
                     sizes="(max-width: 768px) 90vw, 700px"
@@ -516,10 +589,10 @@ export default function LandingReveal() {
                   />
                   <div className="relative z-10 mx-auto flex w-full max-w-md flex-col items-center">
                     <Image
-                      src="/tablet/techx-feedback-header.png"
+                      src="/tablet/techx-feedback-header.webp"
                       alt="Welcome to TechX Feedback"
-                      width={1400}
-                      height={751}
+                      width={900}
+                      height={483}
                       priority
                       className="w-full max-w-[85%] drop-shadow-md sm:max-w-[90%] md:max-w-[95%] lg:max-w-full"
                     />
@@ -589,7 +662,7 @@ export default function LandingReveal() {
                           type="submit"
                           disabled={submitting}
                           className="relative h-14 w-48 bg-contain bg-center bg-no-repeat transition-transform duration-300 hover:scale-105 active:scale-95 disabled:opacity-60 sm:h-20 sm:w-64"
-                          style={{ backgroundImage: "url('/tablet/portal-button.png')" }}
+                          style={{ backgroundImage: "url('/tablet/portal-button.webp')" }}
                         >
                           <span className="sr-only">
                             {submitting ? 'Entering…' : 'Enter Portal'}

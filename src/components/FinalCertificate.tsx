@@ -29,7 +29,7 @@ export default function FinalCertificate() {
   });
 
   return (
-    <div className="max-w-[540px] mx-auto p-4 pb-[max(2rem,env(safe-area-inset-bottom))] min-h-screen flex flex-col justify-center">
+    <div className="max-w-[540px] mx-auto p-4 pb-20 sm:pb-24 min-h-screen flex flex-col justify-center">
       <div className="fixed left-3 top-3 z-50">
         <BackButton to="/labs" label="Labs" />
       </div>
@@ -52,7 +52,7 @@ export default function FinalCertificate() {
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-uc-gold shadow-[0_0_18px_rgba(212,175,55,0.7)]"
               >
                 <ImageWithFallback
-                  src={lab.fragmentImage || '/assets/images/avery-pirate-coin.png'}
+                  src={lab.fragmentImage || '/assets/images/avery-pirate-coin.webp'}
                   alt={lab.fragmentName || lab.title}
                   fallbackTitle={`SEAL ${i + 1}`}
                   fallbackIcon=""
