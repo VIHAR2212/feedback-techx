@@ -11,9 +11,8 @@ import {
   CheckpointNode,
 } from '@/lib/expeditionData';
 import ProductObservationModal from './ProductObservationModal';
-import { motion, AnimatePresence } from 'framer-motion';
 import { CheckpointIcon } from './RusticIcons';
-import rough from 'roughjs/bundled/rough.esm';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
@@ -36,22 +35,30 @@ const THEME_STYLES: Record<
   {
     unsurveyedStroke: string;
     glowColor: string;
+    haloStroke: string;
+    activeStroke: string;
     coreGlow: string;
   }
 > = {
   jungle: {
-    unsurveyedStroke: '#000000',
+    unsurveyedStroke: '#140903',
     glowColor: '#16a34a',
+    haloStroke: 'rgba(34, 197, 94, 0.28)',
+    activeStroke: '#16a34a',
     coreGlow: '#86efac',
   },
   ice: {
-    unsurveyedStroke: '#000000',
+    unsurveyedStroke: '#140903',
     glowColor: '#0284c7',
+    haloStroke: 'rgba(35, 150, 220, 0.28)',
+    activeStroke: '#1598d0',
     coreGlow: '#7dd3fc',
   },
   volcanic: {
-    unsurveyedStroke: '#000000',
+    unsurveyedStroke: '#140903',
     glowColor: '#ea580c',
+    haloStroke: 'rgba(234, 88, 12, 0.28)',
+    activeStroke: '#ea580c',
     coreGlow: '#fdba74',
   },
 };
@@ -271,6 +278,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
       d: string;
       midpoint: { x: number; y: number; rx: number; ry: number; angleDeg: number };
       isCompleted: boolean;
+      isActive: boolean;
     }> = [];
 
     for (let i = 0; i < n - 1; i++) {
@@ -309,6 +317,10 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
       };
 
       const isCompleted = submittedIds.includes(p1.id) && submittedIds.includes(p2.id);
+      const isActive =
+        (submittedIds.includes(p1.id) && !submittedIds.includes(p2.id)) ||
+        (i === 0 && submittedIds.length === 0);
+
       if (isCompleted) {
         completedSegments.push(segD);
       }
@@ -318,6 +330,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
         d: segD,
         midpoint,
         isCompleted,
+        isActive,
       });
     }
 
@@ -328,47 +341,6 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
       points: nodePixelPositions,
     };
   }, [nodePixelPositions, submittedIds]);
-
-  // rough.js hand-drawn sketch layer
-  const roughLayerRef = useRef<SVGGElement>(null);
-
-  useEffect(() => {
-    if (!roughLayerRef.current) return;
-    const svgEl = roughLayerRef.current.ownerSVGElement;
-    if (!svgEl) return;
-    const rc = rough.svg(svgEl);
-
-    // Clear previous render
-    roughLayerRef.current.innerHTML = '';
-
-    routePaths.segments.forEach((seg) => {
-      const color = seg.isCompleted ? themeStyle.glowColor : themeStyle.unsurveyedStroke;
-      const seed = hashSegmentId(seg.id);
-
-      // Pass 1: base ink dashed stroke
-      const node1 = rc.path(seg.d, {
-        roughness: 1.8,
-        bowing: 2.4,
-        stroke: color,
-        strokeWidth: seg.isCompleted ? 3 : 4.5,
-        strokeLineDash: [8, 6],
-        seed: seed,
-      });
-      roughLayerRef.current!.appendChild(node1);
-
-      // Pass 2: second pass, different seed, thinner dashed — creates "redrawn ink" look
-      const node2 = rc.path(seg.d, {
-        roughness: 1.8,
-        bowing: 2.4,
-        stroke: color,
-        strokeWidth: seg.isCompleted ? 1.8 : 2.2,
-        strokeLineDash: [8, 6],
-        seed: seed + 1000,
-      });
-      node2.setAttribute('opacity', '0.65');
-      roughLayerRef.current!.appendChild(node2);
-    });
-  }, [routePaths.segments, themeStyle, hashSegmentId]);
 
   const handleShareLinkedIn = () => {
     const shareText = `I completed ${labConfig?.title || 'Expedition'} and charted all ${totalCount} naval checkpoints in my Field Journal!`;
@@ -469,32 +441,86 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                 }}
                 className="relative h-full aspect-[8/9] max-w-full max-h-full rounded-xl lg:rounded-none border-2 sm:border-4 lg:border-none border-[#241308] shadow-[0_12px_36px_rgba(0,0,0,0.95)] lg:shadow-none overflow-hidden lg:bg-none"
               >
-                {/* Hand-drawn Inked Golden Route powered by rough.js */}
+                {/* Hand-drawn Inked Parchment Route with Continuous Soft Atmospheric Glow */}
                 {containerSize.width > 0 && containerSize.height > 0 && routePaths.points.length > 0 && (
                   <svg
                     viewBox={`0 0 ${containerSize.width} ${containerSize.height}`}
                     className="absolute inset-0 w-full h-full pointer-events-none z-10"
                   >
-                    {/* Surveyed segment glow (flat low-opacity ellipse at midpoint underneath rough strokes) */}
-                    {routePaths.segments
-                      .filter((seg) => seg.isCompleted)
-                      .map((seg) => (
-                        <ellipse
-                          key={`surveyed-glow-${seg.id}`}
-                          cx={seg.midpoint.x}
-                          cy={seg.midpoint.y}
-                          rx={seg.midpoint.rx}
-                          ry={seg.midpoint.ry}
-                          transform={`rotate(${seg.midpoint.angleDeg} ${seg.midpoint.x} ${seg.midpoint.y})`}
-                          fill={themeStyle.glowColor}
-                          opacity={0.15}
+                    <defs>
+                      {/* Soft Gaussian blur for illuminated trail halo */}
+                      <filter id="trailGlowBlur" x="-30%" y="-30%" width="160%" height="160%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                      </filter>
+                      {/* Faint subtle haze for unvisited ink trail */}
+                      <filter id="trailGlowBlurDark" x="-30%" y="-30%" width="160%" height="160%">
+                        <feGaussianBlur stdDeviation="5" result="blur" />
+                      </filter>
+                      <style>{`
+                        @keyframes trailBreath {
+                          0%, 100% {
+                            opacity: 0.45;
+                          }
+                          50% {
+                            opacity: 0.78;
+                          }
+                        }
+                        .trail-glow-active {
+                          animation: trailBreath 3s ease-in-out infinite;
+                        }
+                      `}</style>
+                    </defs>
+
+                    {/* 1. CONTINUOUS SOFT GLOW HALO LAYER (Behind the core trail) */}
+                    {routePaths.segments.map((seg) => {
+                      if (seg.isCompleted || seg.isActive) {
+                        return (
+                          <path
+                            key={`glow-${seg.id}`}
+                            d={seg.d}
+                            fill="none"
+                            stroke={themeStyle.haloStroke}
+                            strokeWidth="18"
+                            strokeDasharray="14 12"
+                            strokeLinecap="round"
+                            filter="url(#trailGlowBlur)"
+                            className="trail-glow-active"
+                          />
+                        );
+                      }
+                      return (
+                        <path
+                          key={`glow-unvisited-${seg.id}`}
+                          d={seg.d}
+                          fill="none"
+                          stroke="rgba(210, 165, 65, 0.10)"
+                          strokeWidth="14"
+                          strokeDasharray="14 12"
+                          strokeLinecap="round"
+                          filter="url(#trailGlowBlurDark)"
                         />
-                      ))}
+                      );
+                    })}
 
-                    {/* rough.js sketch layer */}
-                    <g ref={roughLayerRef} />
+                    {/* 2. CRISP CORE TRAIL (Actual solid/dark ink dashed path) */}
+                    {routePaths.segments.map((seg) => (
+                      <path
+                        key={`core-${seg.id}`}
+                        d={seg.d}
+                        fill="none"
+                        stroke={
+                          seg.isCompleted || seg.isActive
+                            ? themeStyle.activeStroke
+                            : themeStyle.unsurveyedStroke
+                        }
+                        strokeWidth="6"
+                        strokeDasharray="14 12"
+                        strokeLinecap="round"
+                        opacity={seg.isCompleted ? 0.95 : seg.isActive ? 0.9 : 0.8}
+                      />
+                    ))}
 
-                    {/* Concentric Waypoint Rings centered on each measured node */}
+                    {/* 3. Concentric Waypoint Rings centered on each measured node */}
                     {routePaths.points.map((pt) => {
                       const isDone = submittedIds.includes(pt.id);
                       return (
