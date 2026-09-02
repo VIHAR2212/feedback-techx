@@ -13,9 +13,6 @@ interface ExpeditionStatusHeaderProps {
 export default function ExpeditionStatusHeader({
   completedCount = 0,
   totalCount = 3,
-  completedCheckpoints = 0,
-  totalCheckpoints = 15,
-  overallPercentage = 0,
 }: ExpeditionStatusHeaderProps) {
   return (
     <div className="relative w-full max-w-[480px] mx-auto drop-shadow-[0_14px_32px_rgba(0,0,0,0.92)] select-none">
@@ -27,7 +24,7 @@ export default function ExpeditionStatusHeader({
         className="relative w-full bg-[length:100%_100%] bg-no-repeat bg-center"
       >
         {/* Printable Parchment Safe Zone */}
-        <div className="absolute inset-0 pt-[17%] pb-[8%] px-[12%] flex flex-col items-center justify-between text-center">
+        <div className="absolute inset-0 pt-[17%] pb-[14%] px-[12%] flex flex-col items-center justify-between text-center">
           {/* Main Uncharted Themed Heading */}
           <div>
             <h1 className="font-[family-name:var(--font-uncharted)] font-bold text-xl sm:text-2xl tracking-[0.14em] text-[#1c0f05] drop-shadow-[0_1px_0_rgba(255,255,255,0.6)] uppercase leading-none">
@@ -59,22 +56,6 @@ export default function ExpeditionStatusHeader({
                 </div>
               );
             })}
-          </div>
-
-          {/* Antique Explorer Progress Bar (Showing Overall Checkpoint Ratings) */}
-          <div className="w-full max-w-[320px] flex flex-col gap-1">
-            <div className="flex items-center justify-between text-[8px] sm:text-[9px] font-mono font-extrabold uppercase tracking-wider text-[#6b4516]">
-              <span>Overall Logged: {completedCheckpoints}/{totalCheckpoints}</span>
-              <span className="text-[#8b261d]">{overallPercentage}% RATED</span>
-            </div>
-
-            {/* Recessed Brass Gauge Bar */}
-            <div className="relative w-full h-2 sm:h-2.5 rounded-full bg-[#1e1108]/30 border border-[#7a481c]/50 p-0.5 shadow-inner overflow-hidden">
-              <div
-                style={{ width: `${Math.max(4, overallPercentage)}%` }}
-                className="h-full rounded-full bg-gradient-to-r from-[#8c6d23] via-[#d4af37] to-[#ffd700] shadow-[0_0_8px_rgba(212,175,55,0.8)] transition-all duration-700 ease-out"
-              />
-            </div>
           </div>
         </div>
       </div>

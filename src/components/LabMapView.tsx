@@ -353,23 +353,23 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
   const selectedIndex = products.findIndex((p) => p.id === selectedProduct?.id);
 
   return (
-    <div className="relative w-full h-[100dvh] bg-[#080503] text-[#2c1a0e] flex flex-col justify-between overflow-hidden select-none font-serif">
+    <div className="relative w-full h-[100dvh] bg-[#080503] text-[#2c1a0e] flex flex-col justify-start overflow-hidden select-none font-serif pb-14 sm:pb-16 lg:pb-14">
       {/* Background Lighting Vignette */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,_rgba(240,210,140,0.06)_0%,_rgba(4,2,1,0.98)_85%)] pointer-events-none z-0" />
 
       {/* 1. Header Ribbon HUD */}
-      <header className="relative z-30 flex items-center justify-between px-3.5 py-2 sm:px-6 sm:py-2.5 bg-[#120a06]/95 backdrop-blur-md border-b border-[#4d321d]/70 shadow-lg shrink-0 text-[#e8d5b5]">
+      <header className="relative z-30 flex items-center justify-between px-3.5 py-1.5 sm:px-6 sm:py-2 bg-[#120a06]/95 backdrop-blur-md border-b border-[#4d321d]/70 shadow-lg shrink-0 text-[#e8d5b5]">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/labs')}
             aria-label="Return to Expeditions"
-            className="w-8 h-8 rounded border border-[#6b4728] bg-[#22150e] flex items-center justify-center text-[#c99f58] hover:text-[#f3dfa2] active:scale-95 transition cursor-pointer shrink-0 shadow-sm"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded border border-[#6b4728] bg-[#22150e] flex items-center justify-center text-[#c99f58] hover:text-[#f3dfa2] active:scale-95 transition cursor-pointer shrink-0 shadow-sm"
           >
             <span className="text-xs font-mono font-bold">◀</span>
           </button>
 
           <div className="min-w-0">
-            <span className="block text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-[0.25em] text-[#9c7846] font-mono truncate">
+            <span className="block text-[8px] sm:text-[9.5px] font-bold uppercase tracking-[0.25em] text-[#9c7846] font-mono truncate">
               JOURNAL // {labConfig?.name || 'FIELD RECON'}
             </span>
             <h1 className="text-xs sm:text-base font-bold text-[#f2dfbe] truncate font-['Cinzel',_serif] tracking-wider">
@@ -383,7 +383,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
           <div className="flex p-0.5 rounded bg-[#0d0704] border border-[#52351e]">
             <button
               onClick={() => setViewMode('map')}
-              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${
+              className={`px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9.5px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${
                 viewMode === 'map'
                   ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
                   : 'text-[#8c6f4b] hover:text-[#c49b4d]'
@@ -393,7 +393,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${
+              className={`px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9.5px] sm:text-xs font-bold uppercase tracking-wider rounded font-mono transition cursor-pointer ${
                 viewMode === 'list'
                   ? 'bg-gradient-to-b from-[#d4af37] to-[#8c6d23] text-[#120b06] shadow'
                   : 'text-[#8c6f4b] hover:text-[#c49b4d]'
@@ -412,17 +412,17 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                 {completedCount}/{totalCount}
               </span>
             </div>
-            <div className="w-5 h-5 rounded-full bg-[#241308] border border-[#8c6d23] flex items-center justify-center shadow-inner">
-              <span className="text-[9px] text-[#ffd700]">✦</span>
+            <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-[#241308] border border-[#8c6d23] flex items-center justify-center shadow-inner">
+              <span className="text-[8.5px] sm:text-[9px] text-[#ffd700]">✦</span>
             </div>
           </div>
         </div>
       </header>
 
       {/* 2. Main Open Journal Workspace */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center p-2 sm:p-3 lg:p-4 overflow-hidden w-full max-w-7xl mx-auto">
+      <main className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-start sm:justify-center p-1 sm:p-2 lg:p-3 overflow-hidden w-full max-w-7xl mx-auto">
         {viewMode === 'map' ? (
-          <div className="relative w-full h-full flex flex-col lg:flex-row items-center justify-between max-w-[1040px] aspect-[1024/615] max-h-[86vh] rounded-xl border-4 border-[#241308] shadow-[0_25px_65px_rgba(0,0,0,0.98)] overflow-hidden">
+          <div className="relative w-full h-full flex flex-col lg:flex-row items-center justify-between max-w-[1040px] aspect-[1024/615] max-h-[79vh] lg:max-h-[82vh] rounded-xl border-2 sm:border-4 border-[#241308] shadow-[0_25px_65px_rgba(0,0,0,0.98)] overflow-hidden">
             {/* Desktop Full Open Book Spread Background */}
             <div
               style={{ backgroundImage: `url('${mapBgImage}')` }}
@@ -430,7 +430,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
             />
 
             {/* ================= MAP SECTION (LEFT SPREAD) ================= */}
-            <div className="relative w-full flex-1 min-h-0 lg:w-1/2 lg:h-full z-10 flex items-center justify-center overflow-hidden">
+            <div className="relative w-full flex-1 min-h-0 lg:w-1/2 lg:h-full z-10 flex items-center justify-center overflow-hidden py-0.5">
               <div
                 ref={mapContainerRef}
                 style={{
@@ -623,26 +623,26 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
             </div>
 
             {/* ================= MOBILE ONLY: Dossier Scrap ================= */}
-            <div className="lg:hidden w-full shrink-0 z-30 pointer-events-auto px-2 pt-1 pb-2">
+            <div className="lg:hidden w-full shrink-0 z-30 pointer-events-auto px-2 pt-0.5 pb-1">
               <div
                 style={{
                   backgroundImage: `url('/assets/images/expedition_status_bg.webp')`,
-                  aspectRatio: '520 / 285',
+                  aspectRatio: '520 / 260',
                 }}
-                className="relative w-full max-w-[390px] sm:max-w-[420px] mx-auto bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_12px_28px_rgba(0,0,0,0.95)] select-none overflow-hidden"
+                className="relative w-full max-w-[360px] sm:max-w-[400px] mx-auto bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_12px_28px_rgba(0,0,0,0.95)] select-none overflow-hidden"
               >
                 {/* Printable Parchment Area: comfortably positioned below Drake's ring */}
-                <div className="absolute inset-0 pt-[18%] pb-[6%] px-[7%] sm:px-[8%] flex flex-col justify-between text-[#2b1704] overflow-hidden">
+                <div className="absolute inset-0 pt-[16%] pb-[5%] px-[6%] sm:px-[7%] flex flex-col justify-between text-[#2b1704] overflow-hidden">
                   {/* Badge Row */}
                   <div className="flex items-center justify-between border-b border-[#8b6943]/30 pb-0.5 shrink-0">
                     <div className="flex items-center gap-1.5 min-w-0 pr-1">
-                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={13} color="#7a5214" />
-                      <span className="text-[8px] sm:text-[9px] font-extrabold uppercase font-mono tracking-wider text-[#7a5214] truncate">
+                      <CheckpointIcon index={selectedIndex >= 0 ? selectedIndex : 0} size={12} color="#7a5214" />
+                      <span className="text-[7.5px] sm:text-[8.5px] font-extrabold uppercase font-mono tracking-wider text-[#7a5214] truncate">
                         WAYPOINT {String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, '0')} • SIC PARVIS MAGNA
                       </span>
                     </div>
                     <span
-                      className={`text-[7.5px] sm:text-[8px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 shadow-xs ${
+                      className={`text-[7px] sm:text-[7.5px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 shadow-xs ${
                         selectedProduct && submittedIds.includes(selectedProduct.id)
                           ? 'bg-[#8b261d]/15 text-[#8b261d] border border-[#8b261d]/40'
                           : 'bg-[#7a5214]/10 text-[#7a5214] border border-[#7a5214]/30'
@@ -654,10 +654,10 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
 
                   {/* Big Prominent Title & Handwritten Description */}
                   <div className="py-0.5 my-auto min-h-0 flex-1 flex flex-col justify-center overflow-hidden">
-                    <h3 className="text-xs sm:text-sm font-bold text-[#1c0f05] leading-tight font-['EB_Garamond',_serif] tracking-tight truncate drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+                    <h3 className="text-[11px] sm:text-xs font-bold text-[#1c0f05] leading-tight font-['EB_Garamond',_serif] tracking-tight truncate drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
                       {selectedProduct?.name || 'Waypoint'}
                     </h3>
-                    <p className="text-[10px] sm:text-[11.5px] text-[#4a2810] italic leading-tight line-clamp-1 sm:line-clamp-2 mt-0.5 font-[family-name:var(--font-handwriting)] font-semibold">
+                    <p className="text-[9.5px] sm:text-[10.5px] text-[#4a2810] italic leading-tight line-clamp-1 sm:line-clamp-2 mt-0.5 font-[family-name:var(--font-handwriting)] font-semibold">
                       &quot;{selectedProduct?.description || 'Select coordinate to inspect'}&quot;
                     </p>
                   </div>
@@ -672,7 +672,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                           clipPath:
                             'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
                         }}
-                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#22c55e] via-[#16a34a] to-[#15803d] text-white font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#86efac]/60"
+                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#22c55e] via-[#16a34a] to-[#15803d] text-white font-black text-[9.5px] sm:text-[10.5px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#86efac]/60"
                       >
                         <span>Continue Expedition</span>
                         <span className="text-xs shrink-0">➔</span>
@@ -685,7 +685,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                           clipPath:
                             'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
                         }}
-                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
+                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[9.5px] sm:text-[10.5px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
                       >
                         <span className="truncate">{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
                         <span className="text-xs shrink-0">➔</span>

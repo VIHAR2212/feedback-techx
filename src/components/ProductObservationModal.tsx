@@ -28,6 +28,9 @@ export default function ProductObservationModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const coinRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+
   // Clear the fake-submit timer if the modal unmounts mid-flight.
   useEffect(() => {
     return () => {
@@ -39,11 +42,40 @@ export default function ProductObservationModal({
     e.preventDefault();
     if (rating === 0) return;
 
+    // 1. Calculate origin from the exact selected rating coin (e.g. 4th coin for rating 4)
+    let startX = typeof window !== 'undefined' ? window.innerWidth / 2 : 200;
+    let startY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300;
+
+    const selectedRatingCoinEl = coinRefs.current[rating - 1];
+    if (selectedRatingCoinEl) {
+      const rect = selectedRatingCoinEl.getBoundingClientRect();
+      startX = rect.left + rect.width / 2;
+      startY = rect.top + rect.height / 2;
+    } else if (submitButtonRef.current) {
+      const rect = submitButtonRef.current.getBoundingClientRect();
+      startX = rect.left + rect.width / 2;
+      startY = rect.top + rect.height / 2;
+    }
+
+    // 2. Trigger the train-path coin animation starting from that exact rating coin
+    const coinCount = Math.max(1, Math.min(5, rating || 4));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('flyExpeditionCoins', {
+          detail: {
+            count: coinCount,
+            startX,
+            startY,
+          },
+        })
+      );
+    }
+
     setIsSubmitting(true);
     submitTimerRef.current = setTimeout(() => {
       setIsSubmitting(false);
       onSuccess({ rating, comment: feedback.trim() });
-    }, 400);
+    }, 180);
   };
 
   return (
@@ -116,6 +148,9 @@ export default function ProductObservationModal({
                   return (
                     <button
                       key={coinIndex}
+                      ref={(el) => {
+                        coinRefs.current[coinIndex - 1] = el;
+                      }}
                       type="button"
                       onClick={() => setRating(coinIndex)}
                       onMouseEnter={() => setHoverRating(coinIndex)}
@@ -159,6 +194,7 @@ export default function ProductObservationModal({
             {/* Action Plaque Button (Positioned Cleanly Inside Parchment Above Bottom Rim) */}
             <div className="pt-0.5">
               <button
+                ref={submitButtonRef}
                 type="submit"
                 disabled={rating === 0 || isSubmitting}
                 style={{

@@ -29,7 +29,7 @@ export default function FinalCertificate() {
   });
 
   return (
-    <div className="max-w-[540px] mx-auto p-4 pb-[max(2rem,env(safe-area-inset-bottom))] min-h-screen flex flex-col justify-center">
+    <div className="max-w-[540px] mx-auto p-4 pb-20 sm:pb-24 min-h-screen flex flex-col justify-center">
       <div className="fixed left-3 top-3 z-50">
         <BackButton to="/labs" label="Labs" />
       </div>

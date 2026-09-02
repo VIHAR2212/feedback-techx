@@ -61,7 +61,7 @@ export default function RouteSelection() {
     totalCheckpoints > 0 ? Math.round((completedCheckpoints / totalCheckpoints) * 100) : 0;
 
   return (
-    <div className="relative min-h-[100dvh] w-full text-[#2c1a0e] flex flex-col items-center justify-start py-6 px-3 sm:px-6 overflow-x-hidden font-['Georgia'] select-none">
+    <div className="relative min-h-[100dvh] w-full text-[#2c1a0e] flex flex-col items-center justify-start pt-6 pb-28 sm:pb-32 px-3 sm:px-6 overflow-x-hidden font-['Georgia'] select-none">
       {/* Original Parchment Map Background */}
       <div
         style={{ backgroundImage: `url('/assets/images/expedition_map_bg.jpg')` }}
@@ -74,13 +74,10 @@ export default function RouteSelection() {
           <BackButton to="/" label="Home" />
         </div>
 
-        {/* Expedition Status Header Plaque with Overall Progress Gauge */}
+        {/* Expedition Status Header Plaque */}
         <ExpeditionStatusHeader
           completedCount={completedSectorsCount}
           totalCount={labList.length}
-          completedCheckpoints={completedCheckpoints}
-          totalCheckpoints={totalCheckpoints}
-          overallPercentage={overallPercentage}
         />
 
         {/* 3 Sector Expedition Cards */}
