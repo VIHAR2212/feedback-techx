@@ -8,6 +8,8 @@ import { LabsProvider } from '@/context/LabsContext';
 import CompletionChecker from '@/components/CompletionChecker';
 import ExpeditionBottomDock from '@/components/ExpeditionBottomDock';
 import FlyingCoinsOverlay from '@/components/FlyingCoinsOverlay';
+import VolumeControl from '@/components/VolumeControl';
+import { AudioProvider } from '@/context/AudioContext';
 import "./globals.css";
 
 // 1. Local Uncharted Game Font (Base 02) — single instance shared by both
@@ -113,18 +115,21 @@ export default function RootLayout({
       `}
     >
       <body className="bg-[#050302] text-[#2c1a0e] antialiased selection:bg-[#d4af37]/30 selection:text-[#1a0e05]">
-        <AdminProvider>
-          <LabsProvider>
-            <UserProvider>
-              <CompletionProvider>
-                {children}
-                <CompletionChecker />
-                <ExpeditionBottomDock />
-                <FlyingCoinsOverlay />
-              </CompletionProvider>
-            </UserProvider>
-          </LabsProvider>
-        </AdminProvider>
+        <AudioProvider>
+          <AdminProvider>
+            <LabsProvider>
+              <UserProvider>
+                <CompletionProvider>
+                  <VolumeControl />
+                  {children}
+                  <CompletionChecker />
+                  <ExpeditionBottomDock />
+                  <FlyingCoinsOverlay />
+                </CompletionProvider>
+              </UserProvider>
+            </LabsProvider>
+          </AdminProvider>
+        </AudioProvider>
       </body>
     </html>
   );

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import { useAudio } from '@/context/AudioContext';
 
 interface DenseTrainCoin {
   id: string;
@@ -23,6 +24,7 @@ export default function FlyingCoinsOverlay() {
   const [activeCoins, setActiveCoins] = useState<DenseTrainCoin[]>([]);
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const { playCoinSound } = useAudio();
 
   const spawnSparkles = useCallback((x: number, y: number) => {
     const colors = ['#ffd700', '#fde047', '#fbbf24', '#ffffff', '#eab308'];
@@ -51,6 +53,9 @@ export default function FlyingCoinsOverlay() {
         startY?: number;
       }>;
       const count = Math.max(1, Math.min(5, custom.detail?.count ?? 4));
+
+      // Play coin sound
+      playCoinSound();
 
       // 1. Exact start point (Selected N-th rating coin in the rating bar)
       const startX =
@@ -130,7 +135,7 @@ export default function FlyingCoinsOverlay() {
       }, (count - 1) * staggerDelay + baseDuration + 200);
       timersRef.current.push(cleanupTimer);
     },
-    [spawnSparkles]
+    [spawnSparkles, playCoinSound]
   );
 
   useEffect(() => {
