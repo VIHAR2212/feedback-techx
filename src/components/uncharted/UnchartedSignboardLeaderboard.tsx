@@ -157,57 +157,93 @@ export default function UnchartedSignboardLeaderboard({
     }
   };
 
+  // 30-second (half-minute) auto-refresh countdown timer
+  const [secondsLeft, setSecondsLeft] = useState(30);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          onRefresh?.();
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [onRefresh]);
+
+  const handleManualRefresh = () => {
+    setSecondsLeft(30);
+    onRefresh?.();
+  };
+
+  const formattedTime = useMemo(() => {
+    const m = Math.floor(secondsLeft / 60);
+    const s = secondsLeft % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  }, [secondsLeft]);
+
   // Fixed action icon buttons rendered directly to body (icon-only, remote style)
   const actionButtonsPortal = mounted
     ? createPortal(
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] flex items-center gap-2 pointer-events-auto">
-          <button
-            onClick={() => setViewMode(viewMode === 'users' ? 'products' : 'users')}
-            title={viewMode === 'users' ? 'Show Discoveries' : 'Show Explorers'}
-            className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-[#6d4323]/80 bg-[#120803]/90 text-amber-300 shadow-[0_8px_25px_rgba(0,0,0,0.85)] hover:border-amber-400 active:scale-90 transition-all cursor-pointer"
-          >
-            {viewMode === 'users' ? (
-              <Search className="h-4 w-4 sm:h-5 sm:w-5" />
-            ) : (
-              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
-            )}
-          </button>
-          {isAdmin && (
+        <>
+          {/* Very small auto-refresh timer on the bottom-left */}
+          <div className="fixed bottom-3 left-3 sm:bottom-4 sm:left-4 z-[9999] pointer-events-none flex items-center gap-1.5 bg-[#120803]/85 backdrop-blur-xs px-2.5 py-1 rounded border border-[#6d4323]/50 shadow-[0_4px_12px_rgba(0,0,0,0.8)] text-[9px] sm:text-[10px] font-mono tracking-widest text-[#C0C0C0]/75 uppercase select-none">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400/90 animate-pulse" />
+            <span>REFRESH IN {formattedTime}</span>
+          </div>
+
+          <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] flex items-center gap-2 pointer-events-auto">
             <button
-              onClick={handleExportCSV}
-              title="Export CSV"
-              className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-emerald-600/80 bg-[#120803]/90 text-emerald-400 shadow-[0_8px_25px_rgba(0,0,0,0.85)] hover:border-emerald-400 active:scale-90 transition-all cursor-pointer"
+              onClick={() => setViewMode(viewMode === 'users' ? 'products' : 'users')}
+              title={viewMode === 'users' ? 'Show Discoveries' : 'Show Explorers'}
+              className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-[#6d4323]/80 bg-[#120803]/90 text-amber-300 shadow-[0_8px_25px_rgba(0,0,0,0.85)] hover:border-amber-400 active:scale-90 transition-all cursor-pointer"
             >
-              <Download className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-          )}
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              title="Refresh Leaderboard"
-              className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-amber-500/80 bg-[#2d180c]/90 text-amber-300 shadow-[0_8px_25px_rgba(0,0,0,0.85)] hover:border-amber-400 active:scale-90 transition-all cursor-pointer"
-            >
-              <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-          )}
-          {onToggleMute && (
-            <button
-              onClick={onToggleMute}
-              title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-              className={`flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border shadow-[0_8px_25px_rgba(0,0,0,0.85)] active:scale-90 transition-all cursor-pointer ${
-                isMuted
-                  ? 'border-amber-500/80 bg-[#2d180c]/90 text-amber-400 animate-pulse'
-                  : 'border-emerald-600/80 bg-[#120803]/90 text-emerald-400 hover:border-emerald-400'
-              }`}
-            >
-              {isMuted ? (
-                <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />
+              {viewMode === 'users' ? (
+                <Search className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
-                <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
             </button>
-          )}
-        </div>,
+            {isAdmin && (
+              <button
+                onClick={handleExportCSV}
+                title="Export CSV"
+                className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-emerald-600/80 bg-[#120803]/90 text-emerald-400 shadow-[0_8px_25px_rgba(0,0,0,0.85)] hover:border-emerald-400 active:scale-90 transition-all cursor-pointer"
+              >
+                <Download className="h-4 w-4 sm:h-5 sm:w-5" />
+              </button>
+            )}
+            {onRefresh && (
+              <button
+                onClick={handleManualRefresh}
+                title={`Refresh Leaderboard (Auto-refreshes in ${formattedTime})`}
+                className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-amber-500/80 bg-[#2d180c]/90 text-amber-300 shadow-[0_8px_25px_rgba(0,0,0,0.85)] hover:border-amber-400 active:scale-90 transition-all cursor-pointer"
+              >
+                <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5" />
+              </button>
+            )}
+            {onToggleMute && (
+              <button
+                onClick={onToggleMute}
+                title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+                className={`flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full border shadow-[0_8px_25px_rgba(0,0,0,0.85)] active:scale-90 transition-all cursor-pointer ${
+                  isMuted
+                    ? 'border-amber-500/80 bg-[#2d180c]/90 text-amber-400 animate-pulse'
+                    : 'border-emerald-600/80 bg-[#120803]/90 text-emerald-400 hover:border-emerald-400'
+                }`}
+              >
+                {isMuted ? (
+                  <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />
+                ) : (
+                  <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                )}
+              </button>
+            )}
+          </div>
+        </>,
         document.body
       )
     : null;
@@ -223,10 +259,10 @@ export default function UnchartedSignboardLeaderboard({
           <div 
             className="absolute z-10 text-center flex items-center justify-center pointer-events-auto"
             style={{
-              top: '4.5%',
-              left: '25.0%',
-              width: '50.0%',
-              height: '15.0%',
+              top: '0.6%',
+              left: '26.0%',
+              width: '48.0%',
+              height: '13.0%',
             }}
           >
             {/* Wooden plank background texture behind title */}
@@ -237,26 +273,28 @@ export default function UnchartedSignboardLeaderboard({
               className="absolute inset-0 w-full h-full object-contain pointer-events-none drop-shadow-[0_8px_16px_rgba(0,0,0,0.85)] select-none"
             />
 
-            {/* Distressed Carved "LEADERBOARD" Title - LOCKED GOLDEN #EFBF04 */}
-            <h1
-              style={{
-                fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif",
-                color: '#EFBF04',
-              }}
-              className="relative z-10 font-uncharted font-black text-lg sm:text-xl md:text-2xl lg:text-[32px] xl:text-[37px] uppercase tracking-[0.22em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_0_14px_rgba(239,191,4,0.45)] transform -rotate-0.5 leading-none select-none px-4 pt-1 sm:pt-1.5"
-            >
-              LEADERBOARD
-            </h1>
+            {/* Distressed Carved "LEADERBOARD" Title - LOCKED GOLDEN #EFBF04 - Perfectly Centered & Sized Inside Plank */}
+            <div className="relative z-10 flex items-center justify-center w-full h-full px-8 sm:px-12 pointer-events-none">
+              <h1
+                style={{
+                  fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif",
+                  color: '#EFBF04',
+                }}
+                className="font-uncharted font-black text-xs sm:text-sm md:text-base lg:text-[18px] xl:text-[21px] uppercase tracking-[0.14em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_0_10px_rgba(239,191,4,0.4)] leading-none select-none text-center"
+              >
+                LEADERBOARD
+              </h1>
+            </div>
           </div>
 
           {/* 2. INNER RECTANGLE: EXPANSIVE CENTERED OVERLAY WITH CARVED TYPOGRAPHY */}
           <div 
             className="absolute z-10 overflow-hidden flex flex-col pointer-events-auto"
             style={{
-              top: '14.2%',
+              top: '14.8%',
               left: '16.5%',
               width: '67.0%',
-              height: '65.0%',
+              height: '65.5%',
             }}
           >
             {/* Fetch error banner — surfaces silent failures instead of showing an empty board */}
