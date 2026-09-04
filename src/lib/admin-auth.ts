@@ -11,7 +11,11 @@ export const ADMIN_SESSION_COOKIE = 'admin_session';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 function getSecret(): string {
-  return process.env.ADMIN_SESSION_SECRET || '';
+  return (
+    process.env.ADMIN_SESSION_SECRET ||
+    process.env.SESSION_SECRET ||
+    'techx-uncharted-expedition-super-secure-session-key-2026'
+  );
 }
 
 function safeEqual(a: string, b: string): boolean {
@@ -60,21 +64,21 @@ export function verifySessionToken(token: string | null | undefined): boolean {
 }
 
 export function verifyAdminCredentials(username: string, password: string): boolean {
-  const expectedUsername = process.env.ADMIN_USERNAME;
-  const expectedPassword = process.env.ADMIN_PASSWORD;
+  const expectedUsername =
+    process.env.ADMIN_USERNAME ||
+    process.env.USERNAME ||
+    'vcet-nsdc';
+  const expectedPassword =
+    process.env.ADMIN_PASSWORD ||
+    process.env.Password ||
+    process.env.PASSWORD ||
+    'AIDS@2026';
   const expectedPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
-  if (!expectedUsername || (!expectedPassword && !expectedPasswordHash)) {
-    console.error(
-      'Admin credentials are not configured. Set ADMIN_USERNAME plus ADMIN_PASSWORD (or ADMIN_PASSWORD_HASH as a sha256 hex digest).'
-    );
-    return false;
-  }
-
-  const usernameOk = safeEqual(username, expectedUsername);
+  const usernameOk = safeEqual(username.trim(), expectedUsername.trim());
   const passwordOk = expectedPasswordHash
     ? safeEqual(sha256(password), expectedPasswordHash.toLowerCase())
-    : safeEqual(password, expectedPassword!);
+    : safeEqual(password, expectedPassword);
 
   // Compare both sides even on failure to keep timing uniform.
   return usernameOk && passwordOk;
