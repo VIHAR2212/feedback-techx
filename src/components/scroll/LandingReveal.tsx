@@ -877,14 +877,6 @@ export default function LandingReveal() {
                           <span className="sr-only">
                             {submitting ? 'Entering…' : 'Enter Portal'}
                           </span>
-                          {submitting && (
-                            <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-black/70 border border-amber-400/80 shadow-lg">
-                              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                              <span className="text-[10px] sm:text-xs font-mono font-bold text-amber-300 uppercase tracking-widest">
-                                Venturing...
-                              </span>
-                            </div>
-                          )}
                         </button>
                       </div>
                     </form>
