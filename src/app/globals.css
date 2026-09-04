@@ -136,8 +136,8 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% { background-position: -200% center; transform: translateZ(0); }
+  100% { background-position: 200% center; transform: translateZ(0); }
 }
 
 @keyframes grain {
@@ -198,6 +198,7 @@
   opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   animation: grain 8s steps(10) infinite;
+  will-change: transform;
 }
 
 /* Readability Veils for Scrollytelling */
@@ -232,7 +233,6 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  transform: translateZ(0);
 }
 
 .particle {
@@ -244,7 +244,6 @@
   animation: dust 20s linear infinite;
   box-shadow: 0 0 6px #d97706, 0 0 12px rgba(217, 119, 6, 0.3);
   will-change: transform, opacity;
-  transform: translateZ(0);
   backface-visibility: hidden;
 }
 
@@ -252,7 +251,6 @@
 .card-adventure {
   position: relative;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
 }
 
 .card-adventure::before {

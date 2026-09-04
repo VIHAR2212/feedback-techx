@@ -150,7 +150,7 @@ export default function ExpeditionBottomDock() {
           {/* Thick Recessed Explorer Gauge Bar */}
           <div className="relative w-full h-3.5 sm:h-4.5 rounded-full bg-[#0d0602] border-2 border-[#8c6d23]/90 p-[2px] shadow-[inset_0_2px_6px_rgba(0,0,0,0.95)] overflow-hidden">
             <div
-              style={{ width: `${clampedPercentage}%`, willChange: 'width', transform: 'translateZ(0)' }}
+              style={{ width: `${clampedPercentage}%` }}
               className={`h-full rounded-full bg-gradient-to-r from-[#a17c2f] via-[#eab308] to-[#fde047] shadow-[0_0_12px_rgba(234,179,8,0.9)] transition-[width] duration-700 ease-out relative ${
                 isImpacting ? 'brightness-125 shadow-[0_0_18px_rgba(255,215,0,1)]' : ''
               }`}
@@ -166,7 +166,7 @@ export default function ExpeditionBottomDock() {
             style={{
               left: `${clampedPercentage}%`,
               willChange: 'left, transform',
-              transform: 'translate3d(-50%, -50%, 0)'
+              transform: 'translate3d(-50%, -50%, 0)',
             }}
             className="absolute top-1/2 pointer-events-none transition-[left] duration-700 ease-out z-10"
           >

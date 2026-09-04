@@ -443,7 +443,7 @@ export default function LandingReveal() {
         {/* Scroll hint */}
         <motion.div
           className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-center text-white/90 font-cinzel"
-          style={{ opacity: scrollHintOpacity, willChange: 'opacity', transform: 'translateZ(0)' }}
+          style={{ opacity: scrollHintOpacity, willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         >
           <div className="flex flex-col items-center gap-2">
             <p className="text-[11px] uppercase tracking-[0.35em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
@@ -555,8 +555,6 @@ export default function LandingReveal() {
             opacity: cardOpacity,
             y: cardY,
             pointerEvents: showCard ? 'auto' : 'none',
-            willChange: 'transform, opacity',
-            transform: 'translateZ(0)'
           }}
         >
           <AnimatePresence>
@@ -565,6 +563,7 @@ export default function LandingReveal() {
                 initial={{ opacity: 0, scale: 0.92, y: 30 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
                 className="relative w-full max-w-3xl select-none"
               >
                 {/* Map + compass, pinned to the top-left corner of the tablet */}
