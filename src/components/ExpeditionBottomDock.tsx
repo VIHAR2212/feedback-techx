@@ -165,8 +165,10 @@ export default function ExpeditionBottomDock() {
             id="expedition-coin-marker"
             style={{
               left: `${clampedPercentage}%`,
+              willChange: 'left, transform',
+              transform: 'translate3d(-50%, -50%, 0)',
             }}
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-[left] duration-700 ease-out z-10"
+            className="absolute top-1/2 pointer-events-none transition-[left] duration-700 ease-out z-10"
           >
             <div className={`w-7 h-7 sm:w-8 sm:h-8 relative drop-shadow-[0_4px_10px_rgba(0,0,0,0.95)] transition-transform duration-200 will-change-transform ${isImpacting ? 'scale-125 brightness-125 drop-shadow-[0_0_16px_rgba(255,215,0,1)]' : 'scale-100'}`}>
               <Image

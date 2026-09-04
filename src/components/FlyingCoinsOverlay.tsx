@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { useAudio } from '@/context/AudioContext';
 
 interface Point {
   x: number;
@@ -57,6 +58,7 @@ export default function FlyingCoinsOverlay() {
   const animFrameIdRef = useRef<number | null>(null);
   const coinImgRef = useRef<HTMLImageElement | null>(null);
   const lastImpactTimeRef = useRef<number>(0);
+  const { playCoinSound } = useAudio();
 
   // Preload pirate coin image on mount for instant zero-latency rendering
   useEffect(() => {
@@ -241,6 +243,9 @@ export default function FlyingCoinsOverlay() {
       startY?: number;
     }>;
     const count = Math.max(1, Math.min(5, custom.detail?.count ?? 4));
+
+    // Play coin sound
+    playCoinSound();
 
     // 1. Exact start coordinates (rating coin tapped in modal)
     const startX =
