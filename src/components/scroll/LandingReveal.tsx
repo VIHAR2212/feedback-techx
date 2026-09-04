@@ -34,14 +34,26 @@ function checkIsLowEnd(): boolean {
     if (params.get('lowend') === 'false' || params.get('perf') === 'high') return false;
   } catch {}
 
-  // 2. Hardware constraints: <= 4 logical cores or <= 4 GB RAM
   const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
+  const ua = nav?.userAgent || '';
+
+  // Desktops and laptops should NEVER use the static image fallback.
+  // Static image fallback is strictly for low-end mobile / handheld devices.
+  const isMobile =
+    /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua) ||
+    (window.innerWidth <= 768 && (nav?.maxTouchPoints > 0 || 'ontouchstart' in window));
+
+  if (!isMobile) {
+    return false;
+  }
+
+  // 2. Hardware constraints on mobile devices: <= 4 logical cores or <= 3 GB RAM
   const cores = nav?.hardwareConcurrency;
   if (typeof cores === 'number' && cores > 0 && cores <= 4) {
     return true;
   }
   const memory = nav?.deviceMemory;
-  if (typeof memory === 'number' && memory > 0 && memory <= 4) {
+  if (typeof memory === 'number' && memory > 0 && memory <= 3) {
     return true;
   }
 
@@ -49,14 +61,9 @@ function checkIsLowEnd(): boolean {
   const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
   if (conn) {
     if (conn.saveData) return true;
-    if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g' || conn.effectiveType === '3g') {
+    if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g') {
       return true;
     }
-  }
-
-  // 4. Accessibility: user prefers reduced motion
-  if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return true;
   }
 
   return false;
@@ -591,7 +598,6 @@ export default function LandingReveal() {
               <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 font-mono text-[11px] sm:text-[13px] font-bold text-white tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
                 <span>
                   LOADING FIELD DOSSIER // STATUS: {loadProgress}%
-                  {isLowEnd && <span className="text-amber-400/90 ml-1.5 text-[10px]">[OPTIMIZED]</span>}
                 </span>
                 
                 {/* Bracketed solid segment progress bar */}
