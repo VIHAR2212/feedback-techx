@@ -24,6 +24,44 @@ function frameSrc(i: number, suffix: string = FRAME_SUFFIX) {
   return `${FRAME_PREFIX}${String(i).padStart(3, '0')}${suffix}`;
 }
 
+function checkIsLowEnd(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  // 1. Manual query param override for testing (?lowend=true or ?perf=low or ?lowend=false)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('lowend') === 'true' || params.get('perf') === 'low') return true;
+    if (params.get('lowend') === 'false' || params.get('perf') === 'high') return false;
+  } catch {}
+
+  // 2. Hardware constraints: <= 4 logical cores or <= 4 GB RAM
+  const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
+  const cores = nav?.hardwareConcurrency;
+  if (typeof cores === 'number' && cores > 0 && cores <= 4) {
+    return true;
+  }
+  const memory = nav?.deviceMemory;
+  if (typeof memory === 'number' && memory > 0 && memory <= 4) {
+    return true;
+  }
+
+  // 3. Network constraints: data saver enabled or slow network (2G / 3G)
+  const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
+  if (conn) {
+    if (conn.saveData) return true;
+    if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g' || conn.effectiveType === '3g') {
+      return true;
+    }
+  }
+
+  // 4. Accessibility: user prefers reduced motion
+  if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return true;
+  }
+
+  return false;
+}
+
 export default function LandingReveal() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,21 +73,25 @@ export default function LandingReveal() {
   const [loadProgress, setLoadProgress] = useState(1);
   const [showCard, setShowCard] = useState(false);
   const [loadingScreenGone, setLoadingScreenGone] = useState(false);
+  const [isLowEnd, setIsLowEnd] = useState(false);
 
   const desktopVideoRef = useRef<HTMLVideoElement>(null);
   const mobileVideoRef = useRef<HTMLVideoElement>(null);
 
   // Viewport-aware video playback & complete teardown upon ready
   useEffect(() => {
-    if (ready) {
+    if (ready || isLowEnd) {
       if (desktopVideoRef.current) {
         desktopVideoRef.current.pause();
       }
       if (mobileVideoRef.current) {
         mobileVideoRef.current.pause();
       }
-      const t = setTimeout(() => setLoadingScreenGone(true), 800);
-      return () => clearTimeout(t);
+      if (ready) {
+        const t = setTimeout(() => setLoadingScreenGone(true), 800);
+        return () => clearTimeout(t);
+      }
+      return;
     }
 
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
@@ -59,7 +101,7 @@ export default function LandingReveal() {
       targetVideo.defaultMuted = true;
       targetVideo.play().catch(() => {});
     }
-  }, [ready]);
+  }, [ready, isLowEnd]);
 
   const router = useRouter();
   const { user, login } = useUser();
@@ -127,8 +169,79 @@ export default function LandingReveal() {
   const cardY = useTransform(smoothProgress, [0.90, 0.98], [30, 0]);
   const scrollHintOpacity = useTransform(smoothProgress, [0, 0.05], [1, 0]);
 
-  // Low-network & low-tier device resilient preloader with 4s minimum HUD loading screen
+  // Subtle, GPU-accelerated parallax for low-end static background on scroll
+  const staticScale = useTransform(smoothProgress, [0, 1], [1, 1.06]);
+  const staticY = useTransform(smoothProgress, [0, 1], ['0%', '-3%']);
+
+  // Resilient preloader: branches into swift static loader for low-end devices or 120-frame preloader for high-end
   useEffect(() => {
+    const isLowEndDevice = checkIsLowEnd();
+    setIsLowEnd(isLowEndDevice);
+
+    if (isLowEndDevice) {
+      // LOW-END OPTIMIZATION:
+      // Skip downloading and GPU-decoding 120 frames (saving >400MB GPU memory and thread stalls).
+      // Preload only the single upscaled static image and run a swift 2s HUD loading sequence.
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+      const staticSrc = isMobile
+        ? '/assets/images/scroll-static-mobile.webp'
+        : '/assets/images/scroll-static-desktop.webp';
+
+      const img = new window.Image();
+      let imageLoaded = false;
+      let timerDone = false;
+      let isTransitioning = false;
+      const startTime = Date.now();
+      const MIN_DURATION = 2000; // 2.0s sleek countdown for low-end devices
+
+      const checkReady = () => {
+        if (isTransitioning) return;
+        if (timerDone && imageLoaded) {
+          isTransitioning = true;
+          setLoadProgress(100);
+          setTimeout(() => setReady(true), 200);
+        }
+      };
+
+      img.onload = () => {
+        imageLoaded = true;
+        checkReady();
+      };
+      img.onerror = () => {
+        imageLoaded = true;
+        checkReady();
+      };
+      img.src = staticSrc;
+
+      const interval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(Math.max(1, Math.floor((elapsed / MIN_DURATION) * 100)), 99);
+        setLoadProgress((prev) => Math.max(prev, progress));
+
+        if (elapsed >= MIN_DURATION) {
+          clearInterval(interval);
+          timerDone = true;
+          checkReady();
+        }
+      }, 30);
+
+      const failsafe = setTimeout(() => {
+        timerDone = true;
+        imageLoaded = true;
+        if (!isTransitioning) {
+          isTransitioning = true;
+          setLoadProgress(100);
+          setReady(true);
+        }
+      }, 3500);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(failsafe);
+      };
+    }
+
+    // STANDARD / HIGH-END: Preload 120 frames into GPU memory with 4s minimum HUD loading screen
     const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
     let loadedCount = 0;
     let cursor = 0;
@@ -232,6 +345,7 @@ export default function LandingReveal() {
   }, []);
 
   const drawFrame = useCallback((index: number) => {
+    if (isLowEnd) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -264,11 +378,11 @@ export default function LandingReveal() {
     const dh = img.naturalHeight * scale;
 
     ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
-  }, []);
+  }, [isLowEnd]);
 
   // Drive the canvas frame smoothly on scroll change (0% CPU when stationary)
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || isLowEnd) return;
     drawFrame(currentFrameRef.current);
 
     let rafId: number | null = null;
@@ -294,7 +408,7 @@ export default function LandingReveal() {
       unsub();
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [ready, smoothProgress, drawFrame]);
+  }, [ready, isLowEnd, smoothProgress, drawFrame]);
 
   // Toggle whether the signup card can capture pointer input
   useEffect(() => {
@@ -304,6 +418,7 @@ export default function LandingReveal() {
 
   // Canvas resize with DPR clamp & address-bar debounce to prevent black frame flashes on mobile
   useEffect(() => {
+    if (isLowEnd) return;
     let prevWidth = 0;
     let prevHeight = 0;
 
@@ -336,7 +451,7 @@ export default function LandingReveal() {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
     };
-  }, [ready, drawFrame]);
+  }, [ready, isLowEnd, drawFrame]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -363,15 +478,44 @@ export default function LandingReveal() {
   return (
     <section ref={containerRef} className="relative bg-black" style={{ height: `${SCROLL_HEIGHT_VH}vh` }}>
       <div className="sticky top-0 h-[100dvh] w-full overflow-hidden bg-black transform-gpu">
-        {/* Frame sequence, scrubbed by scroll (hidden until ready to avoid any flash) */}
-        <canvas
-          ref={canvasRef}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 transform-gpu ${
-            ready ? 'opacity-100' : 'opacity-0'
+        {/* Upscaled Static Scroll Background (serves low-end devices & instant 0ms underlay for high-end) */}
+        <motion.div
+          className={`absolute inset-0 h-full w-full pointer-events-none select-none transform-gpu transition-opacity duration-500 ${
+            isLowEnd ? 'opacity-100' : ready ? 'opacity-0' : 'opacity-100'
           }`}
-        />
+          style={isLowEnd ? { scale: staticScale, y: staticY } : undefined}
+        >
+          {/* Desktop upscaled static image */}
+          <Image
+            src="/assets/images/scroll-static-desktop.webp"
+            alt="TechX Expedition Camp"
+            fill
+            priority={isLowEnd}
+            className="hidden md:block object-cover object-center"
+            sizes="100vw"
+          />
+          {/* Mobile upscaled static image */}
+          <Image
+            src="/assets/images/scroll-static-mobile.webp"
+            alt="TechX Expedition Camp"
+            fill
+            priority={isLowEnd}
+            className="block md:hidden object-cover object-center"
+            sizes="100vw"
+          />
+        </motion.div>
 
-        {/* Fullscreen Responsive Video Loading Screen Overlay (completely unmounted after fade-out to free GPU/RAM) */}
+        {/* Frame sequence canvas, scrubbed by scroll (completely omitted on low-end devices to save >400MB GPU texture memory) */}
+        {!isLowEnd && (
+          <canvas
+            ref={canvasRef}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 transform-gpu ${
+              ready ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        )}
+
+        {/* Fullscreen Responsive Video/Static Loading Screen Overlay (completely unmounted after fade-out to free GPU/RAM) */}
         {!loadingScreenGone && (
           <div
             className={`fixed inset-0 z-50 bg-[#0a0705] flex items-center justify-center overflow-hidden transition-opacity duration-700 ${
@@ -381,35 +525,62 @@ export default function LandingReveal() {
             {/* Animated Atmospheric Backdrop while video decodes */}
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/20 via-black to-black pointer-events-none" />
 
-            {/* Desktop Video (> 768px) */}
-            <video
-              ref={desktopVideoRef}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              disablePictureInPicture
-              disableRemotePlayback
-              className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-            >
-              <source src="/assets/images/loadingdesktop.mp4" type="video/mp4" />
-            </video>
+            {/* Upscaled Static Image for Low-End Devices & Instant 0ms Underlay */}
+            <div className="absolute inset-0 w-full h-full pointer-events-none select-none">
+              <Image
+                src="/assets/images/loading-static-desktop.webp"
+                alt="Loading Expedition Field Dossier"
+                fill
+                priority
+                className="hidden md:block object-cover object-center"
+                sizes="100vw"
+              />
+              <Image
+                src="/assets/images/loading-static-mobile.webp"
+                alt="Loading Expedition Field Dossier"
+                fill
+                priority
+                className="block md:hidden object-cover object-center"
+                sizes="100vw"
+              />
+            </div>
 
-            {/* Mobile Video (<= 768px) */}
-            <video
-              ref={mobileVideoRef}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              disablePictureInPicture
-              disableRemotePlayback
-              className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-            >
-              <source src="/assets/images/loadingmobile.mp4" type="video/mp4" />
-            </video>
+            {/* High-definition video playback (only rendered & decoded on capable devices) */}
+            {!isLowEnd && (
+              <>
+                {/* Desktop Video (> 768px) */}
+                <video
+                  ref={desktopVideoRef}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  poster="/assets/images/loading-static-desktop.webp"
+                  disablePictureInPicture
+                  disableRemotePlayback
+                  className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                >
+                  <source src="/assets/images/loadingdesktop.mp4" type="video/mp4" />
+                </video>
+
+                {/* Mobile Video (<= 768px) */}
+                <video
+                  ref={mobileVideoRef}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  poster="/assets/images/loading-static-mobile.webp"
+                  disablePictureInPicture
+                  disableRemotePlayback
+                  className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                >
+                  <source src="/assets/images/loadingmobile.mp4" type="video/mp4" />
+                </video>
+              </>
+            )}
 
             {/* Ambient scanlines & vignette overlay for immediate cinematic feel */}
             <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.4)_51%)] bg-[length:100%_4px] pointer-events-none opacity-40" />
@@ -418,7 +589,10 @@ export default function LandingReveal() {
             {/* Tactical HUD Header / Status Loading Bar Overlay centered directly without outer box */}
             <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none select-none p-4">
               <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 font-mono text-[11px] sm:text-[13px] font-bold text-white tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
-                <span>LOADING FIELD DOSSIER // STATUS: {loadProgress}%</span>
+                <span>
+                  LOADING FIELD DOSSIER // STATUS: {loadProgress}%
+                  {isLowEnd && <span className="text-amber-400/90 ml-1.5 text-[10px]">[OPTIMIZED]</span>}
+                </span>
                 
                 {/* Bracketed solid segment progress bar */}
                 <div className="relative inline-flex items-center border border-white/90 px-0.5 py-[2px] w-32 sm:w-44 h-4 bg-black/50">

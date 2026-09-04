@@ -569,7 +569,10 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                     >
                       <button
                         type="button"
-                        onClick={() => setSelectedProduct(product)}
+                        onClick={() => {
+                          setSelectedProduct(product);
+                          setActiveModalProduct(product);
+                        }}
                         className="relative flex flex-col items-center -translate-x-1/2 -translate-y-[14px] sm:-translate-y-[16px] focus:outline-none touch-manipulation cursor-pointer group"
                       >
                         {/* Outer Rotating Celestial Ring on Selected Waypoint */}
@@ -637,7 +640,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                 className="relative w-full max-w-[360px] sm:max-w-[400px] mx-auto bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_12px_28px_rgba(0,0,0,0.95)] select-none overflow-hidden"
               >
                 {/* Printable Parchment Area: comfortably positioned below Drake's ring */}
-                <div className="absolute inset-0 pt-[16%] pb-[5%] px-[6%] sm:px-[7%] flex flex-col justify-between text-[#2b1704] overflow-hidden">
+                <div className="absolute inset-0 pt-[16%] pb-[6%] px-[6%] sm:px-[7%] flex flex-col justify-between text-[#2b1704] overflow-hidden">
                   {/* Badge Row */}
                   <div className="flex items-center justify-between border-b border-[#8b6943]/30 pb-0.5 shrink-0">
                     <div className="flex items-center gap-1.5 min-w-0 pr-1">
@@ -657,45 +660,14 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                     </span>
                   </div>
 
-                  {/* Big Prominent Title & Handwritten Description */}
-                  <div className="py-0.5 my-auto min-h-0 flex-1 flex flex-col justify-center overflow-hidden">
-                    <h3 className="text-[11px] sm:text-xs font-bold text-[#1c0f05] leading-tight font-['EB_Garamond',_serif] tracking-tight truncate drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+                  {/* Big Prominent Title & Detailed Handwritten Description */}
+                  <div className="py-1 my-auto min-h-0 flex-1 flex flex-col justify-center overflow-y-auto">
+                    <h3 className="text-xs sm:text-sm font-bold text-[#1c0f05] leading-tight font-['EB_Garamond',_serif] tracking-tight truncate drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
                       {selectedProduct?.name || 'Waypoint'}
                     </h3>
-                    <p className="text-[9.5px] sm:text-[10.5px] text-[#4a2810] italic leading-tight line-clamp-1 sm:line-clamp-2 mt-0.5 font-[family-name:var(--font-handwriting)] font-semibold">
-                      &quot;{selectedProduct?.description || 'Select coordinate to inspect'}&quot;
+                    <p className="text-[10px] sm:text-[11px] text-[#4a2810] italic leading-snug line-clamp-3 mt-0.5 font-[family-name:var(--font-handwriting)] font-semibold">
+                      &quot;{selectedProduct?.description || 'Select coordinate on the map to rate and inspect'}&quot;
                     </p>
-                  </div>
-
-                  {/* CTA Button */}
-                  <div className="pt-0.5 shrink-0 flex flex-col gap-1">
-                    {completedCount === totalCount && totalCount > 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => router.push('/labs')}
-                        style={{
-                          clipPath:
-                            'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
-                        }}
-                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#22c55e] via-[#16a34a] to-[#15803d] text-white font-black text-[9.5px] sm:text-[10.5px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#86efac]/60"
-                      >
-                        <span>Continue Expedition</span>
-                        <span className="text-xs shrink-0">➔</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
-                        style={{
-                          clipPath:
-                            'polygon(5px 0%, calc(100% - 5px) 0%, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0% calc(100% - 5px), 0% 5px)',
-                        }}
-                        className="w-full py-1.5 sm:py-2 px-3 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-black text-[9.5px] sm:text-[10.5px] uppercase tracking-wider shadow-md transition hover:brightness-110 active:scale-[0.98] flex items-center justify-center gap-1.5 font-['Cinzel',_serif] touch-manipulation cursor-pointer border-t border-[#fff3cc]/60"
-                      >
-                        <span className="truncate">{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Findings' : 'Inspect Checkpoint'}</span>
-                        <span className="text-xs shrink-0">➔</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -754,7 +726,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                 </div>
 
                 {/* Celestial Coordinate Index (Waypoint Selector Buttons) */}
-                <div className="mt-3 sm:mt-4">
+                <div className="mt-4 sm:mt-5">
                   <span className="block text-[9.5px] font-mono font-bold uppercase tracking-[0.2em] text-[#652B19] mb-1.5">
                     CELESTIAL COORDINATE INDEX
                   </span>
@@ -766,7 +738,10 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setSelectedProduct(p)}
+                          onClick={() => {
+                            setSelectedProduct(p);
+                            setActiveModalProduct(p);
+                          }}
                           className={`py-2 px-1 rounded-md border flex flex-col items-center justify-between gap-1 transition-all cursor-pointer ${
                             isSel
                               ? 'bg-[#d4af37]/35 border-[#7a5214] ring-2 ring-[#d4af37]/80 shadow-md scale-[1.03]'
@@ -784,8 +759,8 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                 </div>
               </div>
 
-              {/* Action Button */}
-              <div className="pt-2 border-t border-[#8b6943]/25 flex flex-col gap-2">
+              {/* Bottom Info Note / Continue Expedition if Complete */}
+              <div className="pt-3 border-t border-[#8b6943]/25 flex flex-col gap-2">
                 {completedCount === totalCount && totalCount > 0 ? (
                   <button
                     type="button"
@@ -800,18 +775,14 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                     <span className="text-xs">➔</span>
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => selectedProduct && setActiveModalProduct(selectedProduct)}
-                    style={{
-                      clipPath:
-                        'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
-                    }}
-                    className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-b from-[#d4af37] via-[#b38920] to-[#7a5214] text-[#140802] font-bold text-xs uppercase tracking-widest shadow-md hover:brightness-110 active:scale-[0.99] transition flex items-center justify-center gap-2 font-['Cinzel',_serif] cursor-pointer border-t border-[#fff3cc]/50"
-                  >
-                    <span>{selectedProduct && submittedIds.includes(selectedProduct.id) ? 'Review Submitted Notes' : 'Seal & Record Observations'}</span>
-                    <span className="text-xs">➔</span>
-                  </button>
+                  <div className="flex items-center justify-between text-[11px] font-mono text-[#7a481c] py-1">
+                    <span className="flex items-center gap-1.5 font-semibold">
+                      <span className="text-[#c49b4d]">✦</span> Click any waypoint node to view & submit rating
+                    </span>
+                    <span className="font-bold text-[#241308]">
+                      {completedCount}/{totalCount} Completed
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
