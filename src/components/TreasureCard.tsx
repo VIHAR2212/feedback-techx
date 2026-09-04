@@ -600,7 +600,7 @@ export default function TreasureCard({
       <AnimatePresence>
         {modalOpen && claimedRelic && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 sm:backdrop-blur-sm backdrop-blur-none p-4"
             role="dialog"
             aria-modal="true"
             onClick={() => setModalOpen(false)}
@@ -611,7 +611,7 @@ export default function TreasureCard({
               exit={{ scale: 0.85, opacity: 0, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-md rounded-2xl border-2 border-[#d4af37] bg-gradient-to-b from-[#1f1207] via-[#2c1a0e] to-[#120a03] p-6 sm:p-7 text-[#f5ebd7] shadow-[0_0_40px_rgba(212,175,55,0.45)] overflow-hidden font-['Georgia']"
+              className="relative w-full max-w-md rounded-2xl border-2 border-[#d4af37] bg-gradient-to-b from-[#1f1207] via-[#2c1a0e] to-[#120a03] p-6 sm:p-7 text-[#f5ebd7] shadow-[0_0_40px_rgba(212,175,55,0.45)] overflow-hidden font-['Georgia'] transform-gpu will-change-transform"
             >
               <button
                 onClick={() => setModalOpen(false)}

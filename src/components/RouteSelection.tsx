@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useLabs } from '@/context/LabsContext';
+import { useAdmin } from '@/context/AdminContext';
 import {
   expeditionLabs,
   getSubmittedFeedbackForUser,
@@ -18,6 +19,7 @@ import { motion } from 'framer-motion';
 export default function RouteSelection() {
   const router = useRouter();
   const { user } = useUser();
+  const { isAdmin } = useAdmin();
   const userEmail = user?.email || 'explorer@field.recon';
   useLabs(); // re-render dynamically when admin edits labs
   const [feedbackVersion, setFeedbackVersion] = useState(0);
@@ -113,8 +115,21 @@ export default function RouteSelection() {
 
       {/* Content Wrapper */}
       <div className="relative z-10 w-full max-w-[480px] mx-auto flex flex-col items-center gap-5">
-        <div className="w-full flex justify-start">
+        <div className="w-full flex items-center justify-between">
           <BackButton to="/" label="Home" />
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => router.push('/leaderboard')}
+              className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded border border-[#6b4728] bg-[#22150e]/95 px-2.5 font-mono text-[#c99f58] shadow-sm transition hover:border-[#8a5d33] hover:text-[#f3dfa2] active:scale-95"
+              title="View Expedition Leaderboard"
+            >
+              <span className="text-[9px] uppercase tracking-[0.22em] leading-none">
+                Leaderboard
+              </span>
+              <span className="text-xs font-bold leading-none">🏆</span>
+            </button>
+          )}
         </div>
 
         {/* Expedition Status Header Plaque */}
@@ -148,7 +163,7 @@ export default function RouteSelection() {
                 initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: index * 0.1 }}
-                className="relative w-full drop-shadow-[0_12px_28px_rgba(0,0,0,0.88)] cursor-pointer group"
+                className="relative w-full drop-shadow-[0_12px_28px_rgba(0,0,0,0.88)] cursor-pointer group transform-gpu will-change-transform"
                 onClick={() => handleEnterLab(lab.id)}
               >
                 {/* Torn Parchment Dossier Plaque with Inset Safe Zone */}
@@ -161,7 +176,7 @@ export default function RouteSelection() {
                   {/* Centered Large Ink Stamp with Paper Grain Bleed */}
                   {isCompleted && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 select-none overflow-visible">
-                      <div className="w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] md:w-[390px] md:h-[390px] -rotate-[12deg] opacity-[0.82] mix-blend-multiply transition-transform">
+                      <div className="w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] md:w-[390px] md:h-[390px] -rotate-[12deg] opacity-[0.82] mix-blend-multiply transition-transform transform-gpu">
                         <Image
                           src="/assets/images/stamp.webp"
                           alt="Survey Cleared Stamp"

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAdmin } from '@/context/AdminContext';
 import { LABS } from '@/lib/mock-data';
 import { loadExpeditionUser } from '@/lib/expedition-storage';
 import { cn } from '@/lib/utils';
@@ -75,6 +76,7 @@ export default function InteractiveTreasureMap({
   user,
   logout,
 }: InteractiveTreasureMapProps) {
+  const { isAdmin } = useAdmin();
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const [showTreasureModal, setShowTreasureModal] = useState(false);
 
@@ -140,12 +142,14 @@ export default function InteractiveTreasureMap({
             </span>
           </div>
 
-          <Link
-            href="/leaderboard"
-            className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 sm:px-3.5 py-1 sm:py-1.5 font-bold uppercase tracking-wider text-[#dfcfb3] shadow hover:bg-amber-500/25 transition-all text-[10px] sm:text-[11px]"
-          >
-            Rankings
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/leaderboard"
+              className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 sm:px-3.5 py-1 sm:py-1.5 font-bold uppercase tracking-wider text-[#dfcfb3] shadow hover:bg-amber-500/25 transition-all text-[10px] sm:text-[11px]"
+            >
+              Rankings
+            </Link>
+          )}
 
           <button
             onClick={logout}

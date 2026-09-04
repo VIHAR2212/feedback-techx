@@ -34,22 +34,32 @@ export default function LandingReveal() {
   const [ready, setReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(1);
   const [showCard, setShowCard] = useState(false);
+  const [loadingScreenGone, setLoadingScreenGone] = useState(false);
 
   const desktopVideoRef = useRef<HTMLVideoElement>(null);
   const mobileVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Guarantee video playback triggers immediately
+  // Viewport-aware video playback & complete teardown upon ready
   useEffect(() => {
-    const playSafe = (el: HTMLVideoElement | null) => {
-      if (el) {
-        el.muted = true;
-        el.defaultMuted = true;
-        el.play().catch(() => {});
+    if (ready) {
+      if (desktopVideoRef.current) {
+        desktopVideoRef.current.pause();
       }
-    };
-    playSafe(desktopVideoRef.current);
-    playSafe(mobileVideoRef.current);
-  }, []);
+      if (mobileVideoRef.current) {
+        mobileVideoRef.current.pause();
+      }
+      const t = setTimeout(() => setLoadingScreenGone(true), 800);
+      return () => clearTimeout(t);
+    }
+
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const targetVideo = isMobile ? mobileVideoRef.current : desktopVideoRef.current;
+    if (targetVideo) {
+      targetVideo.muted = true;
+      targetVideo.defaultMuted = true;
+      targetVideo.play().catch(() => {});
+    }
+  }, [ready]);
 
   const router = useRouter();
   const { user, login } = useUser();
@@ -256,30 +266,34 @@ export default function LandingReveal() {
     ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   }, []);
 
-  // Drive the canvas frame smoothly via a continuous RAF sync loop
+  // Drive the canvas frame smoothly on scroll change (0% CPU when stationary)
   useEffect(() => {
     if (!ready) return;
-    drawFrame(0);
+    drawFrame(currentFrameRef.current);
 
-    let lastDrawnFrame = -1;
-    let animId: number;
+    let rafId: number | null = null;
+    let lastDrawn = currentFrameRef.current;
 
-    const render = () => {
-      const v = smoothProgress.get();
+    const unsub = smoothProgress.on('change', (v) => {
       const clamped = Math.max(0, Math.min(1, v));
       const idx = Math.min(Math.floor(clamped * TOTAL_FRAMES), TOTAL_FRAMES - 1);
 
-      if (idx !== lastDrawnFrame) {
-        lastDrawnFrame = idx;
+      if (idx !== lastDrawn) {
+        lastDrawn = idx;
         currentFrameRef.current = idx;
-        drawFrame(idx);
+        if (rafId === null) {
+          rafId = requestAnimationFrame(() => {
+            drawFrame(idx);
+            rafId = null;
+          });
+        }
       }
-      animId = requestAnimationFrame(render);
+    });
+
+    return () => {
+      unsub();
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
-
-    animId = requestAnimationFrame(render);
-
-    return () => cancelAnimationFrame(animId);
   }, [ready, smoothProgress, drawFrame]);
 
   // Toggle whether the signup card can capture pointer input
@@ -357,64 +371,66 @@ export default function LandingReveal() {
           }`}
         />
 
-        {/* Fullscreen Responsive Video Loading Screen Overlay (z-50 guarantees it stays strictly above all elements) */}
-        <div
-          className={`fixed inset-0 z-50 bg-[#0a0705] flex items-center justify-center overflow-hidden transition-opacity duration-700 ${
-            ready ? 'pointer-events-none opacity-0' : 'opacity-100'
-          }`}
-        >
-          {/* Animated Atmospheric Backdrop while video decodes */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/20 via-black to-black pointer-events-none" />
-
-          {/* Desktop Video (> 768px) */}
-          <video
-            ref={desktopVideoRef}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            disablePictureInPicture
-            disableRemotePlayback
-            className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+        {/* Fullscreen Responsive Video Loading Screen Overlay (completely unmounted after fade-out to free GPU/RAM) */}
+        {!loadingScreenGone && (
+          <div
+            className={`fixed inset-0 z-50 bg-[#0a0705] flex items-center justify-center overflow-hidden transition-opacity duration-700 ${
+              ready ? 'pointer-events-none opacity-0' : 'opacity-100'
+            }`}
           >
-            <source src="/assets/images/loadingdesktop.mp4" type="video/mp4" />
-          </video>
+            {/* Animated Atmospheric Backdrop while video decodes */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-950/20 via-black to-black pointer-events-none" />
 
-          {/* Mobile Video (<= 768px) */}
-          <video
-            ref={mobileVideoRef}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            disablePictureInPicture
-            disableRemotePlayback
-            className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-          >
-            <source src="/assets/images/loadingmobile.mp4" type="video/mp4" />
-          </video>
+            {/* Desktop Video (> 768px) */}
+            <video
+              ref={desktopVideoRef}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              disablePictureInPicture
+              disableRemotePlayback
+              className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+            >
+              <source src="/assets/images/loadingdesktop.mp4" type="video/mp4" />
+            </video>
 
-          {/* Ambient scanlines & vignette overlay for immediate cinematic feel */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.4)_51%)] bg-[length:100%_4px] pointer-events-none opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80 pointer-events-none" />
+            {/* Mobile Video (<= 768px) */}
+            <video
+              ref={mobileVideoRef}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              disablePictureInPicture
+              disableRemotePlayback
+              className="block md:hidden absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+            >
+              <source src="/assets/images/loadingmobile.mp4" type="video/mp4" />
+            </video>
 
-          {/* Tactical HUD Header / Status Loading Bar Overlay centered directly without outer box */}
-          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none select-none p-4">
-            <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 font-mono text-[11px] sm:text-[13px] font-bold text-white tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
-              <span>LOADING FIELD DOSSIER // STATUS: {loadProgress}%</span>
-              
-              {/* Bracketed solid segment progress bar */}
-              <div className="relative inline-flex items-center border border-white/90 px-0.5 py-[2px] w-32 sm:w-44 h-4 bg-black/50 backdrop-blur-sm">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-400 via-amber-200 to-white transition-[width] duration-75 ease-linear shadow-[0_0_10px_rgba(245,158,11,0.8)]"
-                  style={{ width: `${loadProgress}%` }}
-                />
+            {/* Ambient scanlines & vignette overlay for immediate cinematic feel */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(0,0,0,0.4)_51%)] bg-[length:100%_4px] pointer-events-none opacity-40" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80 pointer-events-none" />
+
+            {/* Tactical HUD Header / Status Loading Bar Overlay centered directly without outer box */}
+            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none select-none p-4">
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 font-mono text-[11px] sm:text-[13px] font-bold text-white tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
+                <span>LOADING FIELD DOSSIER // STATUS: {loadProgress}%</span>
+                
+                {/* Bracketed solid segment progress bar */}
+                <div className="relative inline-flex items-center border border-white/90 px-0.5 py-[2px] w-32 sm:w-44 h-4 bg-black/50">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-400 via-amber-200 to-white transition-[width] duration-75 ease-linear shadow-[0_0_10px_rgba(245,158,11,0.8)]"
+                    style={{ width: `${loadProgress}%` }}
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Centered logo, visible at the very top of the page */}
         <motion.div
@@ -551,12 +567,20 @@ export default function LandingReveal() {
               >
                 {/* Map + compass, pinned to the top-left corner of the tablet */}
                 <div className="pointer-events-none absolute -left-8 top-12 z-20 hidden -rotate-6 flex-col items-start sm:-left-20 sm:top-24 sm:flex">
-                  <Image src="/tablet/map.webp" alt="" width={192} height={192} className="w-24 drop-shadow-[0_5px_10px_rgba(0,0,0,0.6)] sm:w-48" />
+                  <Image
+                    src="/tablet/map.webp"
+                    alt=""
+                    width={192}
+                    height={192}
+                    style={{ height: 'auto' }}
+                    className="w-24 drop-shadow-[0_5px_10px_rgba(0,0,0,0.6)] sm:w-48"
+                  />
                   <Image
                     src="/tablet/compass.webp"
                     alt=""
                     width={112}
                     height={112}
+                    style={{ height: 'auto' }}
                     className="z-30 ml-4 mt-[-2rem] w-16 drop-shadow-xl sm:ml-8 sm:mt-[-4rem] sm:w-28"
                   />
                 </div>
@@ -567,6 +591,7 @@ export default function LandingReveal() {
                   alt=""
                   width={160}
                   height={160}
+                  style={{ height: 'auto' }}
                   className="pointer-events-none absolute -right-6 bottom-10 z-20 hidden w-24 rotate-[15deg] drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] sm:-right-4 sm:bottom-24 sm:block sm:w-40"
                 />
                 <Image
@@ -574,6 +599,7 @@ export default function LandingReveal() {
                   alt=""
                   width={128}
                   height={128}
+                  style={{ height: 'auto' }}
                   className="pointer-events-none absolute bottom-4 right-2 z-30 hidden w-20 drop-shadow-md sm:bottom-10 sm:right-0 sm:block sm:w-32"
                 />
 
@@ -594,6 +620,7 @@ export default function LandingReveal() {
                       width={900}
                       height={483}
                       priority
+                      style={{ height: 'auto' }}
                       className="w-full max-w-[85%] drop-shadow-md sm:max-w-[90%] md:max-w-[95%] lg:max-w-full"
                     />
                     <p className="tablet-subtitle -mt-2 text-center text-base sm:mt-0 sm:text-xl">
@@ -661,12 +688,22 @@ export default function LandingReveal() {
                         <button
                           type="submit"
                           disabled={submitting}
-                          className="relative h-14 w-48 bg-contain bg-center bg-no-repeat transition-transform duration-300 hover:scale-105 active:scale-95 disabled:opacity-60 sm:h-20 sm:w-64"
+                          className={`relative h-14 w-48 bg-contain bg-center bg-no-repeat transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-75 sm:h-20 sm:w-64 flex items-center justify-center cursor-pointer ${
+                            submitting ? 'brightness-125 animate-pulse' : ''
+                          }`}
                           style={{ backgroundImage: "url('/tablet/portal-button.webp')" }}
                         >
                           <span className="sr-only">
                             {submitting ? 'Entering…' : 'Enter Portal'}
                           </span>
+                          {submitting && (
+                            <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-black/70 border border-amber-400/80 shadow-lg">
+                              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                              <span className="text-[10px] sm:text-xs font-mono font-bold text-amber-300 uppercase tracking-widest">
+                                Venturing...
+                              </span>
+                            </div>
+                          )}
                         </button>
                       </div>
                     </form>

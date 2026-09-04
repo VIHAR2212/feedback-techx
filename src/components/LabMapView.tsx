@@ -358,7 +358,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,_rgba(240,210,140,0.06)_0%,_rgba(4,2,1,0.98)_85%)] pointer-events-none z-0" />
 
       {/* 1. Header Ribbon HUD */}
-      <header className="relative z-30 flex items-center justify-between px-3.5 py-1.5 sm:px-6 sm:py-2 bg-[#120a06]/95 backdrop-blur-md border-b border-[#4d321d]/70 shadow-lg shrink-0 text-[#e8d5b5]">
+      <header className="relative z-30 flex items-center justify-between px-3.5 py-1.5 sm:px-6 sm:py-2 bg-[#120a06]/95 backdrop-blur-none sm:backdrop-blur-md border-b border-[#4d321d]/70 shadow-lg shrink-0 text-[#e8d5b5]">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/labs')}
@@ -448,61 +448,66 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                     className="absolute inset-0 w-full h-full pointer-events-none z-10"
                   >
                     <defs>
-                      {/* Soft Gaussian blur for illuminated trail halo */}
-                      <filter id="trailGlowBlur" x="-30%" y="-30%" width="160%" height="160%">
-                        <feGaussianBlur stdDeviation="6" result="blur" />
-                      </filter>
-                      {/* Faint subtle haze for unvisited ink trail */}
-                      <filter id="trailGlowBlurDark" x="-30%" y="-30%" width="160%" height="160%">
-                        <feGaussianBlur stdDeviation="5" result="blur" />
-                      </filter>
                       <style>{`
                         @keyframes trailBreath {
                           0%, 100% {
-                            opacity: 0.45;
+                            opacity: 0.40;
                           }
                           50% {
-                            opacity: 0.78;
+                            opacity: 0.85;
                           }
                         }
                         .trail-glow-active {
                           animation: trailBreath 3s ease-in-out infinite;
+                          will-change: opacity;
                         }
                       `}</style>
                     </defs>
 
-                    {/* 1. CONTINUOUS SOFT GLOW HALO LAYER (Behind the core trail) */}
-                    {routePaths.segments.map((seg) => {
-                      if (seg.isCompleted || seg.isActive) {
+                    {/* 1. CONTINUOUS SOFT GLOW HALO LAYER (Hardware-accelerated multi-stroke, 0% CPU overhead) */}
+                    <g className="trail-glow-active">
+                      {routePaths.segments.map((seg) => {
+                        if (seg.isCompleted || seg.isActive) {
+                          return (
+                            <React.Fragment key={`glow-wrap-${seg.id}`}>
+                              {/* Outer diffuse stroke */}
+                              <path
+                                d={seg.d}
+                                fill="none"
+                                stroke={themeStyle.haloStroke}
+                                strokeWidth="16"
+                                strokeDasharray="14 12"
+                                strokeLinecap="round"
+                                opacity={0.4}
+                              />
+                              {/* Inner focused aura */}
+                              <path
+                                d={seg.d}
+                                fill="none"
+                                stroke={themeStyle.glowColor}
+                                strokeWidth="10"
+                                strokeDasharray="14 12"
+                                strokeLinecap="round"
+                                opacity={0.35}
+                              />
+                            </React.Fragment>
+                          );
+                        }
                         return (
                           <path
-                            key={`glow-${seg.id}`}
+                            key={`glow-unvisited-${seg.id}`}
                             d={seg.d}
                             fill="none"
-                            stroke={themeStyle.haloStroke}
-                            strokeWidth="18"
+                            stroke="rgba(210, 165, 65, 0.12)"
+                            strokeWidth="12"
                             strokeDasharray="14 12"
                             strokeLinecap="round"
-                            filter="url(#trailGlowBlur)"
-                            className="trail-glow-active"
                           />
                         );
-                      }
-                      return (
-                        <path
-                          key={`glow-unvisited-${seg.id}`}
-                          d={seg.d}
-                          fill="none"
-                          stroke="rgba(210, 165, 65, 0.10)"
-                          strokeWidth="14"
-                          strokeDasharray="14 12"
-                          strokeLinecap="round"
-                          filter="url(#trailGlowBlurDark)"
-                        />
-                      );
-                    })}
+                      })}
+                    </g>
 
-                    {/* 2. CRISP CORE TRAIL (Actual solid/dark ink dashed path) */}
+                    {/* 2. CRISP CORE TRAIL (Solid dark ink dashed path) */}
                     {routePaths.segments.map((seg) => (
                       <path
                         key={`core-${seg.id}`}
@@ -569,7 +574,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
                       >
                         {/* Outer Rotating Celestial Ring on Selected Waypoint */}
                         {isCurrent && (
-                          <span className="absolute -top-1 w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-dashed border-[#d4af37] animate-[spin_10s_linear_infinite] pointer-events-none" />
+                          <span className="absolute -top-1 w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-dashed border-[#d4af37] animate-[spin_10s_linear_infinite] will-change-transform transform-gpu pointer-events-none" />
                         )}
 
                         {/* Main Cartographic Compass Medallion */}
@@ -813,7 +818,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
           </div>
         ) : (
           /* List Mode Overlay */
-          <div className="w-full max-w-lg mx-auto flex flex-col gap-2.5 p-2 overflow-y-auto z-40">
+          <div className="w-full max-w-lg mx-auto flex flex-col gap-2.5 p-2 pb-24 overflow-y-auto z-40">
             {products.map((product, idx) => {
               const isDone = submittedIds.includes(product.id);
               return (

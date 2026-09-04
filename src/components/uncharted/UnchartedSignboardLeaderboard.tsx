@@ -214,19 +214,19 @@ export default function UnchartedSignboardLeaderboard({
 
   return (
     <>
-      <div className="relative mx-auto flex w-full h-full max-w-[1920px] flex-col items-center justify-center select-none p-0 pointer-events-none scale-100 sm:scale-[1.02] md:scale-[1.04] lg:scale-[1.06] xl:scale-[1.08] origin-center transition-all duration-300">
+      <div className="relative mx-auto flex w-full h-full max-w-[1920px] flex-col items-center justify-center select-none p-0 pointer-events-none scale-100 sm:scale-[1.01] md:scale-[1.02] lg:scale-[1.03] xl:scale-[1.04] origin-center transition-all duration-300">
         
         {/* Full Signboard Container Centered over Background Video */}
-        <div className="relative w-full aspect-[1024/576] max-h-[96vh] flex items-center justify-center">
+        <div className="relative w-full aspect-[1024/576] max-h-[93vh] flex items-center justify-center">
 
           {/* 1. TOP "LEADERBOARD" TITLE WITH TIMBER PLANK TEXTURE (LOCKED GOLDEN) */}
           <div 
             className="absolute z-10 text-center flex items-center justify-center pointer-events-auto"
             style={{
-              top: '-3.4%',
+              top: '4.5%',
               left: '25.0%',
               width: '50.0%',
-              height: '16.0%',
+              height: '15.0%',
             }}
           >
             {/* Wooden plank background texture behind title */}
@@ -243,7 +243,7 @@ export default function UnchartedSignboardLeaderboard({
                 fontFamily: "var(--font-base02), var(--font-uncharted), 'Base02', 'Base 02', serif",
                 color: '#EFBF04',
               }}
-              className="relative z-10 font-uncharted font-black text-lg sm:text-xl md:text-2xl lg:text-[32px] xl:text-[37px] uppercase tracking-[0.22em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_0_14px_rgba(239,191,4,0.45)] transform -rotate-0.5 leading-none select-none px-4 pt-0.5"
+              className="relative z-10 font-uncharted font-black text-lg sm:text-xl md:text-2xl lg:text-[32px] xl:text-[37px] uppercase tracking-[0.22em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_0_14px_rgba(239,191,4,0.45)] transform -rotate-0.5 leading-none select-none px-4 pt-1 sm:pt-1.5"
             >
               LEADERBOARD
             </h1>
@@ -274,25 +274,25 @@ export default function UnchartedSignboardLeaderboard({
             )}
 
             {/* Header Row in 3 Equal / Balanced Columns */}
-            <div className="grid grid-cols-[110px_1fr_160px] sm:grid-cols-[140px_1fr_190px] md:grid-cols-[160px_1fr_210px] items-center border-b border-[#a87f58]/60 px-4 sm:px-6 py-0.5 font-cinzel font-black uppercase tracking-widest shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#C0C0C0' }}>
-              {/* Left Column: RANK (Shifted more to the right) */}
-              <div className="text-left pl-6 sm:pl-10 md:pl-14">
-                <span className="font-black tracking-widest text-sm sm:text-base md:text-lg lg:text-[21px] xl:text-[23px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#C0C0C0' }}>
+            <div className="grid grid-cols-[42px_1fr_68px] sm:grid-cols-[130px_1fr_180px] md:grid-cols-[160px_1fr_210px] items-center border-b border-[#a87f58]/60 px-1.5 sm:px-6 py-0.5 font-cinzel font-black uppercase tracking-widest shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#C0C0C0' }}>
+              {/* Left Column: RANK */}
+              <div className="text-left pl-1 sm:pl-10 md:pl-14">
+                <span className="font-black tracking-widest text-xs sm:text-base md:text-lg lg:text-[21px] xl:text-[23px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#C0C0C0' }}>
                   RANK
                 </span>
               </div>
 
               {/* Middle Column: EXPLORER / DISCOVERY (Centered - untouched) */}
-              <div className="text-center px-2">
-                <span className="inline-block tracking-[0.24em] font-black text-sm sm:text-base md:text-lg lg:text-[21px] xl:text-[23px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#C0C0C0' }}>
+              <div className="text-center px-1">
+                <span className="inline-block tracking-[0.18em] sm:tracking-[0.24em] font-black text-xs sm:text-base md:text-lg lg:text-[21px] xl:text-[23px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] truncate max-w-full" style={{ color: '#C0C0C0' }}>
                   {viewMode === 'users' ? 'EXPLORER' : 'DISCOVERY'}
                 </span>
               </div>
 
-              {/* Right Column: CHECKPOINTS / RATING (Shifted more to the left) + Search Icon */}
-              <div className="flex items-center justify-center pr-6 sm:pl-0 sm:pr-10 md:pr-14 gap-1.5 sm:gap-2">
-                <span className="text-center tracking-widest font-black text-sm sm:text-base md:text-lg lg:text-[21px] xl:text-[23px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#C0C0C0' }}>
-                  {viewMode === 'users' ? 'CHECKPOINTS' : 'RATING'}
+              {/* Right Column: CHECKPOINTS / RATING + Search Icon */}
+              <div className="flex items-center justify-center pr-1 sm:pl-0 sm:pr-10 md:pr-14 gap-1 sm:gap-2">
+                <span className="text-center tracking-wider sm:tracking-widest font-black text-xs sm:text-base md:text-lg lg:text-[21px] xl:text-[23px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]" style={{ color: '#C0C0C0' }}>
+                  {viewMode === 'users' ? 'SCORE' : 'RATING'}
                 </span>
                 <button
                   onClick={() => setShowSearch(!showSearch)}
@@ -345,33 +345,33 @@ export default function UnchartedSignboardLeaderboard({
                     return (
                       <div
                         key={`${entry.name}-${index}`}
-                        className={`grid grid-cols-[110px_1fr_160px] sm:grid-cols-[140px_1fr_190px] md:grid-cols-[160px_1fr_210px] items-center px-3 sm:px-5 py-0 rounded transition-all leading-tight ${
+                        className={`grid grid-cols-[42px_1fr_68px] sm:grid-cols-[130px_1fr_180px] md:grid-cols-[160px_1fr_210px] items-center px-1.5 sm:px-5 py-0 rounded transition-all leading-tight ${
                           isYou
                             ? 'bg-[#3b2311]/90 font-black shadow-[0_0_12px_rgba(222,161,147,0.35)] border border-[#C0C0C0]/80'
                             : 'hover:bg-[#2e180c]/55'
                         }`}
                       >
-                        {/* Left: Rank (Shifted more to the right) */}
-                        <div className="text-left pl-6 sm:pl-10 md:pl-14">
+                        {/* Left: Rank */}
+                        <div className="text-left pl-1 sm:pl-10 md:pl-14">
                           <span
-                            className="font-cinzel font-black text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
+                            className="font-cinzel font-black text-xs sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
                             style={{ color: '#C0C0C0' }}
                           >
                             {rank}
                           </span>
                         </div>
 
-                        {/* Middle: Centered Explorer Name (untouched) */}
-                        <div className="flex items-center justify-center gap-2 truncate min-w-0 px-2">
+                        {/* Middle: Centered Explorer Name */}
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 truncate min-w-0 px-1 sm:px-2">
                           <span
-                            className="truncate font-cinzel text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] font-black tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] text-center"
+                            className="truncate font-cinzel text-xs sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] font-black tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] text-center"
                             style={{ color: isYou ? '#ffffff' : '#C0C0C0' }}
                           >
                             {displayName}
                           </span>
 
                           {isYou && (
-                            <span className="text-[8px] sm:text-[9px] bg-[#C0C0C0] text-[#1c0f05] px-1.5 py-0.5 rounded font-black tracking-wider uppercase shrink-0 shadow-xs">
+                            <span className="text-[7px] sm:text-[9px] bg-[#C0C0C0] text-[#1c0f05] px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded font-black tracking-wider uppercase shrink-0 shadow-xs">
                               YOU
                             </span>
                           )}
@@ -379,7 +379,7 @@ export default function UnchartedSignboardLeaderboard({
                           {entry.isCompleted && (
                             <span
                               title="Expedition Completed"
-                              className="text-xs sm:text-sm shrink-0 drop-shadow-[0_0_8px_rgba(222,161,147,0.8)]"
+                              className="text-[10px] sm:text-sm shrink-0 drop-shadow-[0_0_8px_rgba(222,161,147,0.8)]"
                               style={{ color: '#C0C0C0' }}
                             >
                               ★
@@ -387,10 +387,10 @@ export default function UnchartedSignboardLeaderboard({
                           )}
                         </div>
 
-                        {/* Right: Centered Checkpoints Score (Shifted more to the left) */}
-                        <div className="text-center pr-6 sm:pl-0 sm:pr-10 md:pr-14">
+                        {/* Right: Centered Checkpoints Score */}
+                        <div className="text-center pr-1 sm:pl-0 sm:pr-10 md:pr-14">
                           <span
-                            className="font-mono text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
+                            className="font-mono text-xs sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
                             style={{ color: '#C0C0C0' }}
                           >
                             {getScore(entry, index)}
@@ -411,28 +411,28 @@ export default function UnchartedSignboardLeaderboard({
                     return (
                       <div
                         key={entry.productId}
-                        className="grid grid-cols-[110px_1fr_160px] sm:grid-cols-[140px_1fr_190px] md:grid-cols-[160px_1fr_210px] items-center px-3 sm:px-5 py-0 rounded leading-tight hover:bg-[#2e180c]/55 transition-colors"
+                        className="grid grid-cols-[42px_1fr_68px] sm:grid-cols-[130px_1fr_180px] md:grid-cols-[160px_1fr_210px] items-center px-1.5 sm:px-5 py-0 rounded leading-tight hover:bg-[#2e180c]/55 transition-colors"
                       >
-                        {/* Left: Rank (Shifted more to the right) */}
-                        <div className="text-left pl-6 sm:pl-10 md:pl-14">
-                          <span className="font-cinzel font-black text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ color: '#C0C0C0' }}>
+                        {/* Left: Rank */}
+                        <div className="text-left pl-1 sm:pl-10 md:pl-14">
+                          <span className="font-cinzel font-black text-xs sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ color: '#C0C0C0' }}>
                             {rank}
                           </span>
                         </div>
 
                         {/* Middle: Centered Discovery Name & Info */}
-                        <div className="flex flex-col items-center justify-center min-w-0 truncate px-2">
-                          <span className="truncate font-cinzel font-black text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] text-center" style={{ color: '#C0C0C0' }}>
+                        <div className="flex flex-col items-center justify-center min-w-0 truncate px-1 sm:px-2">
+                          <span className="truncate font-cinzel font-black text-xs sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] text-center" style={{ color: '#C0C0C0' }}>
                             {entry.productName}
                           </span>
-                          <span className="text-[10px] sm:text-xs font-mono font-bold truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] opacity-85 text-center" style={{ color: '#C0C0C0' }}>
+                          <span className="text-[9px] sm:text-xs font-mono font-bold truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] opacity-85 text-center" style={{ color: '#C0C0C0' }}>
                             {entry.labName} • {entry.totalRatings} ratings
                           </span>
                         </div>
 
-                        {/* Right: Centered Rating (Shifted more to the left) */}
-                        <div className="text-center pr-6 sm:pl-0 sm:pr-10 md:pr-14">
-                          <span className="font-mono text-sm sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ color: '#C0C0C0' }}>
+                        {/* Right: Centered Rating */}
+                        <div className="text-center pr-1 sm:pl-0 sm:pr-10 md:pr-14">
+                          <span className="font-mono text-xs sm:text-base md:text-lg lg:text-[20px] xl:text-[22px] font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ color: '#C0C0C0' }}>
                             ⭐ {entry.averageRating.toFixed(1)}
                           </span>
                         </div>

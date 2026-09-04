@@ -802,4 +802,35 @@ select.tablet-input option {
   transform: translateY(-2px);
 }
 
+/* ============================================
+   MOBILE 60FPS/120FPS HARDWARE ACCELERATION HELPERS
+   ============================================ */
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+}
+
+@layer utilities {
+  .transform-gpu {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+  .will-change-transform {
+    will-change: transform;
+  }
+  .will-change-opacity {
+    will-change: opacity;
+  }
+  .gpu-layer {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+}
+
+
 

@@ -1,295 +1,333 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Image from 'next/image';
+import React, { useEffect, useRef } from 'react';
 
-interface DenseTrainCoin {
-  id: string;
-  pts: { x: number; y: number }[];
-  delayMs: number;
-  durationMs: number;
-}
-
-interface Sparkle {
-  id: string;
+interface Point {
   x: number;
   y: number;
+}
+
+interface ActiveCoin {
+  id: number;
+  p0: Point;
+  p1: Point;
+  p2: Point;
+  p3: Point;
+  startTime: number;
+  duration: number;
+  targetX: number;
+  targetY: number;
+  hasHitTarget: boolean;
+}
+
+interface SparkleParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
   color: string;
-  angle: number;
-  distance: number;
+  radius: number;
+  life: number;
+  decay: number;
+}
+
+// Cubic Bézier calculation: continuous subpixel positioning
+function evalCubicBezier(p0: Point, p1: Point, p2: Point, p3: Point, t: number): Point {
+  const u = 1 - t;
+  const tt = t * t;
+  const uu = u * u;
+  const uuu = uu * u;
+  const ttt = tt * t;
+
+  return {
+    x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
+    y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y,
+  };
+}
+
+// Smooth flight easing: initial release pop -> natural acceleration -> smooth dock landing
+function easeFlightProgress(t: number): number {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
 
 export default function FlyingCoinsOverlay() {
-  const [activeCoins, setActiveCoins] = useState<DenseTrainCoin[]>([]);
-  const [sparkles, setSparkles] = useState<Sparkle[]>([]);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const coinsRef = useRef<ActiveCoin[]>([]);
+  const sparklesRef = useRef<SparkleParticle[]>([]);
+  const animFrameIdRef = useRef<number | null>(null);
+  const coinImgRef = useRef<HTMLImageElement | null>(null);
+  const lastImpactTimeRef = useRef<number>(0);
 
-  const spawnSparkles = useCallback((x: number, y: number) => {
-    const colors = ['#ffd700', '#fde047', '#fbbf24', '#ffffff', '#eab308'];
-    const newSparkles: Sparkle[] = Array.from({ length: 12 }).map((_, i) => ({
-      id: `${Date.now()}-${i}-${Math.random()}`,
-      x,
-      y,
-      color: colors[i % colors.length],
-      angle: (i / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.2,
-      distance: 24 + Math.random() * 26,
-    }));
+  // Preload pirate coin image on mount for instant zero-latency rendering
+  useEffect(() => {
+    const img = new window.Image();
+    img.src = '/assets/images/avery-pirate-coin.webp';
+    coinImgRef.current = img;
 
-    setSparkles((prev) => [...prev, ...newSparkles]);
-
-    const timer = setTimeout(() => {
-      setSparkles((prev) => prev.filter((s) => !newSparkles.includes(s)));
-    }, 450);
-    timersRef.current.push(timer);
+    return () => {
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+    };
   }, []);
 
-  const triggerCoinFlight = useCallback(
-    (e: Event) => {
-      const custom = e as CustomEvent<{
-        count?: number;
-        startX?: number;
-        startY?: number;
-      }>;
-      const count = Math.max(1, Math.min(5, custom.detail?.count ?? 4));
+  const renderFrame = (now: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      animFrameIdRef.current = null;
+      return;
+    }
 
-      // 1. Exact start point (Selected N-th rating coin in the rating bar)
-      const startX =
-        custom.detail?.startX ??
-        (typeof window !== 'undefined' ? window.innerWidth / 2 : 200);
-      const startY =
-        custom.detail?.startY ??
-        (typeof window !== 'undefined' ? window.innerHeight / 2 : 300);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      animFrameIdRef.current = null;
+      return;
+    }
 
-      // 2. Exact destination (Avery Coin marker on bottom dock)
-      let targetX = typeof window !== 'undefined' ? window.innerWidth / 2 : 200;
-      let targetY = typeof window !== 'undefined' ? window.innerHeight - 36 : 600;
+    // Keep canvas dimension in sync with window & device pixel ratio
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const winWidth = window.innerWidth;
+    const winHeight = window.innerHeight;
 
-      const markerEl = document.getElementById('expedition-coin-marker');
-      if (markerEl) {
-        const rect = markerEl.getBoundingClientRect();
-        targetX = rect.left + rect.width / 2;
-        targetY = rect.top + rect.height / 2;
+    if (canvas.width !== winWidth * dpr || canvas.height !== winHeight * dpr) {
+      canvas.width = winWidth * dpr;
+      canvas.height = winHeight * dpr;
+      canvas.style.width = `${winWidth}px`;
+      canvas.style.height = `${winHeight}px`;
+    }
+
+    // Clear entire frame
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.scale(dpr, dpr);
+
+    const coinImg = coinImgRef.current;
+    const isMobile = winWidth < 640;
+    const coinSize = isMobile ? 36 : 40;
+    const sparkleColors = ['#ffd700', '#fde047', '#fbbf24', '#ffffff', '#f59e0b'];
+
+    // 1. Process and draw active coins
+    const activeCoins = coinsRef.current;
+    for (let i = activeCoins.length - 1; i >= 0; i--) {
+      const coin = activeCoins[i];
+
+      // Staggered delay check
+      if (now < coin.startTime) {
+        continue;
       }
 
-      // 3. High-Order Cubic Bezier Rail Curve
-      const dx = targetX - startX;
-      const dy = targetY - startY;
-      const sideArc = dx >= 0 ? 45 : -45;
+      const elapsed = now - coin.startTime;
+      const rawT = Math.min(1, elapsed / coin.duration);
+      const easedT = easeFlightProgress(rawT);
+      const pos = evalCubicBezier(coin.p0, coin.p1, coin.p2, coin.p3, easedT);
 
-      const p0 = { x: startX, y: startY };
-      const p1 = { x: startX + dx * 0.15 + sideArc, y: startY - 45 };
-      const p2 = { x: startX + dx * 0.7 + sideArc * 0.5, y: startY + dy * 0.6 };
-      const p3 = { x: targetX, y: targetY };
+      // Natural scale profile: pop out -> glide -> absorb into coin slot
+      let scale = 1.0;
+      if (rawT < 0.14) {
+        scale = 0.5 + 0.65 * (rawT / 0.14);
+      } else if (rawT < 0.82) {
+        scale = 1.15 - 0.2 * ((rawT - 0.14) / 0.68);
+      } else {
+        scale = 0.95 - 0.65 * ((rawT - 0.82) / 0.18);
+      }
 
-      // B(t) = (1-t)^3*P0 + 3(1-t)^2*t*P1 + 3(1-t)*t^2*P2 + t^3*P3
-      const evalCubicBezier = (t: number) => {
-        const u = 1 - t;
-        const tt = t * t;
-        const uu = u * u;
-        const uuu = uu * u;
-        const ttt = tt * t;
+      // Fade profile: quick entry fade, smooth exit fade into the bottom bar marker
+      let alpha = 1.0;
+      if (rawT < 0.08) {
+        alpha = rawT / 0.08;
+      } else if (rawT > 0.9) {
+        alpha = (1.0 - rawT) / 0.1;
+      }
 
-        const x = uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x;
-        const y = uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y;
-        return { x, y };
-      };
+      // Smooth continuous spin (1.25 rotations across flight)
+      const rotation = rawT * Math.PI * 2.5;
 
-      // 11-step mathematically continuous trajectory
-      const steps = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-      const trajectoryPts = steps.map((t) => evalCubicBezier(t));
+      // Draw the coin
+      ctx.save();
+      ctx.translate(pos.x, pos.y);
+      ctx.rotate(rotation);
+      ctx.scale(scale, scale);
+      ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
 
-      const newCoins: DenseTrainCoin[] = [];
-      const baseDuration = 680;
-      const staggerDelay = 65; // Ultra-fluid train flow
+      if (coinImg && coinImg.complete && coinImg.naturalWidth > 0) {
+        // Soft drop shadow without expensive DOM CSS filters
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetY = 3;
+        ctx.drawImage(coinImg, -coinSize / 2, -coinSize / 2, coinSize, coinSize);
+      } else {
+        // High-contrast gold backup disk if image loading is delayed
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(0, 0, coinSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
 
-      for (let i = 0; i < count; i++) {
-        const delayMs = i * staggerDelay;
+      // Trigger impact event and sparkles upon arriving at bottom dock marker
+      if (!coin.hasHitTarget && rawT >= 0.95) {
+        coin.hasHitTarget = true;
 
-        newCoins.push({
-          id: `dense-train-coin-${Date.now()}-${i}-${Math.random()}`,
-          pts: trajectoryPts,
-          delayMs,
-          durationMs: baseDuration,
-        });
+        // Spawn 8 lightweight golden sparkles directly on canvas
+        for (let s = 0; s < 8; s++) {
+          const angle = (s / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+          const speed = 1.6 + Math.random() * 2.2;
+          sparklesRef.current.push({
+            x: coin.targetX,
+            y: coin.targetY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 0.7,
+            color: sparkleColors[s % sparkleColors.length],
+            radius: 1.6 + Math.random() * 1.4,
+            life: 1.0,
+            decay: 0.038,
+          });
+        }
 
-        // Arrival impact at the bottom gauge
-        const impactTimer = setTimeout(() => {
+        // Dispatch impact event to bottom dock (throttled to avoid layout thrashing)
+        if (now - lastImpactTimeRef.current > 160) {
+          lastImpactTimeRef.current = now;
           window.dispatchEvent(new Event('coinImpacted'));
-          spawnSparkles(targetX, targetY);
-        }, delayMs + baseDuration - 25);
-        timersRef.current.push(impactTimer);
+        }
       }
 
-      setActiveCoins((prev) => [...prev, ...newCoins]);
+      // Remove completed coin
+      if (rawT >= 1.0) {
+        activeCoins.splice(i, 1);
+      }
+    }
 
-      // Clean up after entire stream completes
-      const cleanupTimer = setTimeout(() => {
-        setActiveCoins((prev) =>
-          prev.filter((c) => !newCoins.some((nc) => nc.id === c.id))
-        );
-      }, (count - 1) * staggerDelay + baseDuration + 200);
-      timersRef.current.push(cleanupTimer);
-    },
-    [spawnSparkles]
-  );
+    // 2. Process and draw impact sparkles
+    const sparkles = sparklesRef.current;
+    for (let i = sparkles.length - 1; i >= 0; i--) {
+      const sp = sparkles[i];
+      sp.x += sp.vx;
+      sp.y += sp.vy;
+      sp.vy += 0.06; // subtle gravity
+      sp.life -= sp.decay;
+
+      if (sp.life <= 0) {
+        sparkles.splice(i, 1);
+        continue;
+      }
+
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, sp.life);
+      ctx.fillStyle = sp.color;
+      ctx.shadowColor = sp.color;
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, Math.max(0.4, sp.radius * sp.life), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+
+    // 3. Keep rendering if items remain, otherwise pause loop for 0% CPU consumption
+    if (activeCoins.length > 0 || sparkles.length > 0) {
+      animFrameIdRef.current = requestAnimationFrame(renderFrame);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      animFrameIdRef.current = null;
+    }
+  };
+
+  const triggerCoinFlight = (e: Event) => {
+    const custom = e as CustomEvent<{
+      count?: number;
+      startX?: number;
+      startY?: number;
+    }>;
+    const count = Math.max(1, Math.min(5, custom.detail?.count ?? 4));
+
+    // 1. Exact start coordinates (rating coin tapped in modal)
+    const startX =
+      custom.detail?.startX ??
+      (typeof window !== 'undefined' ? window.innerWidth / 2 : 200);
+    const startY =
+      custom.detail?.startY ??
+      (typeof window !== 'undefined' ? window.innerHeight / 2 : 300);
+
+    // 2. Exact destination (Avery pirate coin marker on bottom progress dock)
+    let targetX = typeof window !== 'undefined' ? window.innerWidth / 2 : 200;
+    let targetY = typeof window !== 'undefined' ? window.innerHeight - 36 : 600;
+
+    const markerEl = document.getElementById('expedition-coin-marker');
+    if (markerEl) {
+      const rect = markerEl.getBoundingClientRect();
+      targetX = rect.left + rect.width / 2;
+      targetY = rect.top + rect.height / 2;
+    }
+
+    // 3. Elegant outward parabolic Bézier trajectory
+    const dx = targetX - startX;
+    const dy = targetY - startY;
+
+    // Bow outward dynamically based on screen quadrant
+    const centerOffset = startX < (typeof window !== 'undefined' ? window.innerWidth / 2 : 200) ? -40 : 40;
+    const arcSign = Math.abs(dx) > 30 ? (dx > 0 ? 1 : -1) : (centerOffset > 0 ? 1 : -1);
+    const arcMagnitude = Math.min(65, Math.max(28, Math.abs(dx) * 0.35));
+
+    const p0 = { x: startX, y: startY };
+    const p1 = {
+      x: startX + arcSign * arcMagnitude,
+      y: startY - Math.min(65, Math.max(35, dy * 0.12)),
+    };
+    const p2 = {
+      x: targetX + arcSign * (arcMagnitude * 0.4),
+      y: startY + dy * 0.65,
+    };
+    const p3 = { x: targetX, y: targetY };
+
+    const now = performance.now();
+    const baseDuration = 640;
+    const staggerDelay = 65;
+
+    for (let i = 0; i < count; i++) {
+      // Micro-jitter to prevent coin sprites from masking each other completely
+      const jitterX = (i - (count - 1) / 2) * 3;
+      const jitterY = (i - (count - 1) / 2) * 1.5;
+
+      coinsRef.current.push({
+        id: now + i + Math.random(),
+        p0: { x: p0.x + jitterX, y: p0.y + jitterY },
+        p1: { x: p1.x + jitterX, y: p1.y },
+        p2: { x: p2.x + jitterX * 0.5, y: p2.y },
+        p3,
+        startTime: now + i * staggerDelay,
+        duration: baseDuration,
+        targetX,
+        targetY,
+        hasHitTarget: false,
+      });
+    }
+
+    // Kick off animation loop if not currently active
+    if (!animFrameIdRef.current) {
+      animFrameIdRef.current = requestAnimationFrame(renderFrame);
+    }
+  };
 
   useEffect(() => {
     window.addEventListener('flyExpeditionCoins', triggerCoinFlight);
     return () => {
       window.removeEventListener('flyExpeditionCoins', triggerCoinFlight);
-      timersRef.current.forEach(clearTimeout);
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
     };
-  }, [triggerCoinFlight]);
-
-  if (activeCoins.length === 0 && sparkles.length === 0) {
-    return null;
-  }
+  }, []);
 
   return (
-    <div
-      className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden"
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-[9999]"
       aria-hidden="true"
-    >
-      {/* 60FPS Pure Hardware-Accelerated Train Keyframes (No Mid-Air Glow Filters) */}
-      <style jsx>{`
-        @keyframes clean60FpsTrainFly {
-          0% {
-            transform: translate3d(var(--x0), var(--y0), 0) scale(0.3) rotate(0deg);
-            opacity: 0;
-          }
-          6% {
-            /* Clean Mechanical Pop & Distortion */
-            transform: translate3d(var(--x0), var(--y0), 0) scale(1.35) rotate(-18deg) skewX(-12deg);
-            opacity: 1;
-          }
-          12% {
-            /* Snap into Train Track */
-            transform: translate3d(var(--x1), var(--y1), 0) scale(1.12) rotate(10deg) skewX(5deg);
-            opacity: 1;
-          }
-          20% {
-            transform: translate3d(var(--x2), var(--y2), 0) scale(1.04) rotate(55deg) skewX(0deg);
-            opacity: 1;
-          }
-          30% {
-            transform: translate3d(var(--x3), var(--y3), 0) scale(1.0) rotate(120deg);
-            opacity: 1;
-          }
-          40% {
-            transform: translate3d(var(--x4), var(--y4), 0) scale(0.96) rotate(195deg);
-            opacity: 1;
-          }
-          50% {
-            transform: translate3d(var(--x5), var(--y5), 0) scale(0.92) rotate(275deg);
-            opacity: 1;
-          }
-          60% {
-            transform: translate3d(var(--x6), var(--y6), 0) scale(0.88) rotate(360deg);
-            opacity: 1;
-          }
-          70% {
-            transform: translate3d(var(--x7), var(--y7), 0) scale(0.84) rotate(450deg);
-            opacity: 1;
-          }
-          80% {
-            transform: translate3d(var(--x8), var(--y8), 0) scale(0.8) rotate(540deg);
-            opacity: 1;
-          }
-          90% {
-            transform: translate3d(var(--x9), var(--y9), 0) scale(0.74) rotate(630deg);
-            opacity: 1;
-          }
-          97% {
-            transform: translate3d(var(--x10), var(--y10), 0) scale(0.62) rotate(700deg);
-            opacity: 1;
-          }
-          100% {
-            /* Smooth Absorption into the bottom gauge coin */
-            transform: translate3d(var(--x10), var(--y10), 0) scale(0) rotate(720deg);
-            opacity: 0;
-          }
-        }
-
-        @keyframes cleanSparkleBurst {
-          0% {
-            transform: translate3d(0, 0, 0) scale(1);
-            opacity: 1;
-          }
-          100% {
-            transform: translate3d(var(--dx), var(--dy), 0) scale(0);
-            opacity: 0;
-          }
-        }
-
-        .clean-train-coin {
-          animation: clean60FpsTrainFly var(--duration) cubic-bezier(0.16, 1, 0.3, 1)
-            var(--delay) forwards;
-          will-change: transform, opacity;
-          transform: translate3d(var(--x0), var(--y0), 0);
-          backface-visibility: hidden;
-        }
-
-        .impact-sparkle-orb {
-          animation: cleanSparkleBurst 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
-          will-change: transform, opacity;
-          backface-visibility: hidden;
-        }
-      `}</style>
-
-      {/* Train of Transparent Circular Avery Pirate Coins (No Square Background Artifacts) */}
-      {activeCoins.map((coin) => {
-        const styleVars: Record<string, string> = {
-          '--delay': `${coin.delayMs}ms`,
-          '--duration': `${coin.durationMs}ms`,
-        };
-        coin.pts.forEach((pt, idx) => {
-          styleVars[`--x${idx}`] = `${pt.x - 18}px`;
-          styleVars[`--y${idx}`] = `${pt.y - 18}px`;
-        });
-
-        return (
-          <div
-            key={coin.id}
-            className="absolute top-0 left-0 clean-train-coin pointer-events-none select-none"
-            style={styleVars as React.CSSProperties}
-          >
-            {/* Pure Circular Pirate Coin with transparent background */}
-            <img
-              src="/assets/images/avery-pirate-coin.webp"
-              alt="Flying Coin"
-              className="w-9 h-9 sm:w-10 sm:h-10 object-contain drop-shadow-[0_3px_6px_rgba(0,0,0,0.85)] pointer-events-none select-none"
-              draggable={false}
-            />
-          </div>
-        );
-      })}
-
-      {/* Golden Sparkles triggered ONLY upon reaching bottom progress coin */}
-      {sparkles.map((sp) => {
-        const dx = Math.cos(sp.angle) * sp.distance;
-        const dy = Math.sin(sp.angle) * sp.distance;
-        return (
-          <div
-            key={sp.id}
-            className="absolute top-0 left-0 impact-sparkle-orb"
-            style={
-              {
-                left: `${sp.x}px`,
-                top: `${sp.y}px`,
-                '--dx': `${dx}px`,
-                '--dy': `${dy}px`,
-              } as React.CSSProperties
-            }
-          >
-            <div
-              style={{ backgroundColor: sp.color }}
-              className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_#ffd700]"
-            />
-          </div>
-        );
-      })}
-    </div>
+    />
   );
 }
+
 
 

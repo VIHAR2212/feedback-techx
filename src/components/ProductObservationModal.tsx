@@ -79,14 +79,14 @@ export default function ProductObservationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm select-none font-serif">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 sm:backdrop-blur-sm backdrop-blur-none select-none font-serif">
       <motion.div
         initial={{ scale: 0.94, opacity: 0, y: 18 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.94, opacity: 0, y: 18 }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
         style={{ backgroundImage: `url('/assets/images/review-card.webp')` }}
-        className="relative w-full max-w-[480px] aspect-[4/5] bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_25px_65px_rgba(0,0,0,0.98)] text-[#241308] flex flex-col justify-between overflow-hidden"
+        className="relative w-full max-w-[480px] aspect-[4/5] bg-[length:100%_100%] bg-no-repeat bg-center drop-shadow-[0_25px_65px_rgba(0,0,0,0.98)] text-[#241308] flex flex-col justify-between overflow-hidden transform-gpu will-change-transform"
       >
         {/* Antique Brass & Leather Close Button (Inside Card Theme) */}
         <button
@@ -187,7 +187,7 @@ export default function ProductObservationModal({
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="Inscribe telemetry findings or impressions..."
-                className="w-full p-2 rounded bg-[#f7f0e3]/95 text-[#1f1006] placeholder-[#8c6f4b]/70 text-xs sm:text-sm font-[family-name:var(--font-handwriting)] font-semibold focus:outline-none focus:ring-1.5 focus:ring-[#7a481c] resize-none shadow-inner border border-[#7a481c]/40 leading-snug"
+                className="w-full p-2 rounded bg-[#f7f0e3]/95 text-[#1f1006] placeholder-[#8c6f4b]/70 text-base sm:text-sm font-[family-name:var(--font-handwriting)] font-semibold focus:outline-none focus:ring-1.5 focus:ring-[#7a481c] resize-none shadow-inner border border-[#7a481c]/40 leading-snug"
               />
             </div>
 

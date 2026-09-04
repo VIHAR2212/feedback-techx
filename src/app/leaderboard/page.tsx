@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import AdminRouteGuard from '@/components/uncharted/AdminRouteGuard';
 import UnchartedSignboardLeaderboard, {
   LeaderboardEntry,
   ProductStatsEntry,
@@ -61,11 +62,11 @@ export default function PublicLeaderboardPage() {
     const interval = setInterval(() => {
       fetchLeaderboard();
       fetchProductStats();
-    }, 45000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [fetchLeaderboard, fetchProductStats]);
 
-  // Ensure autoplay works across all browsers
+  // Ensure autoplay works across all browsers & pause when tab is hidden
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.defaultMuted = true;
@@ -74,59 +75,74 @@ export default function PublicLeaderboardPage() {
         console.warn('Leaderboard background video autoplay prevented:', err);
       });
     }
+
+    const handleVisibility = () => {
+      if (!videoRef.current) return;
+      if (document.visibilityState === 'hidden') {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play().catch(() => {});
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [videoError]);
 
   return (
-    <main className="relative h-screen min-h-screen w-full overflow-hidden text-foreground flex flex-col justify-end items-center">
-      <div className="fixed left-3 top-3 z-50">
-        <BackButton to="/labs" label="Labs" />
-      </div>
+    <AdminRouteGuard>
+      <main className="relative h-screen min-h-screen w-full overflow-hidden text-foreground flex flex-col justify-end items-center">
+        <div className="fixed left-3 top-3 z-50">
+          <BackButton to="/admin" label="Admin" />
+        </div>
 
-      {/* Fallback scenic image behind video */}
-      <img
-        src="/assets/images/leaderboard_scenic_bg.jpg"
-        alt="Expedition Background"
-        className="pointer-events-none fixed inset-0 h-full w-full object-cover z-0"
-      />
-
-      {/* Looping muted background video */}
-      {!videoError && (
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          onError={() => {
-            console.error('Failed to load /videos/leaderboard-background.mp4');
-            setVideoError(true);
-          }}
+        {/* Fallback scenic image behind video */}
+        <img
+          src="/assets/images/leaderboard_scenic_bg.jpg"
+          alt="Expedition Background"
           className="pointer-events-none fixed inset-0 h-full w-full object-cover z-0"
-        >
-          <source src="/videos/leaderboard-background.mp4" type="video/mp4" />
-        </video>
-      )}
-
-      {/* Subtle overlay (warm cinematic tint) */}
-      <div
-        className="pointer-events-none fixed inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/45 z-[1]"
-      />
-
-      {/* Main Uncharted Signboard Content Grounded at Bottom */}
-      <div className="relative z-10 w-full h-full flex flex-col justify-end items-center pb-12 sm:pb-14">
-        <UnchartedSignboardLeaderboard
-          leaderboard={leaderboard}
-          productStats={productStats}
-          isLoading={isLoading}
-          error={error}
-          isAdmin={false}
-          onRefresh={() => {
-            fetchLeaderboard();
-            fetchProductStats();
-          }}
         />
-      </div>
-    </main>
+
+        {/* Looping muted background video */}
+        {!videoError && (
+          <video
+            ref={videoRef}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            poster="/assets/images/leaderboard_scenic_bg.jpg"
+            onError={() => {
+              console.error('Failed to load /videos/leaderboard-background.mp4');
+              setVideoError(true);
+            }}
+            className="pointer-events-none fixed inset-0 h-full w-full object-cover z-0"
+          >
+            <source src="/videos/leaderboard-background.mp4" type="video/mp4" />
+          </video>
+        )}
+
+        {/* Subtle overlay (warm cinematic tint) */}
+        <div
+          className="pointer-events-none fixed inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/45 z-[1]"
+        />
+
+        {/* Main Uncharted Signboard Content Grounded at Bottom */}
+        <div className="relative z-10 w-full h-full flex flex-col justify-end items-center pb-12 sm:pb-14">
+          <UnchartedSignboardLeaderboard
+            leaderboard={leaderboard}
+            productStats={productStats}
+            isLoading={isLoading}
+            error={error}
+            isAdmin={true}
+            onRefresh={() => {
+              fetchLeaderboard();
+              fetchProductStats();
+            }}
+          />
+        </div>
+      </main>
+    </AdminRouteGuard>
   );
 }

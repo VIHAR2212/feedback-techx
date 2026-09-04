@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { useLabs } from '@/context/LabsContext';
+import { useAdmin } from '@/context/AdminContext';
 import { expeditionLabs } from '@/lib/expeditionData';
 import ImageWithFallback from './ImageWithFallback';
 import BackButton from './BackButton';
@@ -12,6 +13,7 @@ import { motion } from 'framer-motion';
 export default function FinalCertificate() {
   const router = useRouter();
   const { user } = useUser();
+  const { isAdmin } = useAdmin();
   useLabs(); // re-render when admin edits labs (data flows via expeditionLabs cache)
   const [fused, setFused] = useState(false);
 
@@ -123,17 +125,23 @@ export default function FinalCertificate() {
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-3">
-            <button
-              onClick={() => router.push('/leaderboard')}
-              className="w-full py-3.5 px-4 bg-gradient-to-b from-[#E6C265] via-[#C49219] to-[#8A6008] border border-[#4A3305] rounded-md text-[#231303] font-mono text-xs sm:text-sm font-extrabold uppercase tracking-wider cursor-pointer shadow-[0_3px_8px_rgba(0,0,0,0.4)] active:scale-[0.98] transition-transform touch-manipulation flex items-center justify-center gap-2"
-            >
-              <span>VIEW EXPEDITION LEADERBOARD</span>
-              <span>➔</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => router.push('/leaderboard')}
+                className="w-full py-3.5 px-4 bg-gradient-to-b from-[#E6C265] via-[#C49219] to-[#8A6008] border border-[#4A3305] rounded-md text-[#231303] font-mono text-xs sm:text-sm font-extrabold uppercase tracking-wider cursor-pointer shadow-[0_3px_8px_rgba(0,0,0,0.4)] active:scale-[0.98] transition-transform touch-manipulation flex items-center justify-center gap-2"
+              >
+                <span>VIEW EXPEDITION LEADERBOARD</span>
+                <span>➔</span>
+              </button>
+            )}
 
             <button
               onClick={() => router.push('/labs')}
-              className="w-full py-3 px-4 bg-[#1C1510] text-[#F4ECD8] border border-uc-brass/70 rounded-md text-xs sm:text-sm font-mono font-bold tracking-wider uppercase cursor-pointer active:scale-[0.98] transition-transform touch-manipulation flex items-center justify-center gap-2"
+              className={`w-full py-3.5 px-4 rounded-md font-mono text-xs sm:text-sm font-bold tracking-wider uppercase cursor-pointer active:scale-[0.98] transition-transform touch-manipulation flex items-center justify-center gap-2 ${
+                isAdmin
+                  ? 'bg-[#1C1510] text-[#F4ECD8] border border-uc-brass/70'
+                  : 'bg-gradient-to-b from-[#E6C265] via-[#C49219] to-[#8A6008] border border-[#4A3305] text-[#231303] font-extrabold shadow-[0_3px_8px_rgba(0,0,0,0.4)]'
+              }`}
             >
               <span>RETURN TO ROUTE MAP</span>
               <span>➔</span>
