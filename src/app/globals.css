@@ -126,8 +126,8 @@
    ============================================ */
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  0%, 100% { transform: translateY(0px) translateZ(0); }
+  50% { transform: translateY(-10px) translateZ(0); }
 }
 
 @keyframes pulse-gold {
@@ -141,29 +141,29 @@
 }
 
 @keyframes grain {
-  0%, 100% { transform: translate(0, 0); }
-  10% { transform: translate(-5%, -10%); }
-  30% { transform: translate(3%, -15%); }
-  50% { transform: translate(12%, 9%); }
-  70% { transform: translate(9%, 4%); }
-  90% { transform: translate(-1%, 7%); }
+  0%, 100% { transform: translate(0, 0) translateZ(0); }
+  10% { transform: translate(-5%, -10%) translateZ(0); }
+  30% { transform: translate(3%, -15%) translateZ(0); }
+  50% { transform: translate(12%, 9%) translateZ(0); }
+  70% { transform: translate(9%, 4%) translateZ(0); }
+  90% { transform: translate(-1%, 7%) translateZ(0); }
 }
 
 @keyframes dust {
-  0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+  0% { transform: translateY(100vh) translateX(0) translateZ(0); opacity: 0; }
   10% { opacity: 1; }
   90% { opacity: 1; }
-  100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+  100% { transform: translateY(-100vh) translateX(100px) translateZ(0); opacity: 0; }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from { transform: rotate(0deg) translateZ(0); }
+  to { transform: rotate(360deg) translateZ(0); }
 }
 
 @keyframes bounce-gentle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0%, 100% { transform: translateY(0) translateZ(0); }
+  50% { transform: translateY(-5px) translateZ(0); }
 }
 
 /* ============================================
@@ -232,6 +232,7 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  transform: translateZ(0);
 }
 
 .particle {
@@ -242,12 +243,16 @@
   border-radius: 50%;
   animation: dust 20s linear infinite;
   box-shadow: 0 0 6px #d97706, 0 0 12px rgba(217, 119, 6, 0.3);
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Adventure Card Hover Effect */
 .card-adventure {
   position: relative;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
 .card-adventure::before {

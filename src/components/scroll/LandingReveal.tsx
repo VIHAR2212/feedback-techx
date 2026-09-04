@@ -435,7 +435,7 @@ export default function LandingReveal() {
         {/* Centered logo, visible at the very top of the page */}
         <motion.div
           className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4"
-          style={{ opacity: logoOpacity, scale: logoScale }}
+          style={{ opacity: logoOpacity, scale: logoScale, willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         >
           <TechXLogoText size="hero" animated={true} />
         </motion.div>
@@ -443,7 +443,7 @@ export default function LandingReveal() {
         {/* Scroll hint */}
         <motion.div
           className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-center text-white/90 font-cinzel"
-          style={{ opacity: scrollHintOpacity }}
+          style={{ opacity: scrollHintOpacity, willChange: 'opacity', transform: 'translateZ(0)' }}
         >
           <div className="flex flex-col items-center gap-2">
             <p className="text-[11px] uppercase tracking-[0.35em] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]">
@@ -456,7 +456,7 @@ export default function LandingReveal() {
         {/* Info blurb 1 — introduces TechX */}
         <motion.div
           className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4 sm:px-6 text-center"
-          style={{ opacity: blurb1Opacity, y: blurb1Y }}
+          style={{ opacity: blurb1Opacity, y: blurb1Y, willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         >
           <div
             className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
@@ -486,7 +486,7 @@ export default function LandingReveal() {
             gone and before the signup card appears. */}
         <motion.div
           className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center px-4"
-          style={{ opacity: midOpacity, y: midY }}
+          style={{ opacity: midOpacity, y: midY, willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         >
           <ProductShowcaseText animated={true} />
         </motion.div>
@@ -494,7 +494,7 @@ export default function LandingReveal() {
         {/* Info blurb 2 — what to expect at the checkpoints */}
         <motion.div
           className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4 sm:px-6 text-center"
-          style={{ opacity: blurb2Opacity, y: blurb2Y }}
+          style={{ opacity: blurb2Opacity, y: blurb2Y, willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         >
           <div
             className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
@@ -522,7 +522,7 @@ export default function LandingReveal() {
         {/* Info blurb 3 — call to action into the signup card */}
         <motion.div
           className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4 sm:px-6 text-center"
-          style={{ opacity: blurb3Opacity, y: blurb3Y }}
+          style={{ opacity: blurb3Opacity, y: blurb3Y, willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         >
           <div
             className="relative w-full max-w-[540px] sm:max-w-[620px] bg-cover bg-center px-8 py-7 sm:px-14 sm:py-10 text-center drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)] select-none"
@@ -555,6 +555,8 @@ export default function LandingReveal() {
             opacity: cardOpacity,
             y: cardY,
             pointerEvents: showCard ? 'auto' : 'none',
+            willChange: 'transform, opacity',
+            transform: 'translateZ(0)'
           }}
         >
           <AnimatePresence>

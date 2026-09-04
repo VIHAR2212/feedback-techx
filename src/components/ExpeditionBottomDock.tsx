@@ -150,7 +150,7 @@ export default function ExpeditionBottomDock() {
           {/* Thick Recessed Explorer Gauge Bar */}
           <div className="relative w-full h-3.5 sm:h-4.5 rounded-full bg-[#0d0602] border-2 border-[#8c6d23]/90 p-[2px] shadow-[inset_0_2px_6px_rgba(0,0,0,0.95)] overflow-hidden">
             <div
-              style={{ width: `${clampedPercentage}%` }}
+              style={{ width: `${clampedPercentage}%`, willChange: 'width', transform: 'translateZ(0)' }}
               className={`h-full rounded-full bg-gradient-to-r from-[#a17c2f] via-[#eab308] to-[#fde047] shadow-[0_0_12px_rgba(234,179,8,0.9)] transition-[width] duration-700 ease-out relative ${
                 isImpacting ? 'brightness-125 shadow-[0_0_18px_rgba(255,215,0,1)]' : ''
               }`}
@@ -165,8 +165,10 @@ export default function ExpeditionBottomDock() {
             id="expedition-coin-marker"
             style={{
               left: `${clampedPercentage}%`,
+              willChange: 'left, transform',
+              transform: 'translate3d(-50%, -50%, 0)'
             }}
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-[left] duration-700 ease-out z-10"
+            className="absolute top-1/2 pointer-events-none transition-[left] duration-700 ease-out z-10"
           >
             <div className={`w-7 h-7 sm:w-8 sm:h-8 relative drop-shadow-[0_4px_10px_rgba(0,0,0,0.95)] transition-transform duration-200 will-change-transform ${isImpacting ? 'scale-125 brightness-125 drop-shadow-[0_0_16px_rgba(255,215,0,1)]' : 'scale-100'}`}>
               <Image
