@@ -223,6 +223,10 @@ export default function LandingReveal() {
     // MODERATE / FAST TIER:
     const PRELOAD_CONCURRENCY = netTier === 'moderate' ? 2 : 6;
     const TARGET_INITIAL_FRAMES = netTier === 'moderate' ? 6 : 15;
+    // Loading video is ~4.1s (desktop) / ~4.7s (mobile). 4.0s minimum allows the full dramatic sequence to play out.
+    const MIN_VIDEO_DURATION = 4000;
+    const startTime = Date.now();
+    let timerDone = false;
 
     const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
     let loadedCount = 0;
@@ -231,24 +235,36 @@ export default function LandingReveal() {
 
     const checkReady = () => {
       if (isTransitioning) return;
-      if (loadedCount >= TARGET_INITIAL_FRAMES) {
+      const hasEnoughFrames = loadedCount >= TARGET_INITIAL_FRAMES;
+      if (timerDone && (hasEnoughFrames || loadedCount >= 1)) {
         isTransitioning = true;
         setLoadProgress(100);
-        setTimeout(() => setReady(true), 150);
-      } else {
-        const pct = Math.min(95, Math.round((loadedCount / TARGET_INITIAL_FRAMES) * 100));
-        setLoadProgress((prev) => Math.max(prev, pct));
+        setTimeout(() => setReady(true), 200);
       }
     };
+
+    // Smooth HUD status ticker across 4 seconds starting immediately from > 0
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(Math.max(1, Math.floor((elapsed / MIN_VIDEO_DURATION) * 100)), 99);
+      setLoadProgress((prev) => Math.max(prev, progress));
+
+      if (elapsed >= MIN_VIDEO_DURATION) {
+        clearInterval(interval);
+        timerDone = true;
+        checkReady();
+      }
+    }, 30);
 
     // Failsafe: never leave users hanging if some frames stall
     const failsafe = setTimeout(() => {
       if (!isTransitioning) {
+        clearInterval(interval);
         isTransitioning = true;
         setLoadProgress(100);
         setReady(true);
       }
-    }, netTier === 'moderate' ? 2500 : 4000);
+    }, 5500);
 
     const resolve = () => {
       loadedCount++;
@@ -289,6 +305,7 @@ export default function LandingReveal() {
     framesRef.current = images;
 
     return () => {
+      clearInterval(interval);
       clearTimeout(failsafe);
     };
   }, []);
