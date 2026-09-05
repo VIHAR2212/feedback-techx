@@ -14,12 +14,13 @@ import {
   loadExpeditionUser,
 } from '@/lib/expedition-storage';
 import type { ExpeditionUser } from '@/lib/models';
+import { enqueueSubmission, fetchWithTimeout } from '@/lib/offline-queue';
 
 // Product discovery + feedback page.
 // Flow:
 //   1. User rates the product with one of 5 gemstones (Rough Stone..Diamond).
 //   2. Optional expedition-notes comment.
-//   3. Submit -> POST /api/feedback -> inline result card with clue reveal.
+//   3. Submit -> POST /api/feedback (or offline queue) -> inline result card with clue reveal.
 //   4. Optional treasure-hunt note shown next to the result.
 //   5. Redirect back to the lab page. If that was the last product in the
 //      lab, the lab completion + shard are awarded automatically by
@@ -35,6 +36,7 @@ export default function DiscoverPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<ExpeditionUser | null>(null);
+  const [isOfflineSaved, setIsOfflineSaved] = useState(false);
   const [result, setResult] = useState<{
     clue: { id: string; title: string; body: string } | null;
   } | null>(null);
@@ -89,48 +91,88 @@ export default function DiscoverPage() {
 
     setIsSubmitting(true);
     setError(null);
+    let offlineSaved = false;
+
+    // Idempotent client-generated submissionId
+    const submissionId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+    const feedbackPayload = {
+      studentName: user.name,
+      studentEmail: user.email,
+      studentDepartment: user.department,
+      rating,
+      comment,
+      tableId: product.id,
+      submissionId,
+    };
 
     try {
-      // 1. Persist feedback to the backend.
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentName: user.name,
-          studentEmail: user.email,
-          studentDepartment: user.department,
-          rating,
-          comment,
-          tableId: product.id,
-        }),
-      });
-      if (!response.ok) throw new Error('Failed to submit feedback');
+      // 1. Attempt to persist feedback to the backend or queue offline
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        enqueueSubmission(feedbackPayload);
+        offlineSaved = true;
+      } else {
+        try {
+          const response = await fetchWithTimeout(
+            '/api/feedback',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(feedbackPayload),
+            },
+            6000
+          );
+          if (!response.ok) throw new Error('Failed to submit feedback');
+        } catch (fetchErr) {
+          console.warn('[discover] Online submission failed, enqueuing offline:', fetchErr);
+          enqueueSubmission(feedbackPayload);
+          offlineSaved = true;
+        }
+      }
+
+      setIsOfflineSaved(offlineSaved);
 
       // 2. Mirror progress to localStorage + recalc lab/shard state.
       saveCompletedProduct(user.email, product.id);
       const newProgress = recalculateProgress(user.email);
 
-      // 3. Roll for a clue via the clue API (50% chance server-side).
-      const clueRes = await fetch('/api/expedition/clue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ labId: lab.labId }),
-      });
-      const clueData = (await clueRes.json()) as {
-        clue: { id: string; title: string; body: string } | null;
-      };
-
-      if (clueData.clue) {
-        appendClue(user.email, clueData.clue.id);
+      // 3. Roll for a clue via the clue API (skip or catch if offline).
+      let clue: { id: string; title: string; body: string } | null = null;
+      if (!offlineSaved) {
+        try {
+          const clueRes = await fetchWithTimeout(
+            '/api/expedition/clue',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ labId: lab.labId }),
+            },
+            4000
+          );
+          if (clueRes.ok) {
+            const clueData = (await clueRes.json()) as {
+              clue: { id: string; title: string; body: string } | null;
+            };
+            clue = clueData.clue || null;
+            if (clue) {
+              appendClue(user.email, clue.id);
+            }
+          }
+        } catch {
+          // Non-critical, continue without clue on poor network
+        }
       }
 
       // 4. Show the result inline with the clue reveal (or "no clue").
-      setResult({ clue: clueData.clue });
+      setResult({ clue });
 
       // 5. Dispatch event so ExpeditionProgress + CompletionChecker update.
       window.dispatchEvent(
         new CustomEvent('feedbackSubmitted', {
-          detail: { completed: newProgress.isExpeditionComplete },
+          detail: { completed: newProgress.isExpeditionComplete, offline: offlineSaved },
         })
       );
 
@@ -244,6 +286,11 @@ export default function DiscoverPage() {
             {product.name} ({lab.labName}) — rated{' '}
             {GEMSTONE_TIERS.find((t) => t.tier === rating)?.name ?? rating}.
           </p>
+          {isOfflineSaved && (
+            <div className="mt-3 rounded border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-200">
+              ⚡ <strong>Saved offline.</strong> Your discovery is safely stored on your device and will sync to the expedition server automatically.
+            </div>
+          )}
           {result.clue ? (
             <div className="mt-4 rounded border border-dashed border-foreground/40 p-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">

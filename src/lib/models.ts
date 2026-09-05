@@ -29,6 +29,7 @@ export const GEMSTONE_TIERS: { tier: GemstoneTier; name: string; token: string }
 
 export interface FeedbackEntry {
   _id?: string;
+  submissionId?: string;
   studentName: string;
   studentEmail: string;
   studentDepartment: string;
@@ -38,6 +39,50 @@ export interface FeedbackEntry {
   labId?: string;
   timestamp: string | Date;
   createdAt?: Date;
+}
+
+export interface PaginatedFeedbackResult {
+  items: FeedbackEntry[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  total?: number;
+}
+
+export interface PublicLeaderboardEntry {
+  name: string;
+  department: string;
+  completedProductsCount: number;
+  shards: string[];
+  completionDate: string | null;
+  totalRating: number;
+  averageRating: number;
+  isCompleted: boolean;
+}
+
+export type LeaderboardEntry = ExpeditionUser & {
+  totalRating: number;
+  averageRating: number;
+  isCompleted: boolean;
+};
+
+export interface DashboardData {
+  stats: {
+    totalUsers: number;
+    totalFeedback: number;
+    completedUsers: number;
+    averageRating: number;
+  };
+  leaderboard: ExpeditionUser[];
+  productStats: Array<{
+    productId: string;
+    productName: string;
+    labName: string;
+    totalRatings: number;
+    averageRating: number;
+    ratingDistribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
+    totalComments: number;
+    lastRated: string | null;
+  }>;
 }
 
 // What the user "is" inside the expedition. Persistence shape (localStorage)

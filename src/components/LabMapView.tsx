@@ -12,7 +12,8 @@ import {
 } from '@/lib/expeditionData';
 import ProductObservationModal from './ProductObservationModal';
 import { CheckpointIcon } from './RusticIcons';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
+import { enqueueSubmission, fetchWithTimeout } from '@/lib/offline-queue';
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
@@ -164,7 +165,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     };
   }, [updateDimensions, viewMode]);
 
-  const handleProductSubmitSuccess = (productId: string, notes?: string) => {
+  const handleProductSubmitSuccess = (productId: string, rating: number, notes?: string) => {
     const updated = saveSubmittedFeedbackForUser(userEmail, productId);
     // Persist the surveyor's typed observations so they survive reloads
     // (keyed per user + checkpoint).
@@ -178,6 +179,40 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
         // Non-fatal — progress above is already saved.
       }
     }
+
+    // Submit to backend or enqueue for offline sync with idempotent submissionId
+    const submissionId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+    const feedbackPayload = {
+      studentName: user?.name || 'Explorer',
+      studentEmail: userEmail,
+      studentDepartment: user?.department || 'Field Recon',
+      rating: rating || 5,
+      comment: notes || '',
+      tableId: productId,
+      submissionId,
+    };
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      enqueueSubmission(feedbackPayload);
+    } else {
+      fetchWithTimeout(
+        '/api/feedback',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(feedbackPayload),
+        },
+        5000
+      ).catch((err) => {
+        console.warn('[LabMapView] Online submission failed, enqueuing offline:', err);
+        enqueueSubmission(feedbackPayload);
+      });
+    }
+
     setSubmittedIds(updated);
     setActiveModalProduct(null);
   };
@@ -195,14 +230,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     }));
   }, [products, containerSize]);
 
-  // Deterministic seed generation from segment ID
-  const hashSegmentId = useCallback((id: string): number => {
-    let h = 2166136261;
-    for (let i = 0; i < id.length; i++) {
-      h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
-    }
-    return (h % 90000) + 1000;
-  }, []);
+
 
   // Smooth natural Catmull-Rom tangent cubic spline through exact node centers
   const routePaths = useMemo(() => {
@@ -342,13 +370,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
     };
   }, [nodePixelPositions, submittedIds]);
 
-  const handleShareLinkedIn = () => {
-    const shareText = `I completed ${labConfig?.title || 'Expedition'} and charted all ${totalCount} naval checkpoints in my Field Journal!`;
-    window.open(
-      `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(shareText)}`,
-      '_blank'
-    );
-  };
+
 
   const selectedIndex = products.findIndex((p) => p.id === selectedProduct?.id);
 
@@ -838,6 +860,7 @@ export default function LabMapView({ labId, userEmail: propUserEmail }: LabMapVi
             onSuccess={({ rating, comment }) =>
               handleProductSubmitSuccess(
                 activeModalProduct.id,
+                rating,
                 comment || (rating > 0 ? `Rated ${rating}/5` : undefined)
               )
             }

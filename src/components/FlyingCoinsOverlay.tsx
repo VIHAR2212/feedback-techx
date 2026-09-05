@@ -60,12 +60,15 @@ export default function FlyingCoinsOverlay() {
   const lastImpactTimeRef = useRef<number>(0);
   const { playCoinSound } = useAudio();
 
-  // Preload pirate coin image on mount for instant zero-latency rendering
-  useEffect(() => {
-    const img = new window.Image();
-    img.src = '/assets/images/avery-pirate-coin.webp';
-    coinImgRef.current = img;
+  const ensureCoinImage = () => {
+    if (!coinImgRef.current && typeof window !== 'undefined') {
+      const img = new window.Image();
+      img.src = '/assets/images/avery-pirate-coin.webp';
+      coinImgRef.current = img;
+    }
+  };
 
+  useEffect(() => {
     return () => {
       if (animFrameIdRef.current) {
         cancelAnimationFrame(animFrameIdRef.current);
@@ -243,6 +246,9 @@ export default function FlyingCoinsOverlay() {
       startY?: number;
     }>;
     const count = Math.max(1, Math.min(5, custom.detail?.count ?? 4));
+
+    // Ensure coin asset is loaded on demand
+    ensureCoinImage();
 
     // Play coin sound
     playCoinSound();

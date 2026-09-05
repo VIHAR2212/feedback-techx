@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { getNetworkTier, isSaveDataEnabled } from '@/lib/network-tier';
 
 type AudioContextType = {
   isMuted: boolean;
@@ -14,77 +15,54 @@ type AudioContextType = {
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(0.6); // Default BGM volume increased
+  // Default muted if user has Save-Data enabled or is on a slow connection
+  const [isMuted, setIsMuted] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return isSaveDataEnabled() || getNetworkTier() === 'slow';
+  });
+  const [volume, setVolume] = useState(0.6);
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const buttonSoundRef = useRef<HTMLAudioElement | null>(null);
   const coinSoundRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    bgmRef.current = new Audio('/sounds/BGM_NEW.m4a');
-    bgmRef.current.loop = true;
-    bgmRef.current.volume = volume;
-
-    buttonSoundRef.current = new Audio('/sounds/Button sound.m4a');
-    coinSoundRef.current = new Audio('/sounds/coin rush.m4a');
-
-    if (bgmRef.current) {
-        bgmRef.current.preload = 'metadata'; // Load only metadata initially to save bandwidth/memory
+  // Lazy getters to prevent network requests and audio decoding on mount
+  const getBgm = useCallback(() => {
+    if (!bgmRef.current && typeof window !== 'undefined') {
+      const audio = new Audio('/sounds/BGM_NEW.m4a');
+      audio.loop = true;
+      audio.volume = volume;
+      audio.preload = 'none';
+      bgmRef.current = audio;
     }
-    if (buttonSoundRef.current) {
-        buttonSoundRef.current.preload = 'auto'; // Keep smaller sounds auto
-    }
-    if (coinSoundRef.current) {
-        coinSoundRef.current.preload = 'auto';
-    }
+    return bgmRef.current;
+  }, [volume]);
 
-    // Attempt to play BGM automatically (browsers may block this without user interaction)
-    const playBgm = async () => {
-      try {
-        if (!isMuted && bgmRef.current) {
-          await bgmRef.current.play();
-        }
-      } catch (err) {
-        console.warn("Autoplay prevented. User interaction required to start background music.");
-      }
-    };
-    
-    playBgm();
+  const getButtonSound = useCallback(() => {
+    if (!buttonSoundRef.current && typeof window !== 'undefined') {
+      const audio = new Audio('/sounds/Button sound.m4a');
+      audio.preload = 'none';
+      buttonSoundRef.current = audio;
+    }
+    return buttonSoundRef.current;
+  }, []);
 
-    return () => {
-      if (bgmRef.current) {
-        bgmRef.current.pause();
-        bgmRef.current = null;
-      }
-    };
-  }, []); // Only run once on mount
+  const getCoinSound = useCallback(() => {
+    if (!coinSoundRef.current && typeof window !== 'undefined') {
+      const audio = new Audio('/sounds/coin rush.m4a');
+      audio.preload = 'none';
+      coinSoundRef.current = audio;
+    }
+    return coinSoundRef.current;
+  }, []);
 
   useEffect(() => {
     if (bgmRef.current) {
       if (isMuted) {
         bgmRef.current.pause();
       } else {
-        bgmRef.current.play().catch(console.warn);
-      }
-    }
-  }, [isMuted]);
-
-  useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('button') || target.closest('a')) {
-        playButtonSound();
-      }
-      
-      // Attempt to play BGM on first interaction if it was paused (e.g. autoplay blocked)
-      if (bgmRef.current && bgmRef.current.paused && !isMuted) {
         bgmRef.current.play().catch(() => {});
       }
-    };
-    document.addEventListener('click', handleGlobalClick, { capture: true });
-    return () => {
-      document.removeEventListener('click', handleGlobalClick, { capture: true });
-    };
+    }
   }, [isMuted]);
 
   useEffect(() => {
@@ -93,23 +71,54 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [volume]);
 
-  const toggleMute = () => {
-    setIsMuted((prev) => !prev);
-  };
+  useEffect(() => {
+    return () => {
+      if (bgmRef.current) {
+        bgmRef.current.pause();
+        bgmRef.current = null;
+      }
+      if (buttonSoundRef.current) {
+        buttonSoundRef.current = null;
+      }
+      if (coinSoundRef.current) {
+        coinSoundRef.current = null;
+      }
+    };
+  }, []);
 
-  const playButtonSound = () => {
-    if (buttonSoundRef.current) {
-      buttonSoundRef.current.currentTime = 0;
-      buttonSoundRef.current.play().catch(console.warn);
-    }
-  };
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      if (!next) {
+        // User explicitly unmuted: initialize BGM if needed and play
+        const bgm = getBgm();
+        if (bgm) {
+          bgm.play().catch(() => {});
+        }
+      } else if (bgmRef.current) {
+        bgmRef.current.pause();
+      }
+      return next;
+    });
+  }, [getBgm]);
 
-  const playCoinSound = () => {
-    if (coinSoundRef.current) {
-      coinSoundRef.current.currentTime = 0;
-      coinSoundRef.current.play().catch(console.warn);
+  const playButtonSound = useCallback(() => {
+    if (isMuted) return;
+    const sound = getButtonSound();
+    if (sound) {
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
     }
-  };
+  }, [isMuted, getButtonSound]);
+
+  const playCoinSound = useCallback(() => {
+    if (isMuted) return;
+    const sound = getCoinSound();
+    if (sound) {
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+  }, [isMuted, getCoinSound]);
 
   return (
     <AudioContext.Provider value={{ isMuted, volume, toggleMute, setVolume, playButtonSound, playCoinSound }}>
@@ -125,3 +134,4 @@ export function useAudio() {
   }
   return context;
 }
+

@@ -8,6 +8,7 @@ import { useUser } from '@/context/UserContext';
 import { DEPARTMENT_OPTIONS } from '@/lib/mock-data';
 import { getSubmittedFeedbackForUser } from '@/lib/expeditionData';
 import { TechXLogoText, ProductShowcaseText } from '@/components/uncharted/TechXTypography';
+import { getNetworkTier, getDeviceTier, isSaveDataEnabled } from '@/lib/network-tier';
 
 const TOTAL_FRAMES = 120;
 const FRAME_PREFIX = '/frames/frame_';
@@ -34,36 +35,16 @@ function checkIsLowEnd(): boolean {
     if (params.get('lowend') === 'false' || params.get('perf') === 'high') return false;
   } catch {}
 
-  const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
-  const ua = nav?.userAgent || '';
-
-  // Desktops and laptops should NEVER use the static image fallback.
-  // Static image fallback is strictly for low-end mobile / handheld devices.
-  const isMobile =
-    /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua) ||
-    (window.innerWidth <= 768 && (nav?.maxTouchPoints > 0 || 'ontouchstart' in window));
-
-  if (!isMobile) {
-    return false;
-  }
-
-  // 2. Hardware constraints on mobile devices: <= 4 logical cores or <= 3 GB RAM
-  const cores = nav?.hardwareConcurrency;
-  if (typeof cores === 'number' && cores > 0 && cores <= 4) {
-    return true;
-  }
-  const memory = nav?.deviceMemory;
-  if (typeof memory === 'number' && memory > 0 && memory <= 3) {
+  // 2. Network constraints apply to ALL devices (desktop, laptop, mobile alike)
+  const netTier = getNetworkTier();
+  if (netTier === 'slow' || isSaveDataEnabled()) {
     return true;
   }
 
-  // 3. Network constraints: data saver enabled or slow network (2G / 3G)
-  const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
-  if (conn) {
-    if (conn.saveData) return true;
-    if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g') {
-      return true;
-    }
+  // 3. Hardware constraints (low memory / limited cores)
+  const deviceTier = getDeviceTier();
+  if (deviceTier === 'low') {
+    return true;
   }
 
   return false;
@@ -74,16 +55,20 @@ export default function LandingReveal() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef<HTMLImageElement[]>([]);
   const currentFrameRef = useRef(0);
-  const rafRef = useRef<number>(0);
 
   const [ready, setReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(1);
   const [showCard, setShowCard] = useState(false);
   const [loadingScreenGone, setLoadingScreenGone] = useState(false);
   const [isLowEnd, setIsLowEnd] = useState(false);
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
 
   const desktopVideoRef = useRef<HTMLVideoElement>(null);
   const mobileVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    setIsMobileScreen(window.innerWidth <= 768);
+  }, []);
 
   // Viewport-aware video playback & complete teardown upon ready
   useEffect(() => {
@@ -95,7 +80,7 @@ export default function LandingReveal() {
         mobileVideoRef.current.pause();
       }
       if (ready) {
-        const t = setTimeout(() => setLoadingScreenGone(true), 800);
+        const t = setTimeout(() => setLoadingScreenGone(true), 600);
         return () => clearTimeout(t);
       }
       return;
@@ -180,67 +165,54 @@ export default function LandingReveal() {
   const staticScale = useTransform(smoothProgress, [0, 1], [1, 1.06]);
   const staticY = useTransform(smoothProgress, [0, 1], ['0%', '-3%']);
 
-  // Resilient preloader: branches into swift static loader for low-end devices or 120-frame preloader for high-end
+  // Resilient 3-tier preloader:
+  // - slow / low-end: 0 frames, preloads static hero, readies immediately upon image load (no fake timers)
+  // - moderate: progressive batching with concurrency 2, readies after 6 frames, loads rest in background
+  // - fast: full sequence with concurrency 6, readies after 15 frames, loads rest in background
   useEffect(() => {
     const isLowEndDevice = checkIsLowEnd();
     setIsLowEnd(isLowEndDevice);
+    const netTier = getNetworkTier();
 
     if (isLowEndDevice) {
-      // LOW-END OPTIMIZATION:
-      // Skip downloading and GPU-decoding 120 frames (saving >400MB GPU memory and thread stalls).
-      // Preload only the single upscaled static image and run a swift 2s HUD loading sequence.
+      // SLOW / LOW-CAPABILITY TIER:
+      // Zero frames downloaded. Preload only the single static image.
       const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
       const staticSrc = isMobile
         ? '/assets/images/scroll-static-mobile.webp'
         : '/assets/images/scroll-static-desktop.webp';
 
       const img = new window.Image();
-      let imageLoaded = false;
-      let timerDone = false;
       let isTransitioning = false;
-      const startTime = Date.now();
-      const MIN_DURATION = 2000; // 2.0s sleek countdown for low-end devices
 
-      const checkReady = () => {
+      const finishReady = () => {
         if (isTransitioning) return;
-        if (timerDone && imageLoaded) {
-          isTransitioning = true;
-          setLoadProgress(100);
-          setTimeout(() => setReady(true), 200);
-        }
+        isTransitioning = true;
+        setLoadProgress(100);
+        setTimeout(() => setReady(true), 150);
       };
 
-      img.onload = () => {
-        imageLoaded = true;
-        checkReady();
-      };
-      img.onerror = () => {
-        imageLoaded = true;
-        checkReady();
-      };
+      img.onload = finishReady;
+      img.onerror = finishReady;
       img.src = staticSrc;
 
+      // Smooth HUD progression that quickly advances to 90% while the image loads
+      const startTime = Date.now();
       const interval = setInterval(() => {
         const elapsed = Date.now() - startTime;
-        const progress = Math.min(Math.max(1, Math.floor((elapsed / MIN_DURATION) * 100)), 99);
+        const progress = Math.min(90, Math.max(1, Math.floor((elapsed / 300) * 90)));
         setLoadProgress((prev) => Math.max(prev, progress));
 
-        if (elapsed >= MIN_DURATION) {
+        if (img.complete && img.naturalWidth > 0) {
           clearInterval(interval);
-          timerDone = true;
-          checkReady();
+          finishReady();
         }
       }, 30);
 
       const failsafe = setTimeout(() => {
-        timerDone = true;
-        imageLoaded = true;
-        if (!isTransitioning) {
-          isTransitioning = true;
-          setLoadProgress(100);
-          setReady(true);
-        }
-      }, 3500);
+        clearInterval(interval);
+        finishReady();
+      }, 1500);
 
       return () => {
         clearInterval(interval);
@@ -248,63 +220,35 @@ export default function LandingReveal() {
       };
     }
 
-    // STANDARD / HIGH-END: Preload 120 frames into GPU memory with 4s minimum HUD loading screen
+    // MODERATE / FAST TIER:
+    const PRELOAD_CONCURRENCY = netTier === 'moderate' ? 2 : 6;
+    const TARGET_INITIAL_FRAMES = netTier === 'moderate' ? 6 : 15;
+
     const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
     let loadedCount = 0;
     let cursor = 0;
-    let timerDone = false;
     let isTransitioning = false;
-
-    // Detect network speed & hardware constraints
-    const nav = typeof navigator !== 'undefined' ? (navigator as any) : null;
-    const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
-    const isSlowNetwork =
-      conn?.saveData ||
-      conn?.effectiveType === '2g' ||
-      conn?.effectiveType === 'slow-2g' ||
-      conn?.effectiveType === '3g';
-    const isLowCoreDevice = typeof navigator !== 'undefined' && (navigator.hardwareConcurrency || 4) <= 4;
-
-    // Adaptive concurrency: throttle down on slow networks / low cores to avoid freezing the main thread
-    const PRELOAD_CONCURRENCY = isSlowNetwork || isLowCoreDevice ? 4 : 8;
-    const TARGET_INITIAL_FRAMES = isSlowNetwork ? 5 : 15;
-
-    const startTime = Date.now();
-    const MIN_DURATION = 4000; // 4.0s minimum countdown
 
     const checkReady = () => {
       if (isTransitioning) return;
-      // Ready if 4s timer elapsed AND at least initial frames are loaded (or fallback minimum 1 frame on slow network)
-      const hasEnoughFrames = loadedCount >= TARGET_INITIAL_FRAMES || (timerDone && loadedCount >= 1);
-      if (timerDone && hasEnoughFrames) {
+      if (loadedCount >= TARGET_INITIAL_FRAMES) {
         isTransitioning = true;
         setLoadProgress(100);
-        setTimeout(() => setReady(true), 200);
+        setTimeout(() => setReady(true), 150);
+      } else {
+        const pct = Math.min(95, Math.round((loadedCount / TARGET_INITIAL_FRAMES) * 100));
+        setLoadProgress((prev) => Math.max(prev, pct));
       }
     };
 
-    // Smooth HUD status ticker across 4 seconds starting immediately from > 0
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(Math.max(1, Math.floor((elapsed / MIN_DURATION) * 100)), 99);
-      setLoadProgress((prev) => Math.max(prev, progress));
-
-      if (elapsed >= MIN_DURATION) {
-        clearInterval(interval);
-        timerDone = true;
-        checkReady();
-      }
-    }, 30);
-
-    // Hard failsafe timer (5.5s): never leave low-network or low-end users stuck on loader
+    // Failsafe: never leave users hanging if some frames stall
     const failsafe = setTimeout(() => {
-      timerDone = true;
-      if (!isTransitioning && loadedCount >= 1) {
+      if (!isTransitioning) {
         isTransitioning = true;
         setLoadProgress(100);
         setReady(true);
       }
-    }, 5500);
+    }, netTier === 'moderate' ? 2500 : 4000);
 
     const resolve = () => {
       loadedCount++;
@@ -317,7 +261,6 @@ export default function LandingReveal() {
       img.decoding = 'async';
       img.fetchPriority = i < TARGET_INITIAL_FRAMES ? 'high' : 'low';
       img.onload = () => {
-        // Pre-decode into GPU memory in background so drawImage never blocks the main thread
         if ('decode' in img) {
           img.decode().then(() => resolve()).catch(() => resolve());
         } else {
@@ -346,7 +289,6 @@ export default function LandingReveal() {
     framesRef.current = images;
 
     return () => {
-      clearInterval(interval);
       clearTimeout(failsafe);
     };
   }, []);
@@ -552,33 +494,16 @@ export default function LandingReveal() {
               />
             </div>
 
-            {/* High-definition video playback (only rendered & decoded on capable devices) */}
+            {/* High-definition video playback (only rendered & decoded on capable devices with fast connection) */}
             {!isLowEnd && (
-              <>
-                {/* Desktop Video (> 768px) */}
-                <video
-                  ref={desktopVideoRef}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="auto"
-                  poster="/assets/images/loading-static-desktop.webp"
-                  disablePictureInPicture
-                  disableRemotePlayback
-                  className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-                >
-                  <source src="/assets/images/loadingdesktop.mp4" type="video/mp4" />
-                </video>
-
-                {/* Mobile Video (<= 768px) */}
+              isMobileScreen ? (
                 <video
                   ref={mobileVideoRef}
                   autoPlay
                   muted
                   loop
                   playsInline
-                  preload="auto"
+                  preload="metadata"
                   poster="/assets/images/loading-static-mobile.webp"
                   disablePictureInPicture
                   disableRemotePlayback
@@ -586,7 +511,22 @@ export default function LandingReveal() {
                 >
                   <source src="/assets/images/loadingmobile.mp4" type="video/mp4" />
                 </video>
-              </>
+              ) : (
+                <video
+                  ref={desktopVideoRef}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  poster="/assets/images/loading-static-desktop.webp"
+                  disablePictureInPicture
+                  disableRemotePlayback
+                  className="hidden md:block absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                >
+                  <source src="/assets/images/loadingdesktop.mp4" type="video/mp4" />
+                </video>
+              )
             )}
 
             {/* Ambient scanlines & vignette overlay for immediate cinematic feel */}

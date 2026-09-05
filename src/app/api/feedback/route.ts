@@ -37,7 +37,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const submissionId = asString(body?.submissionId, 64) || undefined;
+
     const saved = await saveFeedback({
+      submissionId,
       studentName: asString(body?.studentName, 80) || 'Anonymous Explorer',
       studentEmail,
       studentDepartment: asString(body?.studentDepartment, 80),

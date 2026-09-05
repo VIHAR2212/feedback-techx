@@ -7,6 +7,7 @@ import UnchartedSignboardLeaderboard, {
   ProductStatsEntry,
 } from '@/components/uncharted/UnchartedSignboardLeaderboard';
 import BackButton from '@/components/BackButton';
+import { getNetworkTier, isSaveDataEnabled } from '@/lib/network-tier';
 
 export default function PublicLeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -14,11 +15,12 @@ export default function PublicLeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [videoError, setVideoError] = useState(false);
+  const [canPlayVideo, setCanPlayVideo] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const fetchLeaderboard = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/leaderboard');
+      const response = await fetch('/api/leaderboard?limit=50');
       if (!response.ok) throw new Error('Failed to fetch leaderboard');
       const data = await response.json();
       const publicData = data.map(
@@ -66,8 +68,19 @@ export default function PublicLeaderboardPage() {
     return () => clearInterval(interval);
   }, [fetchLeaderboard, fetchProductStats]);
 
+  // Check network tier before mounting or playing background video
+  useEffect(() => {
+    const tier = getNetworkTier();
+    const saveData = isSaveDataEnabled();
+    if (tier !== 'slow' && !saveData) {
+      setCanPlayVideo(true);
+    }
+  }, []);
+
   // Ensure autoplay works across all browsers & pause when tab is hidden
   useEffect(() => {
+    if (!canPlayVideo) return;
+
     if (videoRef.current) {
       videoRef.current.defaultMuted = true;
       videoRef.current.muted = true;
@@ -87,7 +100,7 @@ export default function PublicLeaderboardPage() {
 
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [videoError]);
+  }, [videoError, canPlayVideo]);
 
   return (
     <AdminRouteGuard>
@@ -103,8 +116,8 @@ export default function PublicLeaderboardPage() {
           className="pointer-events-none fixed inset-0 h-full w-full object-cover z-0"
         />
 
-        {/* Looping muted background video */}
-        {!videoError && (
+        {/* Looping muted background video (only on moderate/fast connections) */}
+        {canPlayVideo && !videoError && (
           <video
             ref={videoRef}
             autoPlay

@@ -49,7 +49,7 @@ export default function AdminFeedbackPage() {
         const response = await fetch(`/api/admin/feedback?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch feedback');
         const data = await response.json();
-        setFeedback(data);
+        setFeedback(Array.isArray(data) ? data : (data.data || data.items || []));
         setError('');
       } catch (err) {
         console.error('Error fetching feedback:', err);

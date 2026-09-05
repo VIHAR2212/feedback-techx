@@ -66,16 +66,11 @@ export default function RouteSelection() {
     return map;
   }, [labList, submittedIds]);
 
-  // Compute completed sectors and checkpoints for the header
-  const totalCheckpoints = labList.reduce((acc, lab) => acc + (lab.checkpoints?.length || 0), 0);
+  // Compute completed sectors and checkpoints
+  const completedSectorsCount = labList.filter((lab) => perLabProgress[lab.id]?.isCompleted).length;
   const completedCheckpoints = labList.reduce((acc, lab) => {
     return acc + (perLabProgress[lab.id]?.completed || 0);
   }, 0);
-
-  const completedSectorsCount = labList.filter((lab) => perLabProgress[lab.id]?.isCompleted).length;
-
-  const overallPercentage =
-    totalCheckpoints > 0 ? Math.round((completedCheckpoints / totalCheckpoints) * 100) : 0;
 
 
   const [activeLabId, setActiveLabId] = useState<string>('1');

@@ -218,21 +218,17 @@ function OverviewSection({
   const load = useCallback(async () => {
     try {
       setError('');
-      const statsRes = await fetch('/api/feedback/stats');
-      if (!statsRes.ok) throw new Error('Failed to fetch stats');
-      const statsData = await statsRes.json();
-      const boardRes = await fetch('/api/admin/leaderboard');
-      if (!boardRes.ok) throw new Error('Failed to fetch leaderboard');
-      const boardData = await boardRes.json();
-      const completedUsers = boardData.filter((u: { isCompleted: boolean }) => u.isCompleted).length;
+      const res = await fetch('/api/admin/dashboard');
+      if (!res.ok) throw new Error('Failed to fetch dashboard data');
+      const data = await res.json();
       setStats({
-        totalUsers: statsData.totalUsers || 0,
-        totalFeedback: statsData.totalFeedback || 0,
-        completedUsers,
-        averageRating: statsData.averageRating || 0,
+        totalUsers: data.stats?.totalUsers || 0,
+        totalFeedback: data.stats?.totalFeedback || 0,
+        completedUsers: data.stats?.completedUsers || 0,
+        averageRating: data.stats?.averageRating || 0,
       });
     } catch (err) {
-      console.error('Error fetching stats:', err);
+      console.error('Error fetching dashboard stats:', err);
       setError('Could not load the latest stats.');
     } finally {
       setLoading(false);
@@ -920,7 +916,7 @@ function FeedbackSection() {
       const response = await fetch(`/api/admin/feedback?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch feedback');
       const data = await response.json();
-      setFeedback(data);
+      setFeedback(Array.isArray(data) ? data : data.items || []);
       setError('');
     } catch (err) {
       console.error('Error fetching feedback:', err);

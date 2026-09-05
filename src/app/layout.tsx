@@ -5,11 +5,9 @@ import { UserProvider } from '@/context/UserContext';
 import { CompletionProvider } from '@/context/CompletionContext';
 import { AdminProvider } from '@/context/AdminContext';
 import { LabsProvider } from '@/context/LabsContext';
-import CompletionChecker from '@/components/CompletionChecker';
-import ExpeditionBottomDock from '@/components/ExpeditionBottomDock';
-import FlyingCoinsOverlay from '@/components/FlyingCoinsOverlay';
-import VolumeControl from '@/components/VolumeControl';
 import { AudioProvider } from '@/context/AudioContext';
+import AppServiceWorker from '@/components/AppServiceWorker';
+import ExpeditionClientChrome from '@/components/ExpeditionClientChrome';
 import "./globals.css";
 
 // 1. Local Uncharted Game Font (Base 02) — single instance shared by both
@@ -24,18 +22,20 @@ const base02 = localFont({
 const caveat = Caveat({
   subsets: ['latin'],
   variable: '--font-handwriting',
-  weight: ['400', '600', '700'],
+  weight: ['600', '700'],
   display: 'swap',
 });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 const antonio = Antonio({
@@ -55,7 +55,7 @@ const imFell = IM_Fell_English({
 
 const cinzel = Cinzel({
   subsets: ['latin'],
-  weight: ['400', '600', '700', '800', '900'],
+  weight: ['700', '900'],
   variable: '--font-cinzel',
   display: 'swap',
 });
@@ -63,13 +63,15 @@ const cinzel = Cinzel({
 const cinzelDecorative = Cinzel_Decorative({
   variable: "--font-cinzel-decorative",
   subsets: ["latin"],
-  weight: ["700", "900"],
+  weight: ["700"],
+  display: 'swap',
 });
 
 const marcellus = Marcellus({
   variable: "--font-marcellus",
   subsets: ["latin"],
   weight: ["400"],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -123,16 +125,14 @@ export default function RootLayout({
       `}
     >
       <body className="bg-[#050302] text-[#2c1a0e] antialiased selection:bg-[#d4af37]/30 selection:text-[#1a0e05]">
+        <AppServiceWorker />
         <AudioProvider>
           <AdminProvider>
             <LabsProvider>
               <UserProvider>
                 <CompletionProvider>
-                  <VolumeControl />
                   {children}
-                  <CompletionChecker />
-                  <ExpeditionBottomDock />
-                  <FlyingCoinsOverlay />
+                  <ExpeditionClientChrome />
                 </CompletionProvider>
               </UserProvider>
             </LabsProvider>
