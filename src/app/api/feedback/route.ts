@@ -72,10 +72,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Normalised to lowercase so "A@x.com" and "a@x.com" are one explorer —
-    // otherwise the unique index lets the same person rate a product twice
-    // and they appear on the leaderboard as two people.
-    const studentEmail = asString(body?.studentEmail, 120).toLowerCase();
+    const studentEmail = asString(body?.studentEmail, 120);
     if (!studentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail)) {
       return NextResponse.json(
         { message: 'A valid student email is required.' },

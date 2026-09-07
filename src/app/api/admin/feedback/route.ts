@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const limit = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), 100) : 25;
 
     const paginated = await getPaginatedFeedback({
-      email: searchParams.get('email')?.toLowerCase() || undefined,
+      email: searchParams.get('email') || undefined,
       productId: searchParams.get('productId') || undefined,
       department: searchParams.get('department') || undefined,
       limit,

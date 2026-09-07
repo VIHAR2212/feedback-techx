@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     const email = searchParams.get('email');
     const productId = searchParams.get('productId');
     const department = searchParams.get('department');
-    if (email) query.studentEmail = email.toLowerCase();
+    if (email) query.studentEmail = email;
     if (productId) query.tableId = productId;
     if (department) query.studentDepartment = department;
 
