@@ -282,11 +282,7 @@ export default function LandingReveal() {
         }
       };
       img.onerror = () => {
-        if (img.src.endsWith(FRAME_SUFFIX)) {
-          img.src = frameSrc(i, FRAME_FALLBACK_SUFFIX);
-        } else {
-          resolve();
-        }
+        resolve();
       };
       img.src = frameSrc(i);
       images[i] = img;
