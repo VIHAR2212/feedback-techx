@@ -131,7 +131,7 @@ When seniors are ready to wire up a real database, no code changes are needed in
    - `MONGODB_URI` = your connection string
    - `DB_NAME` = `uncharted-expedition` (or whatever you like)
 4. Add `mongodb` to dependencies: `bun add mongodb` (locally, then commit & push — Vercel will pick it up).
-5. Restore `src/lib/mongodb.ts` from the original Minecraft project (or write a fresh client — there's a reference shape in `src/lib/services.mongodb.ts`).
+5. Configure `src/lib/mongodb.ts` client for your cluster.
 6. In `src/lib/services.ts`, replace each function body with the matching function from `src/lib/services.mongodb.ts`. Function signatures already match.
 7. Push to `main`. Vercel rebuilds and the live site is now backed by MongoDB.
 

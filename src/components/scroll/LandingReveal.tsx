@@ -12,10 +12,8 @@ import { getNetworkTier, getDeviceTier, isSaveDataEnabled } from '@/lib/network-
 
 const TOTAL_FRAMES = 120;
 const FRAME_PREFIX = '/frames/frame_';
-// WebP frames (downscaled by scripts/optimize-frames.mjs) are the primary
-// source; the original JPGs stay on disk as an onerror fallback.
+// WebP frames downscaled for smooth mobile & desktop scrub
 const FRAME_SUFFIX = '_delay-0.016s.webp';
-const FRAME_FALLBACK_SUFFIX = '_delay-0.016s.jpg';
 // Scroll distance the frame sequence plays out over, in viewport heights.
 const SCROLL_HEIGHT_VH = 400;
 

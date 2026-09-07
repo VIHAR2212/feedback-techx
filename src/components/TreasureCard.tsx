@@ -263,14 +263,6 @@ export default function TreasureCard({
       setSelectedCorrectId(product.id);
       setStatusMessage('✦ Discovery Verified! You solved the cipher on your first attempt.');
 
-      try {
-        const audio = new Audio('/sounds/achievement.mp3');
-        audio.volume = 0.6;
-        audio.play().catch(() => { });
-      } catch {
-        // audio muted
-      }
-
       // Persist relic reward
       if (!claimedRelic) {
         const charCodeSum = userEmail.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
