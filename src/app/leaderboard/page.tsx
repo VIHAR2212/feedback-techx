@@ -9,6 +9,10 @@ import UnchartedSignboardLeaderboard, {
 import BackButton from '@/components/BackButton';
 import { getNetworkTier, isSaveDataEnabled } from '@/lib/network-tier';
 
+// Leaderboard refresh interval, matched to the s-maxage on
+// /api/leaderboard so a poll lands just as the edge cache expires.
+const LEADERBOARD_POLL_MS = 5000;
+
 export default function PublicLeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [productStats, setProductStats] = useState<ProductStatsEntry[]>([]);
@@ -58,13 +62,19 @@ export default function PublicLeaderboardPage() {
     }
   }, []);
 
+  // Live event cadence. Safe at any audience size because /api/leaderboard
+  // is CDN-cached for the same 5 seconds: the edge answers these polls and
+  // only one request per interval reaches the database.
   useEffect(() => {
     fetchLeaderboard();
     fetchProductStats();
     const interval = setInterval(() => {
+      // Skip polling while the tab is hidden — a phone in someone's pocket
+      // should not keep firing requests for hours.
+      if (document.visibilityState !== 'visible') return;
       fetchLeaderboard();
       fetchProductStats();
-    }, 30000);
+    }, LEADERBOARD_POLL_MS);
     return () => clearInterval(interval);
   }, [fetchLeaderboard, fetchProductStats]);
 

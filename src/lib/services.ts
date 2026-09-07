@@ -4,11 +4,18 @@
 // unreachable — e.g. local dev without a mongod, or a transient outage —
 // every call transparently falls back to the in-memory store so the site
 // keeps working. Callers don't know or care which backend served them.
+//
+// Read paths that the event audience polls (leaderboard, product stats,
+// event stats) go through a short in-process cache with single-flight
+// de-duplication. Combined with the CDN cache headers on the route
+// handlers, a stampede of thousands of 5-second polls becomes roughly one
+// MongoDB query per interval.
 
 import { DuplicateFeedbackError } from './errors';
 import * as mongo from './mongo-services';
 import { memoryStore } from './mock-store';
 import { LAB_ORDER, getLabById, CLUE_POOL, TREASURE_POOL } from './mock-data';
+import { cached, invalidate, CacheKeys } from './cache';
 import {
   FeedbackEntry,
   ExpeditionUser,
@@ -21,6 +28,12 @@ export { DuplicateFeedbackError };
 export type { LeaderboardEntry };
 
 export type StoreBackend = 'mongodb' | 'memory';
+
+// Slightly under the client poll interval so a poll that misses the CDN
+// still tends to find a warm value rather than hitting Mongo.
+const LEADERBOARD_TTL_MS = 4_000;
+const PRODUCT_STATS_TTL_MS = 8_000;
+const EVENT_STATS_TTL_MS = 8_000;
 
 let warnedBackend: string | null = null;
 
@@ -38,6 +51,9 @@ async function withMongo<T>(op: () => Promise<T>): Promise<T | null> {
   try {
     return await op();
   } catch (err) {
+    // A duplicate is a real business outcome, not a backend failure — it
+    // must not silently re-route the write into the in-memory store.
+    if (err instanceof DuplicateFeedbackError) throw err;
     warnOnce('memory', err);
     return null;
   }
@@ -45,40 +61,66 @@ async function withMongo<T>(op: () => Promise<T>): Promise<T | null> {
 
 // ---------- Feedback ----------
 
+/**
+ * Submit one rating: writes the ledger row, updates the explorer's
+ * progress, and folds the rating into the per-product and event-wide
+ * counters — all from a single call so the counters can never be bumped
+ * twice for one idempotent replay.
+ */
+export async function submitFeedback(
+  feedback: Omit<FeedbackEntry, '_id' | 'createdAt'> & { createdAt?: Date }
+): Promise<{ entry: FeedbackEntry; created: boolean; user: ExpeditionUser }> {
+  const saved = await saveFeedback(feedback);
+
+  const user = await updateUserProgress(feedback.studentEmail, feedback.tableId, {
+    name: saved.entry.studentName,
+    department: saved.entry.studentDepartment,
+    rating: Number(saved.entry.rating) || 0,
+    // A replayed submissionId must not double-count towards the average.
+    countRating: saved.created,
+  });
+
+  if (saved.created) {
+    await withMongo(() => mongo.applyFeedbackCounters(saved.entry));
+    // The explorer expects to see their own submission on the next poll.
+    invalidate(CacheKeys.productStats);
+    invalidate(CacheKeys.eventStats);
+  }
+
+  return { ...saved, user };
+}
+
 export async function saveFeedback(
   feedback: Omit<FeedbackEntry, '_id' | 'createdAt'> & { createdAt?: Date }
-): Promise<FeedbackEntry> {
+): Promise<{ entry: FeedbackEntry; created: boolean }> {
   const saved = await withMongo(() => mongo.saveFeedback(feedback));
   if (saved) return saved;
 
   if (feedback.submissionId) {
-    const existing = memoryStore.feedback.find((f) => f.submissionId === feedback.submissionId);
-    if (existing) return existing;
+    const existing = memoryStore.feedback.find(
+      (f) => f.submissionId === feedback.submissionId
+    );
+    if (existing) return { entry: existing, created: false };
   }
 
-  const duplicate = memoryStore.feedback.some(
+  const duplicate = memoryStore.feedback.find(
     (f) => f.studentEmail === feedback.studentEmail && f.tableId === feedback.tableId
   );
-  if (duplicate) {
-    const existing = memoryStore.feedback.find(
-      (f) => f.studentEmail === feedback.studentEmail && f.tableId === feedback.tableId
-    );
-    if (existing && feedback.submissionId && existing.submissionId === feedback.submissionId) {
-      return existing;
-    }
-    throw new DuplicateFeedbackError();
-  }
+  if (duplicate) throw new DuplicateFeedbackError();
 
   const doc = { ...feedback, createdAt: feedback.createdAt ?? new Date() };
   memoryStore.feedback.push(doc);
-  return doc;
+  return { entry: doc, created: true };
 }
 
-export async function getFeedback(filters: {
-  email?: string;
-  productId?: string;
-  department?: string;
-} = {}): Promise<FeedbackEntry[]> {
+export async function getFeedback(
+  filters: {
+    email?: string;
+    productId?: string;
+    department?: string;
+    limit?: number;
+  } = {}
+): Promise<FeedbackEntry[]> {
   const result = await withMongo(() => mongo.getFeedback(filters));
   if (result) return result;
 
@@ -87,17 +129,18 @@ export async function getFeedback(filters: {
   if (filters.productId) out = out.filter((f) => f.tableId === filters.productId);
   if (filters.department) out = out.filter((f) => f.studentDepartment === filters.department);
   out.sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
-  return out;
+  return out.slice(0, Math.min(filters.limit ?? 5000, 20000));
 }
 
-export async function getPaginatedFeedback(filters: {
-  email?: string;
-  productId?: string;
-  department?: string;
-  limit?: number;
-  cursor?: string;
-  page?: number;
-} = {}): Promise<PaginatedFeedbackResult> {
+export async function getPaginatedFeedback(
+  filters: {
+    email?: string;
+    productId?: string;
+    department?: string;
+    limit?: number;
+    cursor?: string;
+  } = {}
+): Promise<PaginatedFeedbackResult> {
   const result = await withMongo(() => mongo.getPaginatedFeedback(filters));
   if (result) return result;
 
@@ -111,14 +154,11 @@ export async function getPaginatedFeedback(filters: {
     out = out.filter((f) => String(f.timestamp) < filters.cursor!);
   }
 
-  const limit = typeof filters.limit === 'number' && filters.limit > 0 ? filters.limit : 25;
-  const skip = filters.page && filters.page > 1 ? (filters.page - 1) * limit : 0;
-  if (skip > 0) {
-    out = out.slice(skip);
-  }
+  const limit = Math.min(Math.max(filters.limit ?? 25, 1), 100);
   const hasMore = out.length > limit;
   const items = hasMore ? out.slice(0, limit) : out;
-  const nextCursor = hasMore && items.length > 0 ? String(items[items.length - 1].timestamp) : null;
+  const nextCursor =
+    hasMore && items.length > 0 ? String(items[items.length - 1].timestamp) : null;
 
   return { items, nextCursor, hasMore, total: memoryStore.feedback.length };
 }
@@ -128,20 +168,22 @@ export async function getFeedbackStats(): Promise<{
   totalFeedback: number;
   averageRating: number;
 }> {
-  const stats = await withMongo(() => mongo.getFeedbackStats());
-  if (stats) return stats;
+  return cached(CacheKeys.eventStats, EVENT_STATS_TTL_MS, async () => {
+    const stats = await withMongo(() => mongo.getFeedbackStats());
+    if (stats) return stats;
 
-  const totalFeedback = memoryStore.feedback.length;
-  const uniqueEmails = new Set(memoryStore.feedback.map((f) => f.studentEmail));
-  const avg =
-    totalFeedback > 0
-      ? memoryStore.feedback.reduce((s, f) => s + f.rating, 0) / totalFeedback
-      : 0;
-  return {
-    totalUsers: uniqueEmails.size,
-    totalFeedback,
-    averageRating: Number(avg.toFixed(2)),
-  };
+    const totalFeedback = memoryStore.feedback.length;
+    const uniqueEmails = new Set(memoryStore.feedback.map((f) => f.studentEmail));
+    const avg =
+      totalFeedback > 0
+        ? memoryStore.feedback.reduce((s, f) => s + f.rating, 0) / totalFeedback
+        : 0;
+    return {
+      totalUsers: uniqueEmails.size,
+      totalFeedback,
+      averageRating: Number(avg.toFixed(2)),
+    };
+  });
 }
 
 // ---------- User / expedition progress ----------
@@ -170,7 +212,7 @@ function applyProgressRules(user: ExpeditionUser): void {
 export async function updateUserProgress(
   email: string,
   productId: string,
-  info?: { name?: string; department?: string }
+  info?: { name?: string; department?: string; rating?: number; countRating?: boolean }
 ): Promise<ExpeditionUser> {
   const updated = await withMongo(() => mongo.updateUserProgress(email, productId, info));
   if (updated) return updated;
@@ -181,15 +223,16 @@ export async function updateUserProgress(
       name: info?.name ?? '',
       email,
       department: info?.department ?? '',
-      completedProducts: [productId],
-      unlockedLabs: ['a'],
+      completedProducts: [],
+      unlockedLabs: [LAB_ORDER[0]],
       completedLabs: [],
       shards: [],
       discoveredClues: [],
       discoveredTreasures: [],
+      feedbackCount: 0,
+      ratingSum: 0,
     };
     memoryStore.users.set(email, user);
-    return user;
   }
 
   if (info?.name && !user.name) user.name = info.name;
@@ -197,20 +240,25 @@ export async function updateUserProgress(
   if (!user.completedProducts.includes(productId)) {
     user.completedProducts.push(productId);
   }
+  if (info?.countRating !== false) {
+    user.feedbackCount = (user.feedbackCount ?? 0) + 1;
+    user.ratingSum = (user.ratingSum ?? 0) + (Number(info?.rating) || 0);
+  }
   applyProgressRules(user);
+  user.completedCount = user.completedProducts.length;
+  user.isCompleted = user.shards.length >= LAB_ORDER.length;
   return user;
 }
 
-function rank(users: ExpeditionUser[], allFeedback: FeedbackEntry[]): LeaderboardEntry[] {
+function rank(users: ExpeditionUser[]): LeaderboardEntry[] {
   return users
     .map((user) => {
-      const feedback = allFeedback.filter((f) => f.studentEmail === user.email);
-      const totalRating = feedback.reduce((s, f) => s + f.rating, 0);
-      const averageRating = feedback.length > 0 ? totalRating / feedback.length : 0;
+      const count = user.feedbackCount ?? 0;
+      const totalRating = user.ratingSum ?? 0;
       return {
         ...user,
         totalRating,
-        averageRating,
+        averageRating: count > 0 ? Number((totalRating / count).toFixed(2)) : 0,
         isCompleted: user.shards.length >= LAB_ORDER.length,
       };
     })
@@ -222,45 +270,19 @@ function rank(users: ExpeditionUser[], allFeedback: FeedbackEntry[]): Leaderboar
     });
 }
 
-export async function getLeaderboard(limit?: number): Promise<LeaderboardEntry[]> {
-  const users = await withMongo(async () => mongo.getLeaderboardAggregated(limit));
-  if (users) return users;
+export async function getLeaderboard(limit = 50): Promise<LeaderboardEntry[]> {
+  const capped = Math.min(Math.max(limit, 1), 200);
 
-  const ranked = rank(
-    Array.from(memoryStore.users.values()),
-    memoryStore.feedback.slice()
-  );
-  return typeof limit === 'number' && limit > 0 ? ranked.slice(0, limit) : ranked;
+  return cached(CacheKeys.leaderboard(capped), LEADERBOARD_TTL_MS, async () => {
+    const users = await withMongo(() => mongo.getLeaderboardAggregated(capped));
+    if (users) return users;
+
+    return rank(Array.from(memoryStore.users.values())).slice(0, capped);
+  });
 }
 
-export async function getProductStats(): Promise<Array<{
-  productId: string;
-  productName: string;
-  labName: string;
-  totalRatings: number;
-  averageRating: number;
-  ratingDistribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
-  totalComments: number;
-  lastRated: string | null;
-}>> {
-  const { getProductLookup } = await import('./mock-store');
-  const productMap = getProductLookup();
-
-  const mongoStats = await withMongo(() => mongo.getProductStatsAggregated());
-  if (mongoStats) {
-    return mongoStats.map((st) => {
-      const info = productMap.get(st.productId);
-      return {
-        ...st,
-        productName: info?.name || st.productId,
-        labName: info?.labName || 'Expedition Sector',
-      };
-    });
-  }
-
-  // In-memory fallback calculation
-  const allFeedback = memoryStore.feedback;
-  const productStats = new Map<string, {
+export async function getProductStats(): Promise<
+  Array<{
     productId: string;
     productName: string;
     labName: string;
@@ -269,68 +291,105 @@ export async function getProductStats(): Promise<Array<{
     ratingDistribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
     totalComments: number;
     lastRated: string | null;
-  }>();
+  }>
+> {
+  return cached(CacheKeys.productStats, PRODUCT_STATS_TTL_MS, async () => {
+    const { getProductLookup } = await import('./mock-store');
+    const productMap = getProductLookup();
 
-  for (const feedback of allFeedback) {
-    const info = productMap.get(feedback.tableId);
-    if (!info) continue;
-    if (!productStats.has(feedback.tableId)) {
-      productStats.set(feedback.tableId, {
-        productId: feedback.tableId,
-        productName: info.name,
-        labName: info.labName,
-        totalRatings: 0,
-        averageRating: 0,
-        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-        totalComments: 0,
-        lastRated: null,
+    const mongoStats = await withMongo(() => mongo.getProductStatsAggregated());
+    if (mongoStats) {
+      return mongoStats.map((st) => {
+        const info = productMap.get(st.productId);
+        return {
+          ...st,
+          productName: info?.name || st.productId,
+          labName: info?.labName || 'Expedition Sector',
+        };
       });
     }
-    const stats = productStats.get(feedback.tableId)!;
-    stats.totalRatings++;
-    const tier = Math.max(1, Math.min(5, feedback.rating)) as 1 | 2 | 3 | 4 | 5;
-    stats.ratingDistribution[tier]++;
-    if (feedback.comment && feedback.comment.trim() !== '') {
-      stats.totalComments++;
-    }
-    const tsString =
-      typeof feedback.timestamp === 'string'
-        ? feedback.timestamp
-        : new Date(feedback.timestamp).toISOString();
-    if (!stats.lastRated || new Date(tsString) > new Date(stats.lastRated)) {
-      stats.lastRated = tsString;
-    }
-  }
 
-  for (const stats of productStats.values()) {
-    if (stats.totalRatings > 0) {
-      const sum =
-        stats.ratingDistribution[1] * 1 +
-        stats.ratingDistribution[2] * 2 +
-        stats.ratingDistribution[3] * 3 +
-        stats.ratingDistribution[4] * 4 +
-        stats.ratingDistribution[5] * 5;
-      stats.averageRating = Number((sum / stats.totalRatings).toFixed(2));
-    }
-  }
+    // In-memory fallback: recompute from the raw rows.
+    const productStats = new Map<
+      string,
+      {
+        productId: string;
+        productName: string;
+        labName: string;
+        totalRatings: number;
+        averageRating: number;
+        ratingDistribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
+        totalComments: number;
+        lastRated: string | null;
+      }
+    >();
 
-  return Array.from(productStats.values());
+    for (const feedback of memoryStore.feedback) {
+      const info = productMap.get(feedback.tableId);
+      if (!info) continue;
+      if (!productStats.has(feedback.tableId)) {
+        productStats.set(feedback.tableId, {
+          productId: feedback.tableId,
+          productName: info.name,
+          labName: info.labName,
+          totalRatings: 0,
+          averageRating: 0,
+          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          totalComments: 0,
+          lastRated: null,
+        });
+      }
+      const stats = productStats.get(feedback.tableId)!;
+      stats.totalRatings++;
+      const tier = Math.max(1, Math.min(5, feedback.rating)) as 1 | 2 | 3 | 4 | 5;
+      stats.ratingDistribution[tier]++;
+      if (feedback.comment && feedback.comment.trim() !== '') {
+        stats.totalComments++;
+      }
+      const tsString =
+        typeof feedback.timestamp === 'string'
+          ? feedback.timestamp
+          : new Date(feedback.timestamp).toISOString();
+      if (!stats.lastRated || new Date(tsString) > new Date(stats.lastRated)) {
+        stats.lastRated = tsString;
+      }
+    }
+
+    for (const stats of productStats.values()) {
+      if (stats.totalRatings > 0) {
+        const sum =
+          stats.ratingDistribution[1] * 1 +
+          stats.ratingDistribution[2] * 2 +
+          stats.ratingDistribution[3] * 3 +
+          stats.ratingDistribution[4] * 4 +
+          stats.ratingDistribution[5] * 5;
+        stats.averageRating = Number((sum / stats.totalRatings).toFixed(2));
+      }
+    }
+
+    return Array.from(productStats.values());
+  });
 }
 
 export async function getAdminDashboardData(): Promise<DashboardData> {
-  const [stats, leaderboard, productStats] = await Promise.all([
+  const [stats, leaderboard, productStats, completedUsers] = await Promise.all([
     getFeedbackStats(),
     getLeaderboard(20),
     getProductStats(),
+    // Counted with an indexed query rather than by filtering the top-20
+    // slice, which only ever saw 20 explorers out of thousands.
+    withMongo(() => mongo.getCompletedUserCount()),
   ]);
-
-  const completedUsers = leaderboard.filter((u) => u.isCompleted).length;
 
   return {
     stats: {
       totalUsers: stats.totalUsers,
       totalFeedback: stats.totalFeedback,
-      completedUsers,
+      completedUsers:
+        completedUsers ??
+        Array.from(memoryStore.users.values()).filter(
+          (u) => u.shards.length >= LAB_ORDER.length
+        ).length,
       averageRating: stats.averageRating,
     },
     leaderboard,
@@ -343,7 +402,7 @@ export async function getAdminDashboardData(): Promise<DashboardData> {
 // Random clue reveal — 50% chance to return a clue, 50% to return null.
 export async function rollForClue(
   labId: string
-): Promise<{ clue: typeof CLUE_POOL[number] | null }> {
+): Promise<{ clue: (typeof CLUE_POOL)[number] | null }> {
   const labClues = CLUE_POOL.filter((c) => c.labId === labId);
   const pool = labClues.length > 0 ? labClues : CLUE_POOL;
   const roll = Math.random();
@@ -354,7 +413,7 @@ export async function rollForClue(
 
 // Optional treasure hunt — always returns a treasure (some are duds).
 export async function rollForTreasure(): Promise<{
-  treasure: typeof TREASURE_POOL[number];
+  treasure: (typeof TREASURE_POOL)[number];
 }> {
   const idx = Math.floor(Math.random() * TREASURE_POOL.length);
   return { treasure: TREASURE_POOL[idx] };

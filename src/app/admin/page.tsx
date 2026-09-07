@@ -913,6 +913,9 @@ function FeedbackSection() {
       if (debouncedFilters.email) params.append('email', debouncedFilters.email);
       if (debouncedFilters.productId) params.append('productId', debouncedFilters.productId);
       if (debouncedFilters.department) params.append('department', debouncedFilters.department);
+      // Bounded: this panel shows the most recent activity, not the whole
+      // ledger. The full export lives at /api/admin/export.
+      params.append('limit', '50');
       const response = await fetch(`/api/admin/feedback?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch feedback');
       const data = await response.json();

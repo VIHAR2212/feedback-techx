@@ -99,6 +99,67 @@ export interface ExpeditionUser {
   discoveredTreasures: string[];
   completionDate?: string;
   isCompleted?: boolean;
+
+  // --- Denormalized leaderboard counters -------------------------------
+  // Maintained on every feedback write so ranking never needs a $lookup
+  // join against the feedback collection. See rankScore below.
+  feedbackCount?: number;
+  ratingSum?: number;
+  completedCount?: number;
+  rankScore?: number;
+  updatedAt?: Date | string;
+}
+
+/**
+ * Single sortable value encoding the full leaderboard ordering:
+ *   1. finished explorers first
+ *   2. then most products rated
+ *   3. then highest average rating
+ *
+ * Packing it into one number lets the leaderboard be a plain indexed
+ * `find().sort({ rankScore: -1 }).limit(n)` — an index scan of `n`
+ * documents — instead of an aggregation over every user and every feedback
+ * row. That is the difference between milliseconds and a timeout once the
+ * event has 20k explorers.
+ *
+ *   completedCount <= ~100        -> occupies the 1e4 decade
+ *   averageRating  in [0, 5] x100 -> occupies the units (0..500)
+ *   isCompleted                   -> dominates everything at 1e9
+ */
+export function computeRankScore(input: {
+  isCompleted: boolean;
+  completedCount: number;
+  averageRating: number;
+}): number {
+  const avg = Math.round(Math.max(0, Math.min(5, input.averageRating)) * 100);
+  return (input.isCompleted ? 1_000_000_000 : 0) + input.completedCount * 10_000 + avg;
+}
+
+/** One document per product (~26 rows). Counters only, `$inc`-maintained. */
+export interface ProductStatsDoc {
+  _id: string; // productId / tableId
+  labId?: string;
+  totalRatings: number;
+  ratingSum: number;
+  r1: number;
+  r2: number;
+  r3: number;
+  r4: number;
+  r5: number;
+  totalComments: number;
+  lastRated?: Date | string | null;
+}
+
+/**
+ * Exactly one document (`_id: "global"`). Replaces the old stats
+ * aggregation, which built a 20k-element `$addToSet` of every explorer
+ * email on each call just to count distinct users.
+ */
+export interface EventStatsDoc {
+  _id: string;
+  totalFeedback: number;
+  ratingSum: number;
+  totalUsers?: number;
 }
 
 export interface Clue {
