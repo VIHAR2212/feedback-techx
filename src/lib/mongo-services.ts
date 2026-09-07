@@ -159,20 +159,18 @@ export async function applyFeedbackCounters(entry: FeedbackEntry): Promise<void>
   const hasComment = Boolean(entry.comment && entry.comment.trim() !== '');
   const when = entry.createdAt ?? new Date();
 
-  const productInc: NonNullable<UpdateFilter<ProductStatsDoc>['$inc']> = {
+  const productInc: Record<string, number> = {
     totalRatings: 1,
     ratingSum: rating,
     totalComments: hasComment ? 1 : 0,
   };
-  // The distribution bucket is chosen at runtime; `tier` is already clamped
-  // to 1..5, so the key is always one of r1..r5.
-  productInc[`r${tier}` as 'r1'] = 1;
+  productInc[`r${tier}`] = 1;
 
   await Promise.all([
     db.collection<ProductStatsDoc>(PRODUCT_STATS_COLLECTION).updateOne(
       { _id: entry.tableId },
       {
-        $inc: productInc,
+        $inc: productInc as NonNullable<UpdateFilter<ProductStatsDoc>['$inc']>,
         $max: { lastRated: when },
         $setOnInsert: { labId: entry.labId ?? undefined },
       },
