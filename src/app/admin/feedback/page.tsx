@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/context/AdminContext';
 import AdminRouteGuard from '@/components/uncharted/AdminRouteGuard';
 import { GEMSTONE_TIERS } from '@/lib/models';
-import { csvCell } from '@/lib/utils';
 
 interface FeedbackEntry {
   studentName: string;
@@ -18,11 +17,18 @@ interface FeedbackEntry {
   timestamp: string;
 }
 
+// Rows fetched per request. The ledger is keyset-paginated so this stays
+// constant no matter how deep an organiser scrolls.
+const PAGE_SIZE = 50;
+
 export default function AdminFeedbackPage() {
   const { logout } = useAdmin();
   const router = useRouter();
   const [feedback, setFeedback] = useState<FeedbackEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({
     email: '',
@@ -38,28 +44,65 @@ export default function AdminFeedbackPage() {
     return () => clearTimeout(timer);
   }, [filters]);
 
+  // Build the query string for the ledger endpoint. `cursor` is a keyset
+  // marker (the timestamp of the last row already shown), not a page number.
+  const buildParams = useCallback(
+    (cursor?: string | null) => {
+      const params = new URLSearchParams();
+      if (debouncedFilters.email) params.append('email', debouncedFilters.email);
+      if (debouncedFilters.productId) params.append('productId', debouncedFilters.productId);
+      if (debouncedFilters.department) params.append('department', debouncedFilters.department);
+      params.append('limit', String(PAGE_SIZE));
+      if (cursor) params.append('cursor', cursor);
+      return params;
+    },
+    [debouncedFilters]
+  );
+
   useEffect(() => {
+    let cancelled = false;
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const params = new URLSearchParams();
-        if (debouncedFilters.email) params.append('email', debouncedFilters.email);
-        if (debouncedFilters.productId) params.append('productId', debouncedFilters.productId);
-        if (debouncedFilters.department) params.append('department', debouncedFilters.department);
-        const response = await fetch(`/api/admin/feedback?${params.toString()}`);
+        const response = await fetch(`/api/admin/feedback?${buildParams().toString()}`);
         if (!response.ok) throw new Error('Failed to fetch feedback');
         const data = await response.json();
-        setFeedback(Array.isArray(data) ? data : (data.data || data.items || []));
+        if (cancelled) return;
+        setFeedback(data.items ?? []);
+        setNextCursor(data.nextCursor ?? null);
+        setHasMore(Boolean(data.hasMore));
         setError('');
       } catch (err) {
+        if (cancelled) return;
         console.error('Error fetching feedback:', err);
         setError('Failed to load feedback');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
     fetchData();
-  }, [debouncedFilters]);
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedFilters, buildParams]);
+
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const response = await fetch(`/api/admin/feedback?${buildParams(nextCursor).toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch feedback');
+      const data = await response.json();
+      setFeedback((prev) => [...prev, ...(data.items ?? [])]);
+      setNextCursor(data.nextCursor ?? null);
+      setHasMore(Boolean(data.hasMore));
+    } catch (err) {
+      console.error('Error loading more feedback:', err);
+      setError('Failed to load more feedback');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [nextCursor, isLoadingMore, buildParams]);
 
   const handleLogout = () => {
     logout();
@@ -74,31 +117,15 @@ export default function AdminFeedbackPage() {
     setFilters({ email: '', productId: '', department: '' });
   };
 
+  // Exports the FULL filtered ledger, not just the rows currently loaded in
+  // the table. The server streams it straight off a Mongo cursor, so this
+  // works at 100k+ rows where building the CSV in the browser would not.
   const exportFeedback = () => {
-    const csv = [
-      ['Name', 'Email', 'Department', 'Product ID', 'Gemstone', 'Comment', 'Timestamp'],
-      ...feedback.map((f) => {
-        const gem = GEMSTONE_TIERS.find((t) => t.tier === f.rating)?.name ?? String(f.rating);
-        return [
-          f.studentName,
-          f.studentEmail,
-          f.studentDepartment,
-          f.tableId,
-          gem,
-          f.comment,
-          f.timestamp,
-        ];
-      }),
-    ]
-      .map((row) => row.map(csvCell).join(','))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `uncharted-feedback-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const params = new URLSearchParams();
+    if (debouncedFilters.email) params.append('email', debouncedFilters.email);
+    if (debouncedFilters.productId) params.append('productId', debouncedFilters.productId);
+    if (debouncedFilters.department) params.append('department', debouncedFilters.department);
+    window.location.href = `/api/admin/export?${params.toString()}`;
   };
 
   return (
@@ -311,6 +338,22 @@ export default function AdminFeedbackPage() {
                   </tbody>
                 </table>
               </div>
+
+              {hasMore && (
+                <div className="flex items-center justify-center border-t border-slate-800/80 px-4 py-3">
+                  <button
+                    onClick={loadMore}
+                    disabled={isLoadingMore}
+                    className="rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {isLoadingMore ? 'Loading…' : `Load ${PAGE_SIZE} more`}
+                  </button>
+                </div>
+              )}
+              <p className="px-4 pb-3 text-center text-[10px] text-slate-500">
+                Showing {feedback.length} entr{feedback.length === 1 ? 'y' : 'ies'}
+                {hasMore ? ' — use Export CSV for the complete ledger.' : '.'}
+              </p>
             </div>
           )}
         </div>

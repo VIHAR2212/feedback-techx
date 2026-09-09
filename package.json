@@ -6,7 +6,9 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "db:setup": "node scripts/setup-db.mjs",
+    "db:reset-demo": "node scripts/setup-db.mjs --drop-demo"
   },
   "dependencies": {
     "clsx": "^2.1.1",

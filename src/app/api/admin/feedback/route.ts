@@ -1,37 +1,37 @@
 import { NextResponse } from 'next/server';
-import { getFeedback, getPaginatedFeedback } from '@/lib/services';
+import { getPaginatedFeedback } from '@/lib/services';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
+// GET /api/admin/feedback — the observation ledger, always paginated.
+//
+// The old unpaginated branch (no limit/cursor query params) returned every
+// feedback row in the database. That is fine against seed data and fatal
+// against a live event: hundreds of thousands of documents streamed into a
+// lambda. Pagination is now mandatory, and it is keyset-based — `skip` made
+// Mongo walk and discard every document before the requested page.
+//
+// CSV export should walk the cursor (follow `nextCursor` until `hasMore` is
+// false) rather than asking for everything at once.
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const userEmail = searchParams.get('email');
-    const productId = searchParams.get('productId');
-    const department = searchParams.get('department');
-    const limitParam = searchParams.get('limit');
-    const cursor = searchParams.get('cursor') || undefined;
-    const pageParam = searchParams.get('page');
+    const parsed = parseInt(searchParams.get('limit') ?? '', 10);
+    const limit = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), 100) : 25;
 
-    if (limitParam || cursor || pageParam) {
-      const limit = Math.min(100, Math.max(1, parseInt(limitParam || '25', 10) || 25));
-      const page = pageParam ? Math.max(1, parseInt(pageParam, 10) || 1) : undefined;
-      const paginated = await getPaginatedFeedback({
-        email: userEmail || undefined,
-        productId: productId || undefined,
-        department: department || undefined,
-        limit,
-        cursor,
-        page,
-      });
-      return NextResponse.json(paginated);
-    }
+    const paginated = await getPaginatedFeedback({
+      email: searchParams.get('email') || undefined,
+      productId: searchParams.get('productId') || undefined,
+      department: searchParams.get('department') || undefined,
+      limit,
+      cursor: searchParams.get('cursor') || undefined,
+    });
 
-    const filters = {
-      email: userEmail || undefined,
-      productId: productId || undefined,
-      department: department || undefined,
-    };
-    const feedback = await getFeedback(filters);
-    return NextResponse.json(feedback);
+    return NextResponse.json(paginated, {
+      headers: { 'Cache-Control': 'private, no-store' },
+    });
   } catch (error) {
     console.error('Error fetching feedback:', error);
     return NextResponse.json({ error: 'Failed to fetch feedback' }, { status: 500 });

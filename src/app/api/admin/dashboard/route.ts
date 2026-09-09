@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getAdminDashboardData } from '@/lib/services';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
 // GET /api/admin/dashboard — combined administrative overview endpoint.
 // Returns core metrics, recent feedback slice, top explorers, and product stats in a single payload
 // to minimize mobile RTT on slow/high-latency networks.
